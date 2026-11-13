@@ -1,0 +1,73 @@
+# SpendSight backend
+
+Python FastAPI service. It reads the Junction 2026 S-Pankki files when the process starts and answers from that data.
+
+The interactive reference is [https://127.0.0.1:8000/docs](https://127.0.0.1:8000/docs). The certificate is local and self-signed, so the browser warns once. Continue past that warning.
+
+## Run
+
+From `backend/`:
+
+```bash
+.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 \
+  --ssl-certfile .cache/certs/localhost.crt \
+  --ssl-keyfile .cache/certs/localhost.key
+```
+
+The process listens on this computer only. `127.0.0.1` from a phone or the Android emulator is that other device, not this Mac.
+
+## Data
+
+Loaded at startup from `Junction-2026-S-Pankki/`:
+
+| File | What it holds |
+| --- | --- |
+| `tx_customers_junction.csv` | 5,100 customers: id, postal code, age |
+| `tx_junction_transactions.csv` | 3,626,755 transactions, 2024-10-01 through 2026-09-30 |
+| `mtg_tx_customer_link_and_final_mtg_infio.csv` | 200 mortgage applications and the final decision |
+| `mtg_negotiation_history.csv` | Negotiation events for those applications |
+
+Transactions are indexed in `backend/.cache/junction.sqlite`. A later start opens that file when it is newer than the CSV. Amounts in responses are integer cents. A display string such as `€4,723.58` uses a unicode minus for negative values.
+
+`/today`, `/spending`, and `/save` use the first customer, **CUST00001**. Every other customer is under `/customers/{customer_id}`.
+
+`POST /coach/ask` is a separate call. It answers from the design sample, not from these transactions.
+
+## Database
+
+`GET /database` returns the whole index: customer count, mortgage counts by decision, transaction count, first and last date, category totals, and transaction-type totals.
+
+`GET /junction/status` is the same dataset with the index path and a note that a mortgage decision here is not the design sample's outcome.
+
+## Customers
+
+`GET /junction/customers?limit=50&offset=0&postal_code=&q=` lists customers. `limit` is 1–200. `q` matches the customer id.
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| GET | `/customers/{customer_id}` | Balance, dates, transaction count, and links |
+| GET | `/customers/{customer_id}/today` | Latest balance, latest salary, and the latest month |
+| GET | `/customers/{customer_id}/spending?month=YYYY-MM` | That month's categories and payments. Omit `month` for the latest month |
+| GET | `/customers/{customer_id}/save?years=1\|3\|5` | Recorded investment deposits in that window. Nothing is moved |
+| GET | `/customers/{customer_id}/months` | Every month, with money in and money out |
+| GET | `/junction/customers/{customer_id}` | Postal code, age, and mortgage link if one exists |
+| GET | `/junction/customers/{customer_id}/transactions` | Raw transactions. `limit` 1–200, plus `offset`, `category`, `date_from`, `date_to` |
+
+Unknown customer ids return 404. A `month` the customer does not have returns 400. `years` other than 1, 3, or 5 returns 400.
+
+CUST00001 is age 63, postal code 00990, account `ACC000001`, 581 transactions, balance €4,723.58 on 2026-09-30. CUST00002 is account `ACC000002`, balance €1,539.16 on the same date, with no investment deposits.
+
+## Mortgages
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| GET | `/junction/mortgages?decision=&limit=&offset=` | Applications. `decision` filters the final decision |
+| GET | `/junction/mortgages/{mortgage_customer_id}` | One application and its events |
+
+`/loan/sketch` is arithmetic on a price and rate. It does not read these files and it does not approve a loan.
+
+## Coach
+
+`POST /coach/ask` with `{ "text": "..." }`. A customer id in the body is ignored. The card is the design sample. Refusals carry no ledger amounts.
+
+`GET /thread`, `DELETE /thread`, and `GET /audit` are that coach session. The audit stores the intent, the tool, the time, and the account. It does not store the question.

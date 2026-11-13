@@ -12,9 +12,10 @@ from app.money import eur
 
 
 class CustomerBook:
-    def __init__(self, customer: dict, mortgage: dict | None, rows: list[dict]) -> None:
+    def __init__(self, customer: dict, mortgage: dict | None, rows: list[dict], *, primary: bool = False) -> None:
         if not rows:
-            raise RuntimeError(f"{customer['customer_id']} has no transactions")
+            raise LookupError(customer["customer_id"])
+        self.primary = primary
         self.customer_id = customer["customer_id"]
         self.postal_code = customer["postal_code"]
         self.age = customer["age"]
@@ -51,11 +52,22 @@ class CustomerBook:
             "balance": eur(self.balance_cents),
             "transaction_count": len(self.rows),
             "coach": "POST /coach/ask",
-            "reads": {"today": "/today", "spending": "/spending", "save": "/save"},
+            "reads": self.links(),
             "note": (
                 "This session is the first customer in the database. "
-                "Today, Spending, and Save are counted from their transactions."
+                "Pass a customer id to /customers/{customer_id} for anyone else."
             ),
+        }
+
+    def links(self) -> dict:
+        customer_id = self.customer_id
+        return {
+            "summary": f"/customers/{customer_id}",
+            "today": f"/customers/{customer_id}/today",
+            "spending": f"/customers/{customer_id}/spending",
+            "save": f"/customers/{customer_id}/save",
+            "months": f"/customers/{customer_id}/months",
+            "transactions": f"/junction/customers/{customer_id}/transactions",
         }
 
     def today_view(self) -> dict:
@@ -75,7 +87,36 @@ class CustomerBook:
             "month_out_cents": _outflow(month_rows),
             "transaction_count": len(self.rows),
             "first_date": self.first_date,
-            "note": "First customer in the database. The balance is after their latest transaction.",
+            "note": "The balance is after their latest transaction.",
+        }
+
+    def summary_view(self) -> dict:
+        return {
+            **self.identity(),
+            "as_of": self.last_date,
+            "first_date": self.first_date,
+            "balance_cents": self.balance_cents,
+            "balance": eur(self.balance_cents),
+            "transaction_count": len(self.rows),
+            "latest_month": self.latest_month,
+            "reads": self.links(),
+        }
+
+    def months_view(self) -> dict:
+        months = []
+        for month, rows in self.months.items():
+            months.append(
+                {
+                    "month": month,
+                    "count": len(rows),
+                    "in_cents": _inflow(rows),
+                    "out_cents": _outflow(rows),
+                }
+            )
+        return {
+            "customer_id": self.customer_id,
+            "account_id": self.account_id,
+            "months": months,
         }
 
     def spending_view(self, month: str | None) -> dict:
@@ -117,7 +158,7 @@ class CustomerBook:
             "latest_deposit_date": None if latest is None else latest["tx_date"],
             "balance_cents": self.balance_cents,
             "note": (
-                "Recorded investment deposits for the first customer. "
+                "Recorded investment deposits for this customer. "
                 "This is not a forecast, and it does not move money."
             ),
         }

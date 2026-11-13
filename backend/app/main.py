@@ -1,7 +1,8 @@
 """SpendSight HTTP API.
 
-Today, Spending, and Save return the first customer in the Junction
-database. The coach call is separate and still answers from the design sample.
+Today, Spending, and Save without an id return the first customer in the
+Junction database. /customers/{customer_id} reads any customer. The coach
+call is separate and still answers from the design sample.
 """
 
 from __future__ import annotations
@@ -22,9 +23,24 @@ def _clamp(limit: int) -> int:
 router = APIRouter()
 
 
+API_DESCRIPTION = """
+The service reads the Junction 2026 S-Pankki files when it starts: 5,100 customers,
+200 mortgage applications, their negotiation events, and 3,626,755 transactions.
+
+`/today`, `/spending`, and `/save` are the first customer, CUST00001.
+Add the customer id for anyone else, for example `/customers/CUST00002/today`.
+
+Money fields named `*_cents` are integer cents. Display strings use `€` and a
+unicode minus. The coach at `POST /coach/ask` answers from the design sample,
+not from these transactions.
+
+Interactive reference: `/docs`. Written reference: `backend/API.md`.
+"""
+
+
 def create_app() -> FastAPI:
     """Build the app after the Junction CSVs and the transaction index are in memory."""
-    app = FastAPI(title="SpendSight", version="0.1.0")
+    app = FastAPI(title="SpendSight", version="0.1.0", description=API_DESCRIPTION)
     app.state.session = Session()
     app.state.junction = JunctionLibrary()
     app.include_router(router)
@@ -86,6 +102,59 @@ def save(request: Request, years: int = 5) -> dict:
     if years not in {1, 3, 5}:
         raise HTTPException(status_code=400, detail="years is 1, 3, or 5")
     return _junction(request).primary.save_view(years)
+
+
+def _book(request: Request, customer_id: str):
+    try:
+        return _junction(request).book(customer_id)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="No customer with that id") from None
+    except LookupError:
+        raise HTTPException(status_code=404, detail="That customer has no transactions") from None
+
+
+@router.get("/database", tags=["Database"])
+def database(request: Request) -> dict:
+    """Counts, dates, categories, and transaction types for the whole index."""
+    return _junction(request).database_view()
+
+
+@router.get("/customers/{customer_id}", tags=["Customers"])
+def customer_summary(customer_id: str, request: Request) -> dict:
+    """Balance, dates, and links for one customer."""
+    return _book(request, customer_id).summary_view()
+
+
+@router.get("/customers/{customer_id}/today", tags=["Customers"])
+def customer_today(customer_id: str, request: Request) -> dict:
+    """Latest balance, latest salary, and the latest month for one customer."""
+    return _book(request, customer_id).today_view()
+
+
+@router.get("/customers/{customer_id}/spending", tags=["Customers"])
+def customer_spending(customer_id: str, request: Request, month: str | None = None) -> dict:
+    """One month of payments. `month` is YYYY-MM. The default is that customer's latest month."""
+    try:
+        return _book(request, customer_id).spending_view(month)
+    except KeyError:
+        raise HTTPException(
+            status_code=400,
+            detail="month is YYYY-MM for a month this customer has",
+        ) from None
+
+
+@router.get("/customers/{customer_id}/save", tags=["Customers"])
+def customer_save(customer_id: str, request: Request, years: int = 5) -> dict:
+    """Recorded investment deposits over 1, 3, or 5 years. This does not move money."""
+    if years not in {1, 3, 5}:
+        raise HTTPException(status_code=400, detail="years is 1, 3, or 5")
+    return _book(request, customer_id).save_view(years)
+
+
+@router.get("/customers/{customer_id}/months", tags=["Customers"])
+def customer_months(customer_id: str, request: Request) -> dict:
+    """Every month this customer has, with money in and money out."""
+    return _book(request, customer_id).months_view()
 
 
 @router.get("/settings/effort")

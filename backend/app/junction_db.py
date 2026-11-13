@@ -124,11 +124,54 @@ class JunctionLibrary:
         if not self.customers:
             raise RuntimeError("The customer file has no rows")
         first = self.customers[0]
+        self._books: dict[str, CustomerBook] = {}
         self.primary = CustomerBook(
             first,
             self.mortgage_by_customer.get(first["customer_id"]),
             _transactions_for(first["customer_id"]),
+            primary=True,
         )
+        self._books[first["customer_id"]] = self.primary
+
+    def book(self, customer_id: str) -> CustomerBook:
+        """Load one customer's transactions from the index. The first customer is already loaded."""
+        cached = self._books.get(customer_id)
+        if cached is not None:
+            return cached
+        customer = self.customers_by_id.get(customer_id)
+        if customer is None:
+            raise KeyError(customer_id)
+        loaded = CustomerBook(
+            customer,
+            self.mortgage_by_customer.get(customer_id),
+            _transactions_for(customer_id),
+        )
+        self._books[customer_id] = loaded
+        return loaded
+
+    def database_view(self) -> dict:
+        index = self.transactions
+        decisions: dict[str, int] = {}
+        for row in self.mortgages:
+            key = row["final_decision"] or "unknown"
+            decisions[key] = decisions.get(key, 0) + 1
+        return {
+            "customers": len(self.customers),
+            "mortgage_applications": len(self.mortgages),
+            "negotiation_events": sum(len(rows) for rows in self.events_by_id.values()),
+            "mortgage_decisions": decisions,
+            "transactions": index.get("rows"),
+            "first_date": index.get("first_date"),
+            "last_date": index.get("last_date"),
+            "categories": index.get("categories"),
+            "transaction_types": transaction_type_totals(),
+            "default_customer_id": self.primary.customer_id,
+            "note": (
+                "Junction challenge data, loaded when the service starts. "
+                "Today, Spending, and Save without an id use the first customer. "
+                "Use /customers/{customer_id} for any other customer."
+            ),
+        }
 
     @staticmethod
     def _mortgage(row: dict[str, str]) -> dict:
@@ -258,6 +301,37 @@ def _category_totals(path: Path) -> list[dict]:
     finally:
         con.close()
     return [{"category": name, "n": count, "amount_cents": cents} for name, count, cents in found]
+
+
+_TYPE_ROWS: list[dict] | None = None
+_TYPE_MTIME: float | None = None
+
+
+def transaction_type_totals() -> list[dict]:
+    """Count each transaction type once per index file, then reuse the result."""
+    global _TYPE_ROWS, _TYPE_MTIME
+    path = transaction_db_path()
+    mtime = path.stat().st_mtime
+    if _TYPE_ROWS is not None and _TYPE_MTIME == mtime:
+        return _TYPE_ROWS
+    con = _ro(path)
+    try:
+        found = con.execute(
+            """
+            SELECT transaction_type, COUNT(*), SUM(amount_cents)
+            FROM transactions
+            GROUP BY transaction_type
+            ORDER BY COUNT(*) DESC
+            """
+        ).fetchall()
+    finally:
+        con.close()
+    _TYPE_ROWS = [
+        {"transaction_type": name, "count": count, "amount_cents": cents}
+        for name, count, cents in found
+    ]
+    _TYPE_MTIME = mtime
+    return _TYPE_ROWS
 
 
 def _transactions_for(customer_id: str) -> list[dict]:
