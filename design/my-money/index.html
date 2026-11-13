@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>My money · S-mobiili design</title>
+<style>
+  :root {
+    --green: #00AA46;
+    --green-press: #008F3C;
+    --deep: #002616;
+    --ink: #042117;
+    --secondary: #4A5E54;
+    --tertiary: #7A8B82;
+    --bg: #F3F6F4;
+    --card: #fff;
+    --line: rgba(4, 33, 23, 0.1);
+    --slip: #C26A3A;
+    --gold: #C4A15A;
+    --fill: #E7EEEA;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    overflow: hidden;
+    background: #E6ECE8;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  #list {
+    overflow: auto;
+    background: rgba(255, 255, 255, 0.86);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-right: 1px solid var(--line);
+    padding: 22px 12px 40px;
+  }
+  #list h1 { margin: 4px 10px 0; font-size: 22px; letter-spacing: -0.022em; line-height: 1.15; }
+  #list .lede { margin: 8px 10px 14px; color: var(--secondary); font-size: 13px; line-height: 1.4; }
+  #list h2 {
+    margin: 18px 10px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--tertiary);
+  }
+  #list button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    background: transparent;
+    padding: 8px 10px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 15px;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  #list button.on { background: #E5F6EB; color: var(--deep); font-weight: 600; }
+  #list button:active { transform: scale(0.98); }
+  .shell { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+  .shell-bar { padding: 14px 22px 0; }
+  .caption { margin: 0; color: var(--secondary); font-size: 14px; line-height: 1.35; max-width: 640px; }
+  .fit { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 12px; }
+  .scaler { position: relative; }
+  .device {
+    width: 390px;
+    height: 844px;
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: top left;
+    background: var(--bg);
+    border-radius: 44px;
+    overflow: hidden;
+    box-shadow: 0 24px 60px rgba(4, 33, 23, 0.18);
+    color: var(--ink);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .stage { position: absolute; inset: 0; transform-origin: 50% 18%; }
+  .layers { position: absolute; inset: 0 0 84px 0; overflow: hidden; }
+  .layer { position: absolute; inset: 0; background: var(--bg); }
+  .layer.under { pointer-events: none; }
+  .layer.over { box-shadow: -10px 0 28px rgba(4, 33, 23, 0.12); }
+  .edge { position: absolute; left: 0; top: 100px; bottom: 84px; width: 22px; z-index: 4; touch-action: none; }
+  .screen { position: absolute; inset: 0; }
+  .scroll { position: absolute; inset: 0; overflow: auto; padding: 108px 20px 28px; }
+  .scroll.pad-composer { padding-bottom: 196px; }
+  .nav {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 2;
+    height: 98px;
+    background: rgba(243, 246, 244, 0.78);
+    backdrop-filter: blur(22px) saturate(180%);
+    -webkit-backdrop-filter: blur(22px) saturate(180%);
+  }
+  .nav::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -18px; height: 18px;
+    background: linear-gradient(rgba(243, 246, 244, 0.78), transparent);
+    pointer-events: none;
+  }
+  .status {
+    height: 54px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 24px 6px;
+    font-size: 16px;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+  }
+  .status-glyphs { display: flex; align-items: center; gap: 6px; }
+  .status-glyphs svg { display: block; }
+  .nav-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    height: 44px;
+    padding: 0 8px;
+  }
+  .nav-title { text-align: center; font-size: 17px; font-weight: 650; letter-spacing: -0.012em; }
+  .icon-btn, .avatar {
+    width: 44px; height: 44px;
+    border: 0; border-radius: 22px;
+    background: transparent;
+    color: var(--green);
+    display: grid; place-items: center;
+    padding: 0; cursor: pointer; font: inherit;
+  }
+  .avatar {
+    width: 32px; height: 32px; margin-left: 6px;
+    border-radius: 16px;
+    background: var(--deep);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 650;
+  }
+  .tabbar {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    height: 84px;
+    display: flex;
+    padding: 6px 6px 22px;
+    z-index: 3;
+    background: #F3F6F4;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+  .tabbar::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: -16px; height: 16px;
+    background: linear-gradient(transparent, #F3F6F4);
+    pointer-events: none;
+  }
+  .tab {
+    flex: 1;
+    border: 0;
+    background: transparent;
+    color: var(--tertiary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    padding: 0;
+  }
+  .tab svg { width: 24px; height: 24px; }
+  .tab.on { color: var(--green); }
+  .home-ind {
+    position: absolute;
+    left: 50%; bottom: 8px;
+    width: 134px; height: 5px;
+    transform: translateX(-50%);
+    border-radius: 3px;
+    background: var(--deep);
+    z-index: 9;
+    pointer-events: none;
+  }
+  .eyebrow { margin: 6px 4px 2px; font-size: 13px; font-weight: 650; color: var(--secondary); }
+  .hero {
+    margin: 0 4px;
+    font-size: 52px;
+    line-height: 1.02;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .lede { margin: 8px 4px 0; font-size: 16px; line-height: 1.35; color: var(--secondary); text-wrap: pretty; }
+  .section { margin: 22px 4px 8px; font-size: 13px; font-weight: 650; color: var(--secondary); }
+  .card {
+    background: var(--card);
+    border-radius: 20px;
+    padding: 16px;
+    margin-top: 12px;
+    box-shadow: 0 1px 2px rgba(4, 33, 23, 0.04), 0 10px 28px rgba(4, 33, 23, 0.05);
+  }
+  button.card {
+    width: 100%;
+    display: block;
+    text-align: left;
+    border: 0;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+  }
+  .split { display: flex; gap: 12px; }
+  .split div { flex: 1; min-width: 0; }
+  .split small, .quiet { display: block; color: var(--secondary); font-size: 13px; line-height: 1.35; }
+  .split b {
+    display: block;
+    margin-top: 2px;
+    font-size: 20px;
+    letter-spacing: -0.022em;
+    font-variant-numeric: tabular-nums;
+  }
+  .trio { display: flex; gap: 8px; margin-top: 10px; }
+  .trio button {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px 8px;
+    box-shadow: 0 1px 2px rgba(4, 33, 23, 0.04), 0 8px 20px rgba(4, 33, 23, 0.05);
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+  }
+  .trio b {
+    display: block;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+  .trio small { display: block; margin-top: 2px; color: var(--secondary); font-size: 12px; line-height: 1.25; }
+  .seg { display: flex; background: rgba(4, 33, 23, 0.06); border-radius: 10px; padding: 2px; margin-top: 12px; }
+  .seg button {
+    flex: 1;
+    height: 32px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 650;
+    color: var(--secondary);
+    cursor: pointer;
+  }
+  .seg button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08); }
+  .stack { display: flex; height: 12px; border-radius: 6px; overflow: hidden; background: var(--fill); }
+  .stack i { display: block; height: 100%; }
+  .legend { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .legend div { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+  .legend i { width: 8px; height: 8px; border-radius: 4px; flex: none; }
+  .legend span { flex: 1; min-width: 0; }
+  .legend b { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+  .legend small { display: block; color: var(--secondary); font-size: 12px; font-weight: 400; }
+  .rows { background: #fff; border-radius: 16px; overflow: hidden; margin-top: 12px; box-shadow: 0 1px 2px rgba(4, 33, 23, 0.04); }
+  .row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 0;
+    background: #fff;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+  }
+  .row + .row { box-shadow: inset 0 1px 0 var(--line); }
+  .dot { width: 8px; height: 8px; border-radius: 4px; background: #D5DDD8; flex: none; }
+  .dot.on { background: var(--green); }
+  .name { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+  .name b { font-weight: 650; font-size: 16px; letter-spacing: -0.014em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .name small { color: var(--secondary); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .amt { flex: none; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .chev { color: #C5D0CA; font-size: 20px; font-weight: 500; flex: none; }
+  .text-btn {
+    border: 0; background: transparent; color: var(--green);
+    font: inherit; font-size: 16px; font-weight: 650;
+    padding: 10px 4px; cursor: pointer;
+  }
+  .primary {
+    width: 100%;
+    height: 50px;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--green);
+    color: #fff;
+    font: inherit;
+    font-size: 17px;
+    font-weight: 650;
+    cursor: pointer;
+  }
+  .primary:active { background: var(--green-press); }
+  .device button:active { transform: scale(0.97); }
+  .seg button:active, .tab:active, .switch:active { transform: none; }
+  .suggest {
+    background: var(--green);
+    color: #fff;
+    border-radius: 20px;
+    padding: 16px 16px 14px;
+    margin-top: 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 10px 24px rgba(0, 170, 70, 0.22);
+  }
+  button.suggest {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    font: inherit;
+    color: #fff;
+    cursor: pointer;
+  }
+  button.suggest:active { background: var(--green-press); }
+  .suggest .eyebrow, .suggest .quiet { color: rgba(255, 255, 255, 0.82); }
+  .suggest .hero { font-size: 34px; }
+  .suggest p { margin: 8px 0 0; font-size: 15px; line-height: 1.35; }
+  .switch {
+    width: 100%;
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 0;
+    border-radius: 16px;
+    background: #fff;
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(4, 33, 23, 0.04);
+  }
+  .switch-track {
+    width: 51px; height: 31px; border-radius: 16px; background: #E5E5EA;
+    padding: 2px; flex: none; display: flex; align-items: center;
+  }
+  .switch.on .switch-track { background: var(--green); }
+  .switch-thumb {
+    width: 27px; height: 27px; border-radius: 14px; background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transform: translateX(0);
+    transition: transform 200ms cubic-bezier(.2, .8, .2, 1);
+  }
+  .switch.on .switch-thumb { transform: translateX(20px); }
+  .ladder { position: relative; margin-top: 4px; }
+  .ladder::before {
+    content: "";
+    position: absolute;
+    left: 13px; top: 16px; bottom: 16px;
+    width: 2px; background: var(--fill);
+  }
+  .ladder-row {
+    height: 44px;
+    display: grid;
+    grid-template-columns: 28px 58px 1fr auto;
+    align-items: center;
+    gap: 4px;
+    font-size: 15px;
+  }
+  .ladder-row b { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .ladder-row small { display: block; color: var(--secondary); font-size: 12px; font-weight: 500; }
+  .ladder-row.here b { color: var(--deep); }
+  .ladder-dot {
+    position: absolute;
+    left: 9px;
+    width: 10px; height: 10px;
+    border-radius: 5px;
+    background: var(--green);
+    box-shadow: 0 0 0 4px rgba(0, 170, 70, 0.16);
+    transition: top 420ms cubic-bezier(.2, .8, .2, 1);
+  }
+  .note { margin: 12px 4px 0; font-size: 14px; line-height: 1.4; color: var(--secondary); }
+  .hold { display: flex; gap: 12px; padding: 11px 0; box-shadow: inset 0 -1px 0 var(--line); }
+  .hold:last-child { box-shadow: none; }
+  .hold span { flex: 1; min-width: 0; }
+  .hold b { display: block; font-size: 16px; letter-spacing: -0.014em; }
+  .hold small { display: block; margin-top: 2px; color: var(--secondary); font-size: 13px; line-height: 1.3; }
+  .hold .amt { padding-top: 1px; }
+  .sum { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .slider { position: relative; height: 44px; margin-top: 16px; touch-action: none; cursor: pointer; }
+  .slider .track, .slider .fill { position: absolute; top: 19px; height: 6px; border-radius: 3px; }
+  .slider .track { left: 0; right: 0; background: var(--fill); }
+  .slider .fill { left: 0; background: var(--green); }
+  .slider .tick { position: absolute; top: 16px; width: 2px; height: 12px; background: var(--deep); opacity: 0.35; }
+  .slider .thumb {
+    position: absolute; top: 8px; width: 28px; height: 28px; margin-left: -14px;
+    border-radius: 14px; background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.22), 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+  }
+  .slider.dragging .thumb { transform: scale(1.08); }
+  .pct-row { display: flex; justify-content: space-between; font-size: 12px; color: var(--tertiary); margin-top: 2px; }
+  .thread { display: flex; flex-direction: column; gap: 8px; }
+  .msg { display: flex; }
+  .msg.user { justify-content: flex-end; }
+  .bubble {
+    max-width: 86%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 16px;
+    line-height: 1.35;
+  }
+  .msg.coach .bubble { background: #fff; border-bottom-left-radius: 6px; box-shadow: 0 1px 2px rgba(4, 33, 23, 0.04); }
+  .msg.user .bubble { background: var(--green); color: #fff; border-bottom-right-radius: 6px; }
+  .bubble p { margin: 0 0 8px; }
+  .bubble p:last-child { margin: 0; }
+  .bubble .go {
+    display: inline-flex;
+    margin-top: 8px;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--green);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .composer {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 2;
+    background: #F3F6F4;
+    padding: 0 12px 10px;
+  }
+  .composer::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: -18px; height: 18px;
+    background: linear-gradient(transparent, #F3F6F4);
+    pointer-events: none;
+  }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 4px 8px; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 16px;
+    border: 1px solid rgba(4, 33, 23, 0.12);
+    background: #fff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .ask {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .ask input {
+    flex: 1;
+    height: 40px;
+    border: 0;
+    border-radius: 20px;
+    background: #fff;
+    padding: 0 14px;
+    font: inherit;
+    font-size: 16px;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(4, 33, 23, 0.05);
+  }
+  .ask input:focus { outline: 2px solid var(--green); outline-offset: 0; }
+  .send {
+    width: 40px; height: 40px; border: 0; border-radius: 20px;
+    background: var(--green); color: #fff; font: inherit; font-weight: 700; cursor: pointer;
+  }
+  .send:disabled { background: #D5DDD8; color: #fff; }
+  .scrim { position: absolute; inset: 0; background: #042117; opacity: 0; z-index: 5; }
+  .scrim.off { pointer-events: none; }
+  .sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    z-index: 6;
+    max-height: 720px;
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 40px rgba(4, 33, 23, 0.16);
+    display: flex;
+    flex-direction: column;
+  }
+  .sheet.off { visibility: hidden; }
+  .grabber {
+    height: 28px;
+    display: grid;
+    place-items: center;
+    touch-action: none;
+    cursor: grab;
+    flex: none;
+  }
+  .grabber i { width: 36px; height: 5px; border-radius: 3px; background: #D1D1D6; }
+  .sheet-body { overflow: auto; padding: 0 20px 28px; }
+  .sheet-body h2 { margin: 0; font-size: 22px; line-height: 1.15; letter-spacing: -0.022em; }
+  .sheet-amt { margin: 6px 0 0; font-size: 32px; font-weight: 700; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+  .sheet-body p { font-size: 16px; line-height: 1.4; }
+  .alert-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 8;
+    display: grid;
+    place-items: center;
+    background: rgba(4, 33, 23, 0.36);
+    padding: 28px;
+  }
+  .alert-wrap.off { display: none; }
+  .alert {
+    width: 100%;
+    background: #fff;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.22);
+    animation: settle 320ms cubic-bezier(.2, .8, .2, 1);
+  }
+  .alert h3 { margin: 20px 16px 0; text-align: center; font-size: 18px; letter-spacing: -0.02em; }
+  .alert p { margin: 8px 16px 16px; text-align: center; font-size: 15px; line-height: 1.4; }
+  .alert-acts { display: flex; border-top: 1px solid var(--line); }
+  .alert-acts button {
+    flex: 1;
+    height: 48px;
+    border: 0;
+    border-left: 1px solid var(--line);
+    background: transparent;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 650;
+    color: var(--green);
+    cursor: pointer;
+  }
+  .alert-acts button:first-child { border-left: 0; font-weight: 500; }
+  .alert-acts button:active { background: rgba(0, 0, 0, 0.04); transform: none; }
+  @keyframes settle {
+    from { opacity: 0; transform: scale(0.96) translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) {
+    .switch-thumb, .ladder-dot, .alert { transition: none; animation: none; }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    #list, .nav, .tabbar { background: #fff; backdrop-filter: none; -webkit-backdrop-filter: none; }
+    .nav::after, .tabbar::before, .composer::before { display: none; }
+  }
+  @media (prefers-contrast: more) {
+    .card, .rows, .trio button, .switch { border: 1px solid var(--deep); }
+  }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; }
+    #list, .shell-bar { display: none; }
+  }
+</style>
+</head>
+<body>
+  <aside id="list"></aside>
+  <div class="shell">
+    <div class="shell-bar"><p class="caption" id="caption"></p></div>
+    <div class="fit">
+      <div class="scaler" id="scaler">
+        <div class="device" id="device">
+          <div class="stage" id="stage">
+            <div class="layers" id="layers">
+              <div class="layer under" id="under"></div>
+              <div class="layer over" id="over"></div>
+              <div class="edge" id="edge"></div>
+            </div>
+            <nav class="tabbar" id="tabbar"></nav>
+          </div>
+          <div class="scrim off" id="scrim"></div>
+          <div class="sheet off" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheet-title">
+            <div class="grabber" id="grabber"><i></i></div>
+            <div class="sheet-body" id="sheet-body"></div>
+          </div>
+          <div class="alert-wrap off" id="alert"></div>
+          <div class="home-ind"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="check" hidden></div>
+<script>
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const STEPS = [
+  { at: 5000, pct: 1 },
+  { at: 20000, pct: 1.5 },
+  { at: 30000, pct: 2 },
+  { at: 40000, pct: 2.5 },
+  { at: 50000, pct: 3 },
+  { at: 60000, pct: 3.5 },
+  { at: 70000, pct: 4 },
+  { at: 80000, pct: 4.5 },
+  { at: 90000, pct: 5 },
+];
+
+function R(place, amount, basket, cat, sgroup, when, key, detail) {
+  return { place, amount, basket, cat, sgroup, when, key, detail };
+}
+
+const ledger = {
+  oct: [
+    R("Vuokra", 82000, "regular", "Rent", false, "2 Oct", "rent", "Rent"),
+    R("Elisa", 3000, "regular", "Bills", false, "28 Oct", "elisa", "Phone"),
+    R("Helen", 4600, "regular", "Bills", false, "14 Oct", "helen", "Electricity"),
+    R("If", 1800, "regular", "Bills", false, "20 Oct", "if", "Insurance"),
+    R("Spotify and Netflix", 2000, "regular", "Bills", false, "5 Oct", "stream", "Streaming"),
+    R("HSL", 7400, "regular", "Transport pass", false, "15 Oct", "hsl", "Season ticket"),
+    R("Kodinkonehuolto", 16500, "irregular", "Repair", false, "8 Oct", "repair", "Washing machine"),
+    R("Hammaslääkäri", 4500, "irregular", "Health", false, "26 Oct", "dentist", "Dentist"),
+    R("Prisma Herttoniemi", 40000, "everyday", "Groceries", true, "October", "prisma", "9 visits"),
+    R("S-market", 12900, "everyday", "Groceries", true, "October", "smarket", "6 visits"),
+    R("K-Market Kamppi", 6400, "everyday", "Groceries", false, "October", "kmarket", "4 visits"),
+    R("Lidl", 4700, "everyday", "Groceries", false, "October", "lidl", "3 visits"),
+    R("Wolt", 11800, "everyday", "Dining out", false, "October", "wolt", "7 orders"),
+    R("Rosso", 6800, "everyday", "Dining out", true, "October", "rosso", "2 visits"),
+    R("Robert's Coffee", 4600, "everyday", "Coffee & drinks", false, "October", "roberts", "11 visits"),
+    R("Picnic", 2400, "everyday", "Coffee & drinks", true, "October", "picnic", "5 visits"),
+    R("ABC", 1600, "everyday", "Coffee & drinks", true, "October", "abc", "2 visits"),
+    R("Bolt", 4500, "everyday", "Taxis", false, "October", "bolt", "2 rides"),
+    R("Yliopiston Apteekki", 2400, "everyday", "Pharmacy", false, "27 Oct", "pharmacy", "1 visit"),
+    R("Sokos", 1500, "everyday", "Shopping", true, "27 Oct", "sokos", "1 visit"),
+  ],
+  nov: [
+    R("Vuokra", 82000, "regular", "Rent", false, "3 Nov", "rent", "Rent"),
+    R("K-Market Kamppi", 3800, "everyday", "Groceries", false, "4 Nov", "kmarket", "Groceries"),
+    R("Bolt", 1420, "everyday", "Taxis", false, "5 Nov", "bolt", "Taxi"),
+    R("Spotify", 1200, "regular", "Bills", false, "5 Nov", "stream", "Streaming"),
+    R("Prisma Herttoniemi", 7200, "everyday", "Groceries", true, "6 Nov", "prisma", "Groceries"),
+    R("Wolt", 3240, "everyday", "Dining out", false, "7 Nov", "wolt", "Dinner"),
+    R("S-market", 4600, "everyday", "Groceries", true, "8 Nov", "smarket", "Groceries"),
+    R("Robert's Coffee", 1240, "everyday", "Coffee & drinks", false, "8 Nov", "roberts", "Coffee"),
+    R("Lidl", 2200, "everyday", "Groceries", false, "9 Nov", "lidl", "Groceries"),
+    R("Rosso", 2800, "everyday", "Dining out", true, "10 Nov", "rosso", "Dinner"),
+    R("Prisma Herttoniemi", 5600, "everyday", "Groceries", true, "11 Nov", "prisma", "Groceries"),
+    R("Picnic", 640, "everyday", "Coffee & drinks", true, "11 Nov", "picnic", "Coffee"),
+    R("Wolt", 2800, "everyday", "Dining out", false, "12 Nov", "wolt", "Dinner"),
+    R("Bolt", 1180, "everyday", "Taxis", false, "12 Nov", "bolt", "Taxi"),
+    R("Robert's Coffee", 1160, "everyday", "Coffee & drinks", false, "12 Nov", "roberts", "Coffee"),
+    R("Picnic", 560, "everyday", "Coffee & drinks", true, "13 Nov", "picnic", "Coffee"),
+  ],
+};
+
+const SLIP = ["Dining out", "Coffee & drinks", "Taxis", "Pharmacy", "Shopping"];
+const BALANCE = 118420;
+const SALARY = 284000;
+const GROCERY_PLAN = 28000;
+const COFFEE_PLAN = 1600;
+const WEEK_SHOP = 7000;
+const CALMER = 6400;
+const holds = [
+  { name: "December rent", detail: "Leaves 2 Dec. The next salary is 15 Dec.", amount: 82000 },
+  { name: "Elisa", detail: "18 Nov, same as October", amount: 3000 },
+  { name: "Helen", detail: "Same as October", amount: 4600 },
+  { name: "HSL season ticket", detail: "20 Nov", amount: 7400 },
+  { name: "If insurance", detail: "Monthly, not posted yet", amount: 1800 },
+  { name: "Netflix", detail: "Spotify already left on 5 Nov", amount: 800 },
+  { name: "Groceries still to buy", detail: "Food for the rest of November. A plan, not a payment.", amount: GROCERY_PLAN },
+  { name: "Cushion", detail: "October’s repair was €165. This slice stays put.", amount: 8000 },
+];
+
+const BASKET = {
+  regular: { name: "Must, every month", color: "#002616", line: "These leave even when you buy nothing else." },
+  irregular: { name: "Must, when it happens", color: "#C4A15A", line: "You cannot skip these. You also cannot pick the day." },
+  everyday: { name: "Everyday", color: "#00AA46", line: "Chosen one payment at a time. Food for the house is in here, and so is the money that slips through." },
+};
+
+function eur(cents) {
+  const sign = cents < 0 ? "−" : "";
+  const v = Math.abs(Math.round(cents));
+  const whole = Math.floor(v / 100);
+  const frac = String(v % 100).padStart(2, "0");
+  const grouped = String(whole).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return sign + "€" + grouped + "." + frac;
+}
+function sumIf(month, pred) {
+  return ledger[month].reduce((s, r) => s + (pred(r) ? r.amount : 0), 0);
+}
+function sum(month) { return sumIf(month, () => true); }
+function basketSum(month, basket) { return sumIf(month, r => r.basket === basket); }
+function catSum(month, cat) { return sumIf(month, r => r.cat === cat); }
+function keySum(month, key) { return sumIf(month, r => r.key === key); }
+function sgroup(month) { return sumIf(month, r => r.sgroup); }
+function slip(month) { return sumIf(month, r => SLIP.includes(r.cat)); }
+function ratePct(cents) {
+  let pct = 0;
+  for (const step of STEPS) if (cents >= step.at) pct = step.pct;
+  return pct;
+}
+function bonusCents(cents) { return Math.round(cents * ratePct(cents) / 100); }
+function floorStep(cents) {
+  let step = null;
+  for (const s of STEPS) if (cents >= s.at) step = s;
+  return step;
+}
+function nextTier(cents) { return STEPS.find(s => s.at > cents) || null; }
+function holdSum() { return holds.reduce((s, h) => s + h.amount, 0); }
+function usualWeek() { return Math.round(slip("oct") * 7 / 30); }
+
+function novPlan() {
+  const now = sgroup("nov");
+  const weekAt = now + WEEK_SHOP + COFFEE_PLAN;
+  const monthAt = now + GROCERY_PLAN + COFFEE_PLAN;
+  const foodOnly = now + GROCERY_PLAN;
+  return { now, weekAt, monthAt, foodOnly };
+}
+
+function tierStory(cents) {
+  const next = nextTier(cents);
+  const nowBonus = bonusCents(cents);
+  if (!next) return { cents, nowBonus, rate: ratePct(cents), next: null };
+  const gap = next.at - cents;
+  const thenBonus = bonusCents(next.at);
+  return {
+    cents, nowBonus, rate: ratePct(cents), next, gap,
+    thenBonus, gain: thenBonus - nowBonus,
+    visa: Math.round(gap * 5 / 1000),
+    loss: gap - (thenBonus - nowBonus),
+  };
+}
+
+function txNote(r) {
+  if (r.basket === "irregular") return "This had to be paid, and the day was a surprise. The cushion on This week is for the next one.";
+  if (r.cat === "Taxis") return "The season ticket is the plan. This ride is the part that slips through.";
+  if (r.key === "wolt") return "Dinner that does not earn Bonus. Rosso, in the same category, does.";
+  if (r.key === "rosso") return "Dinner that earns Bonus and counts toward the step.";
+  if (r.sgroup && r.cat === "Groceries") return "This shop counts toward the Bonus step.";
+  if (!r.sgroup && (r.cat === "Groceries" || r.cat === "Coffee & drinks")) return "This place pays no Bonus. The same kind of purchase at Prisma, S-market, Picnic, or ABC would.";
+  if (r.basket === "regular") return "This leaves on its own schedule. It sits outside the safe-to-spend number.";
+  if (r.sgroup) return "This earns Bonus.";
+  return "This is everyday spending, chosen one payment at a time.";
+}
+
+const state = {
+  month: "oct",
+  preview: false,
+  saver: false,
+  weekMode: "calmer",
+  cut: 0.2,
+  messages: [{
+    role: "coach",
+    paragraphs: ["Ask about October or 1–13 November. I answer from Aino’s payments only."],
+  }],
+};
+
+const RAIL = [
+  { group: "Start", label: "Today", blurb: "What is safe this week, then where the money went.", frame: { screen: "today" } },
+  { group: "Start", label: "Coach", blurb: "Questions the ledger can answer. The replies are written from these payments.", frame: { screen: "coach" } },
+  { group: "Where it went", label: "Spending", blurb: "Food, drink, and every other category, from the same ledger.", frame: { screen: "spending" } },
+  { group: "Where it went", label: "Groceries", blurb: "Which shops earned Bonus.", frame: { screen: "category", category: "Groceries" } },
+  { group: "Where it went", label: "Coffee and drinks", blurb: "Robert’s, Picnic, and ABC.", frame: { screen: "category", category: "Coffee & drinks" } },
+  { group: "Where it went", label: "Dining out", blurb: "Wolt and Rosso.", frame: { screen: "category", category: "Dining out" } },
+  { group: "Where it went", label: "Three baskets", blurb: "Must every month, must when it happens, and everyday.", frame: { screen: "baskets" } },
+  { group: "Answers", label: "What kind of spender", blurb: "A reading of October, the last full month.", frame: { screen: "spender" } },
+  { group: "Answers", label: "Safe this week", blurb: "The holds, then the money that can slip.", frame: { screen: "week" } },
+  { group: "Answers", label: "Dining, minus 20%", blurb: "Drag the share. Wolt and Rosso stay visible.", frame: { screen: "cut" } },
+  { group: "Answers", label: "Bonus", blurb: "The step, the next €86, and what extra spending would actually cost.", frame: { screen: "bonus" } },
+];
+
+const TITLES = {
+  today: "My money",
+  spending: "Spending",
+  category: "Spending",
+  baskets: "Baskets",
+  spender: "Spender",
+  week: "This week",
+  cut: "Dining out",
+  bonus: "Bonus",
+  coach: "Coach",
+};
+
+let stack = [{ screen: "today" }];
+let rendering = stack[0];
+let showBack = false;
+let x = 0;
+let cancelNav = () => {};
+let navToken = 0;
+let sheetY = 800;
+let sheetH = 800;
+let sheetOpen = false;
+let cancelSheet = () => {};
+let replyTimer = 0;
+
+const over = document.getElementById("over");
+const under = document.getElementById("under");
+const device = document.getElementById("device");
+const stage = document.getElementById("stage");
+const edge = document.getElementById("edge");
+const scrim = document.getElementById("scrim");
+const sheet = document.getElementById("sheet");
+const sheetBody = document.getElementById("sheet-body");
+const grabber = document.getElementById("grabber");
+const alertWrap = document.getElementById("alert");
+const tabbar = document.getElementById("tabbar");
+const caption = document.getElementById("caption");
+const list = document.getElementById("list");
+
+function frameKey(f) { return f.screen + "|" + (f.category || ""); }
+function current() { return stack[stack.length - 1]; }
+function q(sel) { return over.querySelector(sel); }
+
+function spring(from, to, velocity, dampingRatio, response, onFrame, onDone) {
+  if (reduceMotion) {
+    onFrame(to, 0);
+    onDone && onDone();
+    return () => {};
+  }
+  const mass = 1;
+  const omega = (2 * Math.PI) / response;
+  const k = omega * omega * mass;
+  const c = 2 * dampingRatio * Math.sqrt(k * mass);
+  let pos = from;
+  let v = velocity;
+  let last = performance.now();
+  const started = last;
+  let raf = 0;
+  let stopped = false;
+  function frame(now) {
+    if (stopped) return;
+    const dt = Math.min(0.032, (now - last) / 1000);
+    last = now;
+    v += ((-k * (pos - to) - c * v) / mass) * dt;
+    pos += v * dt;
+    if ((Math.abs(pos - to) < 0.35 && Math.abs(v) < 14) || now - started > 2200) {
+      onFrame(to, 0);
+      onDone && onDone();
+      return;
+    }
+    onFrame(pos, v);
+    raf = requestAnimationFrame(frame);
+  }
+  raf = requestAnimationFrame(frame);
+  return () => { stopped = true; cancelAnimationFrame(raf); };
+}
+
+function project(velocity, decel = 0.998) {
+  return (velocity / 1000) * decel / (1 - decel);
+}
+function rubberband(overshoot, dimension, constant = 0.55) {
+  return (overshoot * dimension * constant) / (dimension + constant * Math.abs(overshoot));
+}
+function nearest(pos, points) {
+  return points.reduce((best, p) => Math.abs(p - pos) < Math.abs(best - pos) ? p : best);
+}
+function localPoint(e) {
+  const rect = device.getBoundingClientRect();
+  return {
+    x: (e.clientX - rect.left) / (rect.width / 390),
+    y: (e.clientY - rect.top) / (rect.height / 844),
+  };
+}
+function sampleVelocity(samples, key) {
+  if (samples.length < 2) return 0;
+  const now = samples[samples.length - 1];
+  let prev = samples[0];
+  for (let i = samples.length - 2; i >= 0; i--) {
+    if (now.t - samples[i].t >= 40) { prev = samples[i]; break; }
+  }
+  const dt = (now.t - prev.t) / 1000;
+  if (dt <= 0.001) return 0;
+  const v = (now[key] - prev[key]) / dt;
+  return Math.max(-4000, Math.min(4000, v));
+}
+
+function applyX(px) {
+  x = px;
+  over.style.transform = "translate3d(" + px + "px,0,0)";
+  under.style.transform = "translate3d(" + ((px - 390) * 0.28) + "px,0,0)";
+}
+function animateX(from, to, velocity, damping, response, done) {
+  cancelNav();
+  const token = ++navToken;
+  applyX(from);
+  cancelNav = spring(from, to, velocity, damping, response, (val) => applyX(val), () => {
+    if (token !== navToken) return;
+    done && done();
+  });
+  return token;
+}
+
+function statusHTML() {
+  return `<div class="status"><span>9:41</span><span class="status-glyphs" aria-hidden="true">
+    <svg width="17" height="12" viewBox="0 0 17 12"><rect x="0" y="7" width="3" height="5" rx="0.6" fill="#042117"/><rect x="4.5" y="5" width="3" height="7" rx="0.6" fill="#042117"/><rect x="9" y="2.5" width="3" height="9.5" rx="0.6" fill="#042117"/><rect x="13.5" y="0" width="3" height="12" rx="0.6" fill="#042117"/></svg>
+    <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 3.2c1.7 0 3.2.7 4.3 1.8l1.2-1.2A8.2 8.2 0 0 0 8 1.2 8.2 8.2 0 0 0 2.5 3.8l1.2 1.2A6 6 0 0 1 8 3.2Z" fill="#042117"/><path d="M8 6.4c.9 0 1.7.4 2.3 1l1.2-1.2A5 5 0 0 0 8 4.6a5 5 0 0 0-3.5 1.6L5.7 7.4A3.2 3.2 0 0 1 8 6.4Z" fill="#042117"/><circle cx="8" cy="10" r="1.4" fill="#042117"/></svg>
+    <svg width="27" height="13" viewBox="0 0 27 13"><rect x="0.6" y="0.6" width="22" height="11.8" rx="2.4" fill="none" stroke="#042117" stroke-width="1.2"/><rect x="2" y="2" width="16" height="9" rx="1.2" fill="#042117"/><rect x="23.4" y="4" width="2" height="5" rx="0.6" fill="#042117"/></svg>
+  </span></div>`;
+}
+function navHTML() {
+  const frame = rendering;
+  const back = showBack
+    ? `<button type="button" class="icon-btn" data-act="back" aria-label="Back"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M14.5 5 7.5 12l7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>`
+    : "<span></span>";
+  const title = frame.screen === "category" ? frame.category : TITLES[frame.screen];
+  return `<div class="nav">${statusHTML()}<div class="nav-row">${back}<div class="nav-title">${title}</div><button type="button" class="avatar" data-act="about" aria-label="About Aino">A</button></div></div>`;
+}
+
+function monthSeg() {
+  return `<div class="seg" role="tablist">
+    <button type="button" data-act="month" data-month="oct" class="${state.month === "oct" ? "on" : ""}">October</button>
+    <button type="button" data-act="month" data-month="nov" class="${state.month === "nov" ? "on" : ""}">1–13 Nov</button>
+  </div>`;
+}
+function stackBar(parts) {
+  const total = parts.reduce((s, p) => s + p.amount, 0) || 1;
+  return `<div class="stack">${parts.filter(p => p.amount > 0).map(p => `<i style="width:${(p.amount / total * 100).toFixed(2)}%;background:${p.color}"></i>`).join("")}</div>`;
+}
+function basketParts(month) {
+  return [
+    { amount: basketSum(month, "regular"), color: BASKET.regular.color },
+    { amount: basketSum(month, "irregular"), color: BASKET.irregular.color },
+    { amount: basketSum(month, "everyday"), color: BASKET.everyday.color },
+  ];
+}
+function legendLines(month) {
+  return ["regular", "irregular", "everyday"].map(id => {
+    const b = BASKET[id];
+    return `<div><i style="background:${b.color}"></i><span>${b.name}</span><b>${eur(basketSum(month, id))}</b></div>`;
+  }).join("");
+}
+
+function screenToday() {
+  const foodMonth = state.month;
+  const plan = novPlan();
+  const story = tierStory(plan.now);
+  const food = [
+    ["Groceries", catSum(foodMonth, "Groceries")],
+    ["Coffee & drinks", catSum(foodMonth, "Coffee & drinks")],
+    ["Dining out", catSum(foodMonth, "Dining out")],
+  ];
+  return `${navHTML(current())}<div class="scroll">
+    <p class="eyebrow">Safe until Wednesday</p>
+    <p class="hero">${eur(CALMER)}</p>
+    <p class="lede">Coffee, taxis, and meals out. Groceries stay in the food plan. Rent, bills, and a cushion are held apart.</p>
+    <button type="button" class="text-btn" data-go="week">See the arithmetic</button>
+    <div class="card"><div class="split">
+      <div><small>S-Tili now</small><b>${eur(BALANCE)}</b></div>
+      <div><small>Salary Thursday</small><b>${eur(SALARY)}</b></div>
+    </div></div>
+    <p class="section">Food and drink</p>
+    ${monthSeg()}
+    <div class="trio">${food.map(([name, amount]) => `<button type="button" data-go="category" data-cat="${escapeHTML(name)}"><b>${eur(amount)}</b><small>${escapeHTML(name)}</small></button>`).join("")}</div>
+    <button type="button" class="suggest" data-go="bonus">
+      <p class="eyebrow">Use the green card for ${eur(story.gap)} more</p>
+      <p>Bonus goes from ${eur(story.nowBonus)} to ${eur(story.thenBonus)}. The shop stays the same size. It moves to Prisma.</p>
+    </button>
+    <p class="section">October, in three baskets</p>
+    <button type="button" class="card" data-go="baskets">
+      ${stackBar(basketParts("oct"))}
+      <div class="legend">${legendLines("oct")}</div>
+      <p class="quiet" style="margin:12px 0 0">Everyday includes groceries. ${eur(slip("oct"))} of it slipped through: dining, coffee, taxis, the pharmacy, Sokos.</p>
+    </button>
+    <button type="button" class="card" data-go="coach">
+      <small class="quiet">Coach</small>
+      <p class="lede" style="margin-top:4px;color:var(--ink)">You pay the regular things. Dining, coffee, and taxis are the part that slips through.</p>
+    </button>
+  </div>`;
+}
+
+function categoriesOf(month) {
+  const map = new Map();
+  for (const r of ledger[month]) {
+    const cur = map.get(r.cat) || { cat: r.cat, basket: r.basket, amount: 0 };
+    cur.amount += r.amount;
+    map.set(r.cat, cur);
+  }
+  return [...map.values()].sort((a, b) => b.amount - a.amount);
+}
+function screenSpending() {
+  const month = state.month;
+  const cats = categoriesOf(month);
+  const max = cats[0] ? cats[0].amount : 1;
+  const rows = cats.map(c => `<button type="button" class="row" data-go="category" data-cat="${escapeHTML(c.cat)}">
+      <span class="name"><b>${c.cat}</b><small>${BASKET[c.basket].name}</small></span>
+      <span class="amt">${eur(c.amount)}</span><span class="chev">›</span></button>`).join("");
+  return `${navHTML(current())}<div class="scroll">
+    <p class="eyebrow">${month === "oct" ? "October, by place" : "1–13 November, every payment"}</p>
+    <p class="hero" style="font-size:40px">${eur(sum(month))}</p>
+    <p class="lede">Left the account. Salary is not in this number.</p>
+    ${monthSeg()}
+    <div class="trio">
+      <button type="button" data-go="category" data-cat="Groceries"><b>${eur(catSum(month, "Groceries"))}</b><small>Groceries</small></button>
+      <button type="button" data-go="category" data-cat="Coffee & drinks"><b>${eur(catSum(month, "Coffee & drinks"))}</b><small>Coffee & drinks</small></button>
+      <button type="button" data-go="category" data-cat="Dining out"><b>${eur(catSum(month, "Dining out"))}</b><small>Dining out</small></button>
+    </div>
+    <div class="rows">${rows}</div>
+    <p class="note">${month === "oct" ? "Twenty lines, rolled up by place. A green dot on the next screen means the place earns Bonus." : "Sixteen payments. Open one to see how the coach reads it."}</p>
+    <div class="stack" style="margin-top:12px;height:8px">${cats.map(c => `<i style="width:${(c.amount / sum(month) * 100).toFixed(2)}%;background:${BASKET[c.basket].color}"></i>`).join("")}</div>
+  </div>`;
+}
+
+function screenCategory(frame) {
+  const month = state.month;
+  const name = frame.category;
+  const rows = ledger[month].filter(r => r.cat === name);
+  const total = rows.reduce((s, r) => s + r.amount, 0);
+  const yes = rows.filter(r => r.sgroup).reduce((s, r) => s + r.amount, 0);
+  const no = total - yes;
+  let bonusLine = "None of this earns Bonus.";
+  if (yes && no) bonusLine = eur(yes) + " earns Bonus. " + eur(no) + " does not.";
+  else if (yes && !no) bonusLine = "All of this earns Bonus.";
+  const list = rows.map(r => {
+    const i = ledger[month].indexOf(r);
+    return `<button type="button" class="row" data-tx="${month}" data-i="${i}">
+      <i class="dot ${r.sgroup ? "on" : ""}"></i>
+      <span class="name"><b>${r.place}</b><small>${r.detail}${r.when ? " · " + r.when : ""}</small></span>
+      <span class="amt">${eur(r.amount)}</span></button>`;
+  }).join("");
+  const basket = rows[0] ? rows[0].basket : "everyday";
+  return `${navHTML({ screen: "category", category: name })}<div class="scroll">
+    <p class="eyebrow">${BASKET[basket].name} · ${month === "oct" ? "October" : "1–13 Nov"}</p>
+    <p class="hero" style="font-size:40px">${eur(total)}</p>
+    <p class="lede">${bonusLine}</p>
+    ${monthSeg()}
+    <div class="rows">${list || `<p class="note">No payments in this category.</p>`}</div>
+  </div>`;
+}
+
+function screenBaskets() {
+  const month = state.month;
+  const blocks = ["regular", "irregular", "everyday"].map(id => {
+    const rows = categoriesOf(month).filter(c => c.basket === id);
+    const body = rows.length
+      ? `<div class="rows">${rows.map(c => `<button type="button" class="row" data-go="category" data-cat="${escapeHTML(c.cat)}"><span class="name"><b>${escapeHTML(c.cat)}</b></span><span class="amt">${eur(c.amount)}</span><span class="chev">›</span></button>`).join("")}</div>`
+      : `<p class="note">Nothing in this basket yet. In October the repair and the dentist were ${eur(basketSum("oct", "irregular"))}.</p>`;
+    let extra = "";
+    if (id === "everyday") {
+      const food = catSum(month, "Groceries");
+      const slipped = slip(month);
+      extra = `<div style="margin-top:12px">${stackBar([{ amount: food, color: "#00AA46" }, { amount: slipped, color: "#C26A3A" }])}</div>
+        <div class="legend"><div><i style="background:#00AA46"></i><span>Groceries</span><b>${eur(food)}</b></div>
+        <div><i style="background:#C26A3A"></i><span>Slips through</span><b>${eur(slipped)}</b></div></div>`;
+    }
+    if (id === "regular" && month === "nov") {
+      extra += `<p class="note">Elisa, Helen, the season ticket, insurance, and Netflix have not left yet. They are held on This week.</p>`;
+    }
+    return `<section class="card"><p class="eyebrow" style="margin-top:0">${BASKET[id].name}</p>
+      <p class="hero" style="font-size:32px">${eur(basketSum(month, id))}</p>
+      <p class="lede">${BASKET[id].line}</p>${extra}${body}</section>`;
+  }).join("");
+  return `${navHTML(current())}<div class="scroll">
+    <p class="lede" style="margin-top:8px">Every payment sits in one basket. The first two have to be paid. The third is where a choice still exists.</p>
+    ${monthSeg()}
+    ${stackBar(basketParts(month))}
+    ${blocks}
+  </div>`;
+}
+
+function screenSpender() {
+  const regular = basketSum("oct", "regular");
+  const irregular = basketSum("oct", "irregular");
+  const everyday = basketSum("oct", "everyday");
+  const food = catSum("oct", "Groceries");
+  return `${navHTML(current())}<div class="scroll">
+    <p class="eyebrow">From October, the last full month</p>
+    <p class="hero" style="font-size:40px">A regular payer.</p>
+    <p class="lede">The money that slips goes out in small payments.</p>
+    <div class="card">
+      ${stackBar(basketParts("oct"))}
+      <div class="legend">${legendLines("oct")}</div>
+    </div>
+    <p class="lede">${eur(regular)} left on a schedule: rent, bills, and the season ticket.</p>
+    <p class="lede">${eur(irregular)} had to be paid when it happened: a repair and the dentist.</p>
+    <p class="lede">${eur(everyday)} was everyday. Groceries were ${eur(food)}. Dining, coffee, taxis, the pharmacy, and Sokos were ${eur(slip("oct"))}.</p>
+    <button type="button" class="text-btn" data-go="week">What is safe this week</button>
+    <button type="button" class="text-btn" data-go="cut">If dining out drops by a fifth</button>
+  </div>`;
+}
+
+function screenWeek() {
+  const budget = state.weekMode === "calmer" ? CALMER : usualWeek();
+  const perDay = Math.round(budget / 7);
+  const left = BALANCE + SALARY - holdSum();
+  const pace = usualWeek() - CALMER;
+  return `${navHTML(current())}<div class="scroll">
+    <p class="eyebrow">Until Wednesday · slips only</p>
+    <p class="hero">${eur(budget)}</p>
+    <p class="lede">${state.weekMode === "calmer" ? "A calmer week. " + eur(pace) + " under October’s pace." : "October’s pace for dining, coffee, taxis, and small shops."} About ${eur(perDay)} a day. Groceries are not in this number.</p>
+    <div class="seg">
+      <button type="button" data-act="week" data-mode="calmer" class="${state.weekMode === "calmer" ? "on" : ""}">Calmer ${eur(CALMER)}</button>
+      <button type="button" data-act="week" data-mode="usual" class="${state.weekMode === "usual" ? "on" : ""}">Usual ${eur(usualWeek())}</button>
+    </div>
+    <p class="note">This choice does not touch rent, bills, food, or the cushion. ${eur(COFFEE_PLAN)} of coffee, at Picnic instead of Robert’s, is part of the Bonus step.</p>
+    <p class="section">Where the rest is held</p>
+    <div class="card">
+      <div class="hold"><span><b>S-Tili now</b><small>Sample balance on 13 Nov</small></span><span class="amt">${eur(BALANCE)}</span></div>
+      <div class="hold"><span><b>Salary Thursday</b><small>15 Nov</small></span><span class="amt">${eur(SALARY)}</span></div>
+      <div class="sum"><span>Together</span><span>${eur(BALANCE + SALARY)}</span></div>
+    </div>
+    <div class="card">
+      ${holds.map(h => `<div class="hold"><span><b>${h.name}</b><small>${h.detail}</small></span><span class="amt">−${eur(h.amount)}</span></div>`).join("")}
+      <div class="sum"><span>Held</span><span>−${eur(holdSum())}</span></div>
+    </div>
+    <div class="card">
+      <div class="split"><div><small>Left until 15 Dec</small><b>${eur(left)}</b></div></div>
+      <p class="quiet" style="margin-top:8px">This is the rest of the cycle, after December rent. It is not this week’s pocket money.</p>
+    </div>
+    <button type="button" class="text-btn" data-go="bonus">See the Bonus step</button>
+  </div>`;
+}
+
+function screenCut() {
+  const pct = state.cut;
+  const shown = Math.round(pct * 100);
+  const dining = catSum("oct", "Dining out");
+  const saved = Math.round(dining * shown / 100);
+  const pos = pct / 0.5 * 100;
+  return `${navHTML(current())}<div class="scroll">
+    <p class="eyebrow">If October’s dining out is lower</p>
+    <p class="hero cut-hero">${eur(saved)}</p>
+    <p class="lede">kept in a month. Drag to choose the share.</p>
+    <div class="slider" data-slider>
+      <div class="track"></div>
+      <div class="fill" style="width:${pos}%"></div>
+      <i class="tick" style="left:40%"></i>
+      <div class="thumb" style="left:${pos}%"></div>
+    </div>
+    <div class="pct-row"><span>0%</span><span class="cut-pct">${shown}%</span><span>50%</span></div>
+    <p class="lede cut-year">${eur(saved)} a month · ${eur(saved * 12)} a year</p>
+    <p class="lede cut-note"></p>
+    <div class="card">
+      <div class="hold"><span><b>Wolt</b><small>Does not earn Bonus</small></span><span class="amt">${eur(keySum("oct", "wolt"))}</span></div>
+      <div class="hold"><span><b>Rosso</b><small>Earns Bonus</small></span><span class="amt">${eur(keySum("oct", "rosso"))}</span></div>
+    </div>
+    <button type="button" class="text-btn" data-go="bonus">What Rosso does for the step</button>
+  </div>`;
+}
+
+function screenBonus() {
+  const plan = novPlan();
+  const at = state.preview ? plan.weekAt : plan.now;
+  const story = tierStory(plan.now);
+  const shownBonus = state.preview ? bonusCents(plan.weekAt) : story.nowBonus;
+  const display = [...STEPS].reverse();
+  const here = floorStep(at);
+  const hereIndex = display.findIndex(s => s.at === here.at);
+  const soon = story.next;
+  const rows = display.map(step => {
+    const cls = step.at === here.at ? "here" : "";
+    let note = "";
+    if (step.at === here.at) note = state.preview ? "If the next " + eur(story.gap) + " is at S-group" : "You are here · " + eur(plan.now);
+    else if (!state.preview && soon && step.at === soon.at) note = eur(story.gap) + " to this step";
+    return `<div class="ladder-row ${cls}"><span></span><b>${step.pct}%</b><span><small>${note}</small></span><b>${eur(step.at)}</b></div>`;
+  }).join("");
+  const monthBonus = bonusCents(plan.monthAt);
+  const foodOnlyBonus = bonusCents(plan.foodOnly);
+  const oct = tierStory(sgroup("oct"));
+  const otherGrocers = keySum("oct", "kmarket") + keySum("oct", "lidl");
+  return `${navHTML(current())}<div class="scroll">
+    <p class="eyebrow">November · day 13</p>
+    <p class="hero bonus-figure">${eur(shownBonus)}</p>
+    <p class="lede bonus-caption">${state.preview ? "Bonus if the next " + eur(story.gap) + " stays at S-group. Step " + ratePct(plan.weekAt) + "%." : "Bonus so far. Step " + story.rate + "% on " + eur(plan.now) + " at S-group."}</p>
+    <div class="suggest">
+      <p class="eyebrow">Use the green card for ${eur(story.gap)} more</p>
+      <p>A grocery shop of ${eur(WEEK_SHOP)} and two café visits, ${eur(COFFEE_PLAN)}. You are already going to spend it. Bonus becomes ${eur(story.thenBonus)}. The ${story.next.pct}% covers the whole ${eur(story.next.at)}, including what you already bought.</p>
+    </div>
+    <button type="button" class="switch ${state.preview ? "on" : ""}" data-act="preview" aria-pressed="${state.preview ? "true" : "false"}">
+      <span class="switch-track"><span class="switch-thumb"></span></span>
+      <span>Preview that ${eur(story.gap)} on the green card</span>
+    </button>
+    <p class="note">Pay the ${eur(story.gap)} with S-Etukortti Visa and the payment benefit adds ${eur(story.visa)} on top. The step is the part that changes the month.</p>
+    <p class="note">If that ${eur(story.gap)} is extra shopping, you pay ${eur(story.gap)} and Bonus rises by ${eur(story.gain)}. You would be ${eur(story.loss)} poorer. The coach keeps the shop you already need, and moves the place.</p>
+    <div class="card"><div class="ladder">${rows}<i class="ladder-dot" style="top:${hereIndex * 44 + 17}px"></i></div></div>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">If the whole food plan stays there</p>
+      <p class="lede" style="color:var(--ink)">The grocery plan is ${eur(GROCERY_PLAN)}, and the café visits are ${eur(COFFEE_PLAN)}. Together with today’s ${eur(plan.now)}, November reaches ${eur(plan.monthAt)}. The step is ${ratePct(plan.monthAt)}%, and Bonus is ${eur(monthBonus)}.</p>
+      <p class="lede">The groceries alone would land at ${eur(plan.foodOnly)}, step ${ratePct(plan.foodOnly)}%, Bonus ${eur(foodOnlyBonus)}. The café visits are what reach ${ratePct(plan.monthAt)}%.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">October already closed</p>
+      <p class="lede" style="color:var(--ink)">S-group purchases were ${eur(oct.cents)}, step ${oct.rate}%, Bonus ${eur(oct.nowBonus)}, paid on 10 Nov. ${eur(oct.gap)} more at Prisma, taken from the ${eur(otherGrocers)} at K-Market and Lidl, would have made ${oct.next.pct}% and ${eur(oct.thenBonus)}.</p>
+    </div>
+    <div class="rows">
+      <button type="button" class="row" data-act="saver">
+        <span class="name"><b>${state.saver ? "Next Bonus goes to Säästäjä" : "Send the next Bonus to Säästäjä"}</b><small>${state.saver ? "You can keep it on S-Tili instead" : "October’s " + eur(oct.nowBonus) + " is already on S-Tili"}</small></span>
+        <span class="chev">›</span>
+      </button>
+    </div>
+  </div>`;
+}
+
+function bubbleHTML(m) {
+  const paras = (m.paragraphs || [m.text]).map(p => `<p>${escapeHTML(p)}</p>`).join("");
+  const action = m.action ? `<button type="button" class="go" data-go="${m.action.go}" data-cat="${m.action.cat || ""}">${m.action.label}</button>` : "";
+  return `<div class="msg ${m.role}"><div class="bubble">${paras}${action}</div></div>`;
+}
+function escapeHTML(s) {
+  return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
+}
+function screenCoach() {
+  const chips = [
+    ["Taxis last month", "How much did I spend on taxis last month?"],
+    ["What kind of spender", "What kind of spender am I?"],
+    ["Safe this week", "What is safe to spend this week?"],
+    ["Dining minus 20%", "How much if I cut dining out by 20%?"],
+    ["More Bonus", "How do I get more Bonus?"],
+    ["Groceries", "Where did groceries go?"],
+  ];
+  return `${navHTML(current())}<div class="scroll pad-composer"><div class="thread">${state.messages.map(bubbleHTML).join("")}</div></div>
+    <div class="composer">
+      <div class="chips">${chips.map(([label, ask]) => `<button type="button" class="chip" data-ask="${escapeHTML(ask)}">${escapeHTML(label)}</button>`).join("")}</div>
+      <form class="ask" data-act="ask-form">
+        <input id="ask" aria-label="Ask about your money" placeholder="Ask about your money" autocomplete="off" />
+        <button type="submit" class="send" disabled aria-label="Send">↑</button>
+      </form>
+    </div>`;
+}
+
+function answer(raw) {
+  const q = raw.toLowerCase();
+  const plan = novPlan();
+  const story = tierStory(plan.now);
+  const go = (label, screen, cat) => ({ label, go: screen, cat });
+  if (/taxi|bolt|uber/.test(q)) {
+    return { paragraphs: [
+      `Taxis in October were ${eur(keySum("oct", "bolt"))}, two Bolt rides.`,
+      `The HSL season ticket was ${eur(keySum("oct", "hsl"))}. That one is the plan. The rides are the part that slips through.`,
+    ], action: go("Open taxis", "category", "Taxis") };
+  }
+  if (/spender|kind of|what am i|who am i/.test(q)) {
+    return { paragraphs: [
+      `In October, ${eur(basketSum("oct", "regular"))} left on a schedule: rent, bills, and the season ticket.`,
+      `When something happened, you paid that too. The repair and the dentist were ${eur(basketSum("oct", "irregular"))}.`,
+      `Everyday spending was ${eur(basketSum("oct", "everyday"))}. Groceries were ${eur(catSum("oct", "Groceries"))}. The part that slipped through was ${eur(slip("oct"))}.`,
+    ], action: go("Open the portrait", "spender") };
+  }
+  if (/safe|this week|pocket/.test(q)) {
+    return { paragraphs: [
+      `${eur(CALMER)} is the calmer number for coffee, taxis, and meals out until Wednesday. October’s pace would be ${eur(usualWeek())}.`,
+      `Thursday’s salary is ${eur(SALARY)}. December’s rent has to come from it, because the rent leaves on the 2nd and the next salary is the 15th.`,
+    ], action: go("See the arithmetic", "week") };
+  }
+  if (/dining|wolt|restaurant|20%|20 percent|cut/.test(q)) {
+    const dining = catSum("oct", "Dining out");
+    const saved = Math.round(dining * 0.2);
+    return { paragraphs: [
+      `Dining out in October was ${eur(dining)}. A fifth of that is ${eur(saved)} a month, ${eur(saved * 12)} across a year.`,
+      `Wolt was ${eur(keySum("oct", "wolt"))}. The ${eur(saved)} can come from Wolt. Rosso was ${eur(keySum("oct", "rosso"))}, and Rosso earns Bonus.`,
+    ], action: go("Move the percentage", "cut") };
+  }
+  if (/bonus|tier|green card|säästä|saasta|prisma/.test(q)) {
+    return { paragraphs: [
+      `This month S-group purchases are ${eur(plan.now)}, so the step is ${story.rate}% and Bonus so far is ${eur(story.nowBonus)}.`,
+      `The next step is ${story.next.pct}% at ${eur(story.next.at)}. That is ${eur(story.gap)} away, and that ${eur(story.gap)} changes the rate on the whole amount. Bonus becomes ${eur(story.thenBonus)}.`,
+      `Use the green card for the grocery shop and two café visits you are going to buy anyway. If the whole food plan stays there, November reaches ${eur(plan.monthAt)} and Bonus is ${eur(bonusCents(plan.monthAt))}.`,
+    ], action: go("Open Bonus", "bonus") };
+  }
+  if (/coffee|drink|robert|picnic/.test(q)) {
+    return { paragraphs: [
+      `Coffee and drinks in October were ${eur(catSum("oct", "Coffee & drinks"))}. Robert’s Coffee was ${eur(keySum("oct", "roberts"))}. Picnic was ${eur(keySum("oct", "picnic"))} and ABC was ${eur(keySum("oct", "abc"))}. Picnic and ABC earn Bonus.`,
+      `Two café visits this week, ${eur(COFFEE_PLAN)}, are part of the move to the next step.`,
+    ], action: go("Open coffee and drinks", "category", "Coffee & drinks") };
+  }
+  if (/grocer|food|lidl|k-market|eat/.test(q)) {
+    const outside = keySum("oct", "kmarket") + keySum("oct", "lidl");
+    const inside = keySum("oct", "prisma") + keySum("oct", "smarket");
+    return { paragraphs: [
+      `Groceries in October were ${eur(catSum("oct", "Groceries"))}. Prisma and S-market were ${eur(inside)}. K-Market and Lidl were ${eur(outside)}, and that part earned no Bonus.`,
+    ], action: go("Open groceries", "category", "Groceries") };
+  }
+  if (/rent|bill|hsl|salary/.test(q)) {
+    return { paragraphs: [
+      `The regular basket in October was ${eur(basketSum("oct", "regular"))}: rent ${eur(keySum("oct", "rent"))}, bills ${eur(catSum("oct", "Bills"))}, and the season ticket ${eur(keySum("oct", "hsl"))}.`,
+      `November’s rent has already left. The bills that have not left yet are held on This week.`,
+    ], action: go("Open the baskets", "baskets") };
+  }
+  return { paragraphs: ["I can answer from this sample ledger: October, and 1–13 November. Ask about taxis, groceries, coffee, Bonus, this week, or dining out."] };
+}
+
+function render(frame, back) {
+  rendering = frame;
+  showBack = !!back;
+  if (frame.screen === "today") return screenToday();
+  if (frame.screen === "spending") return screenSpending();
+  if (frame.screen === "category") return screenCategory(frame);
+  if (frame.screen === "baskets") return screenBaskets();
+  if (frame.screen === "spender") return screenSpender();
+  if (frame.screen === "week") return screenWeek();
+  if (frame.screen === "cut") return screenCut();
+  if (frame.screen === "bonus") return screenBonus();
+  if (frame.screen === "coach") return screenCoach();
+  return screenToday();
+}
+
+function setCut(pct) {
+  pct = Math.max(0, Math.min(0.5, pct));
+  state.cut = pct;
+  const shown = Math.round(pct * 100);
+  const dining = catSum("oct", "Dining out");
+  const saved = Math.round(dining * shown / 100);
+  const pos = pct / 0.5 * 100;
+  const hero = q(".cut-hero");
+  if (!hero) return;
+  q(".slider .fill").style.width = pos + "%";
+  q(".slider .thumb").style.left = pos + "%";
+  q(".cut-pct").textContent = shown + "%";
+  hero.textContent = eur(saved);
+  q(".cut-year").textContent = eur(saved) + " a month · " + eur(saved * 12) + " a year";
+  const wolt = keySum("oct", "wolt");
+  q(".cut-note").textContent = saved <= wolt
+    ? "This can come from Wolt, which was " + eur(wolt) + ". Rosso stays, and Rosso earns Bonus."
+    : "This is more than Wolt. Part of it would be Rosso, and Rosso is the dining that earns Bonus.";
+}
+
+function afterPaint() {
+  if (current().screen === "cut") setCut(state.cut);
+  if (current().screen === "coach") {
+    const sc = q(".scroll");
+    if (sc) sc.scrollTop = sc.scrollHeight;
+  }
+  edge.style.pointerEvents = sheetOpen || stack.length < 2 ? "none" : "auto";
+}
+
+function paintOver(frame) {
+  over.innerHTML = render(frame, stack.indexOf(frame) > 0);
+}
+function paintUnder(frame) {
+  under.innerHTML = frame ? render(frame, stack.indexOf(frame) > 0) : "";
+}
+
+function updateChrome() {
+  const frame = current();
+  const key = frameKey(frame);
+  list.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.key === key));
+  const item = RAIL.find(r => frameKey(r.frame) === key);
+  caption.textContent = item ? item.blurb : "";
+  const tab = frame.screen === "spending" || frame.screen === "category" ? "spending"
+    : frame.screen === "bonus" ? "bonus"
+    : frame.screen === "coach" || frame.screen === "cut" ? "coach" : "today";
+  tabbar.querySelectorAll(".tab").forEach(el => {
+    const on = el.dataset.go === tab;
+    el.classList.toggle("on", on);
+    el.setAttribute("aria-current", on ? "page" : "false");
+  });
+}
+
+function jump(frame) {
+  cancelNav();
+  navToken++;
+  closeAlert();
+  closeSheet(true);
+  stack = [Object.assign({}, frame)];
+  paintOver(stack[0]);
+  under.innerHTML = "";
+  applyX(0);
+  updateChrome();
+  afterPaint();
+}
+function swap() {
+  paintOver(current());
+  applyX(0);
+  updateChrome();
+  afterPaint();
+}
+function push(frame) {
+  closeSheet(true);
+  closeAlert();
+  const prev = current();
+  const next = Object.assign({}, frame);
+  paintUnder(prev);
+  stack.push(next);
+  paintOver(next);
+  updateChrome();
+  afterPaint();
+  animateX(390, 0, 0, 1, 0.4);
+}
+function finishPop() {
+  stack.pop();
+  paintOver(current());
+  paintUnder(stack.length > 1 ? stack[stack.length - 2] : null);
+  applyX(0);
+  updateChrome();
+  afterPaint();
+}
+function pop() {
+  if (stack.length < 2) return;
+  closeSheet(true);
+  const token = animateX(x, 390, 0, 1, 0.4, () => {
+    if (token !== navToken) return;
+    finishPop();
+  });
+}
+
+function applySheet(y) {
+  sheetY = y;
+  sheet.style.transform = "translate3d(0," + y + "px,0)";
+  const p = Math.max(0, Math.min(1, 1 - y / (sheetH || 1)));
+  scrim.style.opacity = String(0.36 * p);
+  const s = 1 - 0.035 * p;
+  stage.style.transform = "translate3d(0," + (8 * p) + "px,0) scale(" + s + ")";
+}
+function animateSheet(from, to, velocity, damping, response, done) {
+  cancelSheet();
+  cancelSheet = spring(from, to, velocity, damping, response, (val) => applySheet(val), () => done && done());
+}
+function openSheet(html) {
+  sheetBody.innerHTML = html;
+  sheet.classList.remove("off");
+  scrim.classList.remove("off");
+  sheetOpen = true;
+  edge.style.pointerEvents = "none";
+  sheetH = sheet.offsetHeight;
+  applySheet(sheetH);
+  requestAnimationFrame(() => animateSheet(sheetY, 0, 0, 1, 0.4));
+}
+function closeSheet(immediate) {
+  if (!sheetOpen && sheet.classList.contains("off")) return;
+  const finish = () => {
+    sheet.classList.add("off");
+    scrim.classList.add("off");
+    scrim.style.opacity = "0";
+    stage.style.transform = "none";
+    sheetOpen = false;
+    edge.style.pointerEvents = stack.length > 1 ? "auto" : "none";
+  };
+  if (immediate || reduceMotion) {
+    cancelSheet();
+    applySheet(sheetH || 800);
+    finish();
+    return;
+  }
+  animateSheet(sheetY, sheetH, 0, 1, 0.35, finish);
+}
+function openTx(month, index) {
+  const r = ledger[month][index];
+  openSheet(`<h2 id="sheet-title">${r.place}</h2>
+    <p class="sheet-amt">${eur(r.amount)}</p>
+    <p class="quiet">${r.when} · ${r.detail}</p>
+    <div class="rows"><div class="row" style="cursor:default"><span class="name"><b>${r.cat}</b><small>${BASKET[r.basket].name}</small></span></div>
+    <div class="row" style="cursor:default"><span class="name"><b>${r.sgroup ? "Earns Bonus" : "No Bonus at this place"}</b><small>${r.sgroup ? "Counts toward this month’s S-group step." : "S-group shops and Rosso, Picnic, ABC, and Sokos do."}</small></span></div></div>
+    <p>${txNote(r)}</p>
+    <button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
+}
+function openAbout() {
+  openSheet(`<h2 id="sheet-title">Aino Korhonen</h2>
+    <p>Helsinki. One person. Co-op member, with S-Etukortti Visa.</p>
+    <p>This is a design ledger: October rolled up by place, and every payment from 1 to 13 November. The coach answers from these payments only.</p>
+    <p>Bonus follows the S-group steps. One percentage covers the whole month once a step is reached. Under €50 in a month, Bonus is €0. The steps run from 1% at €50 to 5% at €900.</p>
+    <button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
+}
+function openAlert(opts) {
+  alertWrap.innerHTML = `<div class="alert" role="alertdialog"><h3>${opts.title}</h3><p>${opts.body}</p>
+    <div class="alert-acts"><button type="button" data-act="${opts.no}">${opts.noLabel}</button><button type="button" data-act="${opts.yes}">${opts.yesLabel}</button></div></div>`;
+  alertWrap.classList.remove("off");
+}
+function closeAlert() { alertWrap.classList.add("off"); alertWrap.innerHTML = ""; }
+
+function submitAsk(text) {
+  const qtext = String(text || "").trim().slice(0, 280);
+  if (!qtext) return;
+  clearTimeout(replyTimer);
+  state.messages.push({ role: "user", text: qtext });
+  const thread = q(".thread");
+  if (thread) thread.insertAdjacentHTML("beforeend", bubbleHTML(state.messages[state.messages.length - 1]));
+  const field = q("#ask");
+  if (field) { field.value = ""; q(".send").disabled = true; }
+  const reply = answer(qtext);
+  replyTimer = setTimeout(() => {
+    state.messages.push(reply);
+    const live = q(".thread");
+    if (live) {
+      live.insertAdjacentHTML("beforeend", bubbleHTML(reply));
+      const sc = q(".scroll");
+      if (sc) sc.scrollTop = sc.scrollHeight;
+    }
+  }, reduceMotion ? 0 : 280);
+  const sc = q(".scroll");
+  if (sc) sc.scrollTop = sc.scrollHeight;
+}
+
+function onAct(act, target) {
+  if (act === "back") return pop();
+  if (act === "about") return openAbout();
+  if (act === "close-sheet") return closeSheet(false);
+  if (act === "month") {
+    state.month = target.dataset.month;
+    return swap();
+  }
+  if (act === "week") {
+    state.weekMode = target.dataset.mode;
+    return swap();
+  }
+  if (act === "preview") {
+    const was = state.preview;
+    state.preview = !state.preview;
+    swap();
+    const dot = q(".ladder-dot");
+    if (!dot || reduceMotion) return;
+    const display = [...STEPS].reverse();
+    const plan = novPlan();
+    const fromAt = was ? plan.weekAt : plan.now;
+    const toAt = state.preview ? plan.weekAt : plan.now;
+    const topFor = (cents) => display.findIndex(s => s.at === floorStep(cents).at) * 44 + 17;
+    dot.style.transition = "none";
+    dot.style.top = topFor(fromAt) + "px";
+    requestAnimationFrame(() => {
+      dot.style.transition = "";
+      dot.style.top = topFor(toAt) + "px";
+    });
+    return;
+  }
+  if (act === "saver") {
+    if (state.saver) {
+      openAlert({
+        title: "Keep Bonus on S-Tili",
+        body: "The next Bonus stays on S-Tili, where it can be spent. Nothing in this design moves money.",
+        no: "close-alert", noLabel: "Cancel",
+        yes: "saver-undo", yesLabel: "Keep it on S-Tili",
+      });
+    } else {
+      openAlert({
+        title: "Send the next Bonus to Säästäjä",
+        body: "From 10 Dec, Bonus would go to Säästäjä instead of S-Tili. October’s Bonus is already on S-Tili. You can change this later. This preview does not move money.",
+        no: "close-alert", noLabel: "Not now",
+        yes: "saver-yes", yesLabel: "Send next Bonus",
+      });
+    }
+    return;
+  }
+  if (act === "close-alert") return closeAlert();
+  if (act === "saver-yes") { state.saver = true; closeAlert(); return swap(); }
+  if (act === "saver-undo") { state.saver = false; closeAlert(); return swap(); }
+  if (act === "send") {
+    const field = q("#ask");
+    if (field) submitAsk(field.value);
+  }
+}
+
+const ICONS = {
+  today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>',
+  spending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg>',
+  bonus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18" stroke-linecap="round"/></svg>',
+  coach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 16.5V7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v6A2.5 2.5 0 0 1 16.5 16H9l-4 3z"/></svg>',
+};
+function buildTabs() {
+  const tabs = [["today", "Today"], ["spending", "Spending"], ["bonus", "Bonus"], ["coach", "Coach"]];
+  tabbar.innerHTML = tabs.map(([id, label]) => `<button type="button" class="tab" data-go="${id}" data-how="tab">${ICONS[id]}${label}</button>`).join("");
+}
+function buildRail() {
+  let html = `<h1>My money</h1><p class="lede">A design for S-mobiili. Sample customer Aino Korhonen. The phone is the prototype. Bonus is computed from the ledger.</p>`;
+  let group = "";
+  RAIL.forEach((item, i) => {
+    if (item.group !== group) {
+      group = item.group;
+      html += `<h2>${group}</h2>`;
+    }
+    html += `<button type="button" data-key="${frameKey(item.frame)}" data-rail="${i}">${item.label}</button>`;
+  });
+  list.innerHTML = html;
+}
+
+list.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b || b.dataset.rail == null) return;
+  jump(RAIL[+b.dataset.rail].frame);
+});
+
+device.addEventListener("click", (e) => {
+  const act = e.target.closest("[data-act]");
+  if (act && device.contains(act)) {
+    onAct(act.dataset.act, act);
+    return;
+  }
+  const tx = e.target.closest("[data-tx]");
+  if (tx) { openTx(tx.dataset.tx, +tx.dataset.i); return; }
+  const ask = e.target.closest("[data-ask]");
+  if (ask) { submitAsk(ask.dataset.ask); return; }
+  const go = e.target.closest("[data-go]");
+  if (!go) return;
+  const how = go.dataset.how || "push";
+  const frame = { screen: go.dataset.go };
+  if (go.dataset.cat) frame.category = go.dataset.cat;
+  if (frame.screen === "category" && !frame.category) return;
+  if (how === "tab") {
+    jump(frame);
+    return;
+  }
+  if (frameKey(frame) === frameKey(current())) return;
+  push(frame);
+});
+
+device.addEventListener("input", (e) => {
+  if (e.target.id === "ask") {
+    const send = q(".send");
+    if (send) send.disabled = !e.target.value.trim();
+  }
+});
+device.addEventListener("submit", (e) => {
+  if (e.target.matches(".ask")) {
+    e.preventDefault();
+    submitAsk(e.target.querySelector("input").value);
+  }
+});
+
+let sheetDrag = null;
+grabber.addEventListener("pointerdown", (e) => {
+  if (sheet.classList.contains("off")) return;
+  grabber.setPointerCapture(e.pointerId);
+  cancelSheet();
+  const p = localPoint(e);
+  sheetDrag = { id: e.pointerId, y0: sheetY, py: p.y, claimed: false, samples: [{ y: sheetY, t: performance.now() }] };
+});
+grabber.addEventListener("pointermove", (e) => {
+  if (!sheetDrag || e.pointerId !== sheetDrag.id) return;
+  const p = localPoint(e);
+  const dy = p.y - sheetDrag.py;
+  if (!sheetDrag.claimed) {
+    if (Math.abs(dy) < 10) return;
+    sheetDrag.claimed = true;
+    sheetDrag.y0 = sheetY;
+    sheetDrag.py = p.y;
+  }
+  let raw = sheetDrag.y0 + (p.y - sheetDrag.py);
+  if (raw < 0) raw = -rubberband(-raw, 844);
+  else if (raw > sheetH) raw = sheetH + rubberband(raw - sheetH, 844);
+  applySheet(raw);
+  sheetDrag.samples.push({ y: raw, t: performance.now() });
+  if (sheetDrag.samples.length > 8) sheetDrag.samples.shift();
+});
+function endSheetDrag(e) {
+  if (!sheetDrag || e.pointerId !== sheetDrag.id) return;
+  const samples = sheetDrag.samples;
+  const claimed = sheetDrag.claimed;
+  sheetDrag = null;
+  const v = claimed ? sampleVelocity(samples, "y") : 0;
+  const projected = sheetY + project(v);
+  const target = nearest(projected, [0, sheetH]);
+  animateSheet(sheetY, target, claimed ? v : 0, claimed ? 0.8 : 1, claimed ? 0.3 : 0.4, () => {
+    if (target === sheetH) {
+      sheet.classList.add("off");
+      scrim.classList.add("off");
+      stage.style.transform = "none";
+      sheetOpen = false;
+      edge.style.pointerEvents = stack.length > 1 ? "auto" : "none";
+    }
+  });
+}
+grabber.addEventListener("pointerup", endSheetDrag);
+grabber.addEventListener("pointercancel", endSheetDrag);
+scrim.addEventListener("click", () => closeSheet(false));
+
+let edgeDrag = null;
+edge.addEventListener("pointerdown", (e) => {
+  if (stack.length < 2 || sheetOpen) return;
+  edge.setPointerCapture(e.pointerId);
+  cancelNav();
+  navToken++;
+  const p = localPoint(e);
+  edgeDrag = { id: e.pointerId, x0: x, p, claimed: false, samples: [{ x, t: performance.now() }] };
+});
+edge.addEventListener("pointermove", (e) => {
+  if (!edgeDrag || e.pointerId !== edgeDrag.id) return;
+  const p = localPoint(e);
+  const dx = p.x - edgeDrag.p.x;
+  const dy = p.y - edgeDrag.p.y;
+  if (!edgeDrag.claimed) {
+    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+    if (Math.abs(dy) > Math.abs(dx)) { edgeDrag.dead = true; return; }
+    edgeDrag.claimed = true;
+    edgeDrag.x0 = x;
+    edgeDrag.p = p;
+  }
+  if (edgeDrag.dead) return;
+  let raw = edgeDrag.x0 + (p.x - edgeDrag.p.x);
+  if (raw < 0) raw = -rubberband(-raw, 390);
+  else if (raw > 390) raw = 390 + rubberband(raw - 390, 390);
+  applyX(raw);
+  edgeDrag.samples.push({ x: raw, t: performance.now() });
+  if (edgeDrag.samples.length > 8) edgeDrag.samples.shift();
+});
+function endEdge(e) {
+  if (!edgeDrag || e.pointerId !== edgeDrag.id) return;
+  const claimed = edgeDrag.claimed && !edgeDrag.dead;
+  const samples = edgeDrag.samples;
+  edgeDrag = null;
+  const v = claimed ? sampleVelocity(samples, "x") : 0;
+  const projected = x + project(v);
+  const target = nearest(Math.max(0, projected), [0, 390]);
+  const token = animateX(x, target, claimed ? v : 0, claimed ? 0.8 : 1, claimed ? 0.3 : 0.4, () => {
+    if (token !== navToken) return;
+    if (target === 390) finishPop();
+  });
+}
+edge.addEventListener("pointerup", endEdge);
+edge.addEventListener("pointercancel", endEdge);
+
+let sliderDrag = null;
+device.addEventListener("pointerdown", (e) => {
+  const slider = e.target.closest("[data-slider]");
+  if (!slider) return;
+  slider.setPointerCapture(e.pointerId);
+  slider.classList.add("dragging");
+  sliderDrag = { id: e.pointerId, slider };
+  moveSlider(e, slider);
+});
+device.addEventListener("pointermove", (e) => {
+  if (!sliderDrag || e.pointerId !== sliderDrag.id) return;
+  moveSlider(e, sliderDrag.slider);
+});
+function endSlider(e) {
+  if (!sliderDrag || e.pointerId !== sliderDrag.id) return;
+  sliderDrag.slider.classList.remove("dragging");
+  sliderDrag = null;
+}
+device.addEventListener("pointerup", endSlider);
+device.addEventListener("pointercancel", endSlider);
+function moveSlider(e, slider) {
+  const rect = slider.getBoundingClientRect();
+  const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+  setCut(f * 0.5);
+}
+
+alertWrap.addEventListener("click", (e) => { if (e.target === alertWrap) closeAlert(); });
+window.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  if (!alertWrap.classList.contains("off")) { closeAlert(); return; }
+  if (sheetOpen) { closeSheet(false); return; }
+  if (stack.length > 1) pop();
+});
+
+function fit() {
+  const bounds = document.querySelector(".fit").getBoundingClientRect();
+  const scale = Math.max(0.2, Math.min(bounds.width / 390, bounds.height / 844, 1));
+  const scaler = document.getElementById("scaler");
+  scaler.style.width = (390 * scale) + "px";
+  scaler.style.height = (844 * scale) + "px";
+  device.style.transform = "scale(" + scale + ")";
+}
+window.addEventListener("resize", fit);
+
+function selfCheck() {
+  const errs = [];
+  const eq = (name, got, want) => { if (got !== want) errs.push(name + "=" + got + " want " + want); };
+  eq("oct", sum("oct"), 221400);
+  eq("regular", basketSum("oct", "regular"), 100800);
+  eq("irregular", basketSum("oct", "irregular"), 21000);
+  eq("everyday", basketSum("oct", "everyday"), 99600);
+  eq("slip", slip("oct"), 35600);
+  eq("sgroup oct", sgroup("oct"), 65200);
+  eq("bonus oct", bonusCents(65200), 2282);
+  eq("bonus 700", bonusCents(70000), 2800);
+  eq("nov", sum("nov"), 121640);
+  eq("sgroup nov", sgroup("nov"), 21400);
+  eq("bonus nov", bonusCents(21400), 321);
+  eq("week at", novPlan().weekAt, 30000);
+  eq("bonus 300", bonusCents(30000), 600);
+  eq("month at", novPlan().monthAt, 51000);
+  eq("bonus 510", bonusCents(51000), 1530);
+  eq("food only", bonusCents(novPlan().foodOnly), 1235);
+  eq("holds", holdSum(), 135600);
+  eq("left", BALANCE + SALARY - holdSum(), 266820);
+  eq("gain", tierStory(21400).gain, 279);
+  eq("loss", tierStory(21400).loss, 8321);
+  const el = document.getElementById("check");
+  el.textContent = errs.length ? errs.join(" | ") : "ok";
+  if (errs.length) console.error(el.textContent);
+}
+
+const params = new URLSearchParams(location.search);
+const startScreen = params.get("screen");
+const start = RAIL.find(r => r.frame.screen === startScreen && (!params.get("cat") || r.frame.category === params.get("cat")));
+buildRail();
+buildTabs();
+selfCheck();
+fit();
+jump(start ? start.frame : { screen: "today" });
+</script>
+</body>
+</html>
