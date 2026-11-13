@@ -1,6 +1,6 @@
 # SpendSight backend
 
-Python FastAPI service. It reads the Junction 2026 S-Pankki files when the process starts and answers from that data.
+Python FastAPI service. It reads the Junction 2026 S-Pankki files when the process starts and answers from that data. The phone that calls it is documented in [`frontend/APP.md`](../frontend/APP.md).
 
 The interactive reference is [https://127.0.0.1:8000/docs](https://127.0.0.1:8000/docs). The certificate is local and self-signed, so the browser warns once. Continue past that warning.
 

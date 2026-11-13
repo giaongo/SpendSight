@@ -8,12 +8,14 @@ S-Pankki’s customer apps stay native: Swift, and the Objective-C already in th
 
 The customer asks in the coach. The phone sends the text and nothing else about identity. The session already knows who she is. A customer id in the body is ignored.
 
+The application does not answer the chat. The Python service in `backend/` does. That answer is its own call, separate from the reads for Today, Spending, and Save.
+
 ```
 POST /coach/ask
 { "text": "What is safe for me to spend this week?" }
 ```
 
-The service does four things, in this order.
+The Kotlin app sends the question to that endpoint and renders the card that comes back. A sample reply kept on the phone is only a stand-in for when the service is not connected. The service does four things, in this order.
 
 1. Classify the question.
 2. If the class is refused, return the refusal. Do not read the ledger.
@@ -117,4 +119,4 @@ The phone says the coach is automated, that an answer can be wrong, and that she
 
 The native shell owns sign-in, the session, secure storage, and push. React, if the hackathon screen is a web view, owns the layout already drawn in `index.html`: the coach thread, the fact card, the shelf tags, the three-basket pie, the confirm alert, and the sheets.
 
-The shell and the web view both refuse to compute a bonus, a week line, or a loan payment locally. They render the cents the service returned. The design file still checks its own sample with `selfCheck`, so the sample cannot drift while the screens are being drawn.
+The shell and the web view both refuse to compute a bonus, a week line, or a loan payment locally. They render the cents the service returned. The coach thread is filled from `POST /coach/ask`, not from a calculation on the phone. The design file still checks its own sample with `selfCheck`, so the sample cannot drift while the screens are being drawn.
