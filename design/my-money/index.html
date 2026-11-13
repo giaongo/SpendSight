@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>My money · S-mobiili design</title>
+<title>SpendSight · S-mobiili design</title>
 <style>
   :root {
     --green: #00AA46;
@@ -18,6 +18,7 @@
     --slip: #C26A3A;
     --gold: #C4A15A;
     --fill: #E7EEEA;
+    --tag: #FFE14A;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; height: 100%; }
@@ -92,7 +93,7 @@
   .edge { position: absolute; left: 0; top: 100px; bottom: 84px; width: 22px; z-index: 4; touch-action: none; }
   .screen { position: absolute; inset: 0; }
   .scroll { position: absolute; inset: 0; overflow: auto; padding: 108px 20px 28px; }
-  .scroll.pad-composer { padding-bottom: 196px; }
+  .scroll.pad-composer { padding-bottom: 348px; }
   .nav {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -425,6 +426,36 @@
   .msg.user .bubble { background: var(--green); color: #fff; border-bottom-right-radius: 6px; }
   .bubble p { margin: 0 0 8px; }
   .bubble p:last-child { margin: 0; }
+  .fact small { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; color: var(--secondary); }
+  .fact b {
+    display: block;
+    margin: 2px 0 6px;
+    font-size: 28px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .fact p { margin: 0; font-size: 15px; line-height: 1.35; }
+  .src { display: block; margin-top: 8px; font-size: 12px; line-height: 1.35; font-weight: 650; color: var(--secondary); }
+  .limit { display: block; margin-bottom: 4px; font-size: 12px; font-weight: 700; color: var(--slip); }
+  .ai-note {
+    margin: 0 4px 6px;
+    font-size: 12px;
+    line-height: 1.35;
+    color: var(--secondary);
+  }
+  .ai-note button {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    color: var(--green);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .pie-wrap { display: flex; gap: 14px; align-items: center; margin-top: 14px; }
+  .pie { width: 84px; height: 84px; border-radius: 42px; flex: none; box-shadow: inset 0 0 0 1px rgba(4, 33, 23, 0.06); }
   .bubble .go {
     display: inline-flex;
     margin-top: 8px;
@@ -554,6 +585,58 @@
     from { opacity: 0; transform: scale(0.96) translateY(8px); }
     to { opacity: 1; transform: none; }
   }
+  .tags { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .tag {
+    display: block;
+    width: 100%;
+    text-align: left;
+    border: 0;
+    font: inherit;
+    color: var(--deep);
+    background: var(--tag);
+    border-radius: 3px 16px 16px 3px;
+    padding: 12px 12px 13px 14px;
+    box-shadow: 3px 3px 0 rgba(0, 38, 22, 0.14);
+    cursor: pointer;
+  }
+  .tag small { display: block; font-size: 12px; font-weight: 700; letter-spacing: 0.01em; }
+  .tag b {
+    display: block;
+    margin-top: 2px;
+    font-size: 30px;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .choice {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(4, 33, 23, 0.05);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 650;
+    color: var(--deep);
+    cursor: pointer;
+  }
+  .choice.on { box-shadow: inset 0 0 0 2px var(--green); }
+  .tag.aside {
+    background: #fff;
+    color: var(--secondary);
+    box-shadow: 0 1px 2px rgba(4, 33, 23, 0.06);
+  }
+  .tag.aside b { color: var(--ink); }
+  .chart { display: flex; flex-direction: column; gap: 12px; margin-top: 14px; }
+  .chart-row { display: flex; flex-direction: column; gap: 4px; }
+  .chart-row > span { font-size: 13px; font-weight: 650; }
+  .chart-line { display: grid; grid-template-columns: minmax(0, 1fr) 72px; align-items: center; gap: 8px; }
+  .chart-line i { display: block; height: 8px; border-radius: 4px; background: #C9D2CC; min-width: 2px; justify-self: start; }
+  .chart-line i.now { background: var(--green); }
+  .chart-line b { font-size: 12px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; text-align: right; }
+  .bubble .chart { margin-top: 10px; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
   @media (prefers-reduced-motion: reduce) {
     .switch-thumb, .ladder-dot, .alert { transition: none; animation: none; }
@@ -563,7 +646,7 @@
     .nav::after, .tabbar::before, .composer::before { display: none; }
   }
   @media (prefers-contrast: more) {
-    .card, .rows, .trio button, .switch { border: 1px solid var(--deep); }
+    .card, .rows, .trio button, .switch, .tag, .choice { border: 1px solid var(--deep); }
   }
   @media (max-width: 760px) {
     body { grid-template-columns: 1fr; }
@@ -624,6 +707,7 @@ const ledger = {
     R("Helen", 4600, "regular", "Bills", false, "14 Oct", "helen", "Electricity"),
     R("If", 1800, "regular", "Bills", false, "20 Oct", "if", "Insurance"),
     R("Spotify and Netflix", 2000, "regular", "Bills", false, "5 Oct", "stream", "Streaming"),
+    R("Fressi", 2990, "regular", "Bills", false, "2 Oct", "gym", "Gym"),
     R("HSL", 7400, "regular", "Transport pass", false, "15 Oct", "hsl", "Season ticket"),
     R("Kodinkonehuolto", 16500, "irregular", "Repair", false, "8 Oct", "repair", "Washing machine"),
     R("Hammaslääkäri", 4500, "irregular", "Health", false, "26 Oct", "dentist", "Dentist"),
@@ -667,15 +751,46 @@ const GROCERY_PLAN = 28000;
 const COFFEE_PLAN = 1600;
 const WEEK_SHOP = 7000;
 const CALMER = 6400;
+const BIG_WEEK = 4000;
+const DINING_ORDERS_OCT = 9;
+const EFFORT = {
+  small: { name: "Small", save: 5000, spend: null },
+  steady: { name: "Steady", save: 40000, spend: 6400 },
+  big: { name: "Big", save: 80000, spend: BIG_WEEK },
+};
+const ASP_MONTH = 40000;
+const ASP_MIN = 5000;
+const ASP_MAX = 150000;
+const ASP_SAVED = 640000;
+const ASP_MONTHS_DONE = 14;
+const ASP_MONTHS_NEED = 20;
+const HOME_EURO_DEFAULT = 220000;
+const JACKET = 8900;
 const holds = [
   { name: "December rent", detail: "Leaves 2 Dec. The next salary is 15 Dec.", amount: 82000 },
   { name: "Elisa", detail: "18 Nov, same as October", amount: 3000 },
-  { name: "Helen", detail: "Same as October", amount: 4600 },
-  { name: "HSL season ticket", detail: "20 Nov", amount: 7400 },
-  { name: "If insurance", detail: "Monthly, not posted yet", amount: 1800 },
-  { name: "Netflix", detail: "Spotify already left on 5 Nov", amount: 800 },
-  { name: "Groceries still to buy", detail: "Food for the rest of November. A plan, not a payment.", amount: GROCERY_PLAN },
-  { name: "Cushion", detail: "October’s repair was €165. This slice stays put.", amount: 8000 },
+  { name: "Helen", detail: "14 Nov, the same day it left in October. Due before payday.", amount: 4600, before: true },
+  { name: "HSL season ticket", detail: "20 Nov, after payday", amount: 7400 },
+  { name: "If insurance", detail: "Monthly, not posted yet. October left on 20 Oct.", amount: 1800 },
+  { name: "Netflix", detail: "Spotify already left on 5 Nov. No date before payday.", amount: 800 },
+  { name: "Fressi", detail: "October left on 2 Oct. November has not left, so it is already due.", amount: 2990, before: true },
+  { name: "Groceries still to buy", detail: "Food for the rest of November. A plan, not a bill.", amount: GROCERY_PLAN },
+  { name: "Cushion", detail: "The buffer for a repair. October’s repair was €165.", amount: 8000, buffer: true },
+];
+
+const IMPULSE = ["Dining out", "Coffee & drinks", "Taxis", "Shopping"];
+const FILING = [
+  ["Rent", "regular"],
+  ["Bills", "regular"],
+  ["Transport pass", "regular"],
+  ["Repair", "irregular"],
+  ["Health", "irregular"],
+  ["Groceries", "everyday"],
+  ["Dining out", "everyday"],
+  ["Coffee & drinks", "everyday"],
+  ["Taxis", "everyday"],
+  ["Pharmacy", "everyday"],
+  ["Shopping", "everyday"],
 ];
 
 const BASKET = {
@@ -715,6 +830,126 @@ function floorStep(cents) {
 function nextTier(cents) { return STEPS.find(s => s.at > cents) || null; }
 function holdSum() { return holds.reduce((s, h) => s + h.amount, 0); }
 function usualWeek() { return Math.round(slip("oct") * 7 / 30); }
+function guidance() {
+  const chosen = EFFORT[state.effort] || EFFORT.steady;
+  return {
+    id: state.effort,
+    name: chosen.name,
+    save: chosen.save,
+    spend: chosen.spend == null ? usualWeek() : chosen.spend,
+  };
+}
+function windowSlip() {
+  return ledger.nov.reduce((s, r) => s + (r.when === "13 Nov" && SLIP.includes(r.cat) ? r.amount : 0), 0);
+}
+function diningPlan() {
+  const dining = catSum("oct", "Dining out");
+  const meal = Math.round(dining / DINING_ORDERS_OCT);
+  const fifth = Math.round(dining * 0.2);
+  const once = meal * 4;
+  const twice = meal * 8;
+  return {
+    dining, meal, fifth, once, twice,
+    orders: DINING_ORDERS_OCT,
+    fifthYear: fifth * 12,
+    onceYear: once * 12,
+    twiceYear: twice * 12,
+    wolt: keySum("oct", "wolt"),
+    rosso: keySum("oct", "rosso"),
+  };
+}
+function visitCount(row) {
+  const m = /(\d+)\s+(visits|orders|rides)/.exec(row.detail);
+  return m ? +m[1] : 1;
+}
+function dayOf(when) {
+  const m = /^(\d+)/.exec(when || "");
+  return m ? +m[1] : 0;
+}
+function counted(period, category, count, noun) {
+  const word = noun || (count === 1 ? "payment" : "payments");
+  return period + " · " + category + " · " + count + " " + word;
+}
+function safeSpend() {
+  const bills = holds.filter(h => h.before);
+  const billSum = bills.reduce((s, h) => s + h.amount, 0);
+  const buf = holdAmount("Cushion");
+  return { bills, billSum, buf, spend: BALANCE - billSum - buf };
+}
+function runway() {
+  const days = 13;
+  const rent = keySum("nov", "rent");
+  const variable = sum("nov") - rent;
+  const count = ledger.nov.filter(r => r.key !== "rent").length;
+  const perDay = Math.round(variable / days);
+  const left = perDay > 0 ? Math.floor(BALANCE / perDay) : 0;
+  return { days, rent, variable, count, perDay, left };
+}
+function impulseWhen() {
+  const rows = ledger.nov.filter(r => IMPULSE.includes(r.cat));
+  const map = new Map();
+  for (const r of rows) {
+    const cur = map.get(r.when) || { when: r.when, amount: 0, n: 0, places: [] };
+    cur.amount += r.amount;
+    cur.n += 1;
+    cur.places.push(r.place);
+    map.set(r.when, cur);
+  }
+  const days = [...map.values()].sort((a, b) => dayOf(a.when) - dayOf(b.when));
+  const peak = days.slice().sort((a, b) => b.n - a.n || b.amount - a.amount)[0];
+  const coffee = ledger.oct.filter(r => r.cat === "Coffee & drinks");
+  return {
+    rows, days, peak,
+    total: rows.reduce((s, r) => s + r.amount, 0),
+    n: rows.length,
+    coffeeVisits: coffee.reduce((s, r) => s + visitCount(r), 0),
+    woltOrders: visitCount(ledger.oct.find(r => r.key === "wolt")),
+  };
+}
+function subscriptionCut() {
+  const items = [
+    { id: "gym", name: "Fressi", cents: keySum("oct", "gym"), use: "Charged on 2 Oct. No visit is in the ledger." },
+    { id: "netflix", name: "Netflix", cents: holdAmount("Netflix"), use: "No play count. The November charge has not left." },
+    { id: "spotify", name: "Spotify", cents: keySum("nov", "stream"), use: "Charged on 5 Nov. No play count is in the ledger." },
+  ];
+  const month = items.reduce((s, item) => s + item.cents, 0);
+  return { items, month, year: month * 12 };
+}
+function pile(monthly, years) { return monthly * 12 * years; }
+function pace13(cents) { return Math.round(cents * 13 / 30); }
+function holdAmount(name) {
+  const h = holds.find(x => x.name === name);
+  return h ? h.amount : 0;
+}
+function monthlyPayment(principalCents, annualPct, years) {
+  const principal = principalCents / 100;
+  const months = years * 12;
+  const rate = annualPct / 100 / 12;
+  if (rate === 0) return Math.round(principal / months * 100);
+  const grown = Math.pow(1 + rate, months);
+  return Math.round(principal * (rate * grown) / (grown - 1) * 100);
+}
+function loanFigures() {
+  const price = state.homeEuro * 100;
+  const down = Math.round(price * 10 / 100);
+  const loan = price - down;
+  const pay = monthlyPayment(loan, state.rateTenths / 10, 25);
+  const stress = monthlyPayment(loan, 6, 25);
+  return { price, down, loan, pay, stress, share: Math.round(pay / SALARY * 1000) / 10 };
+}
+function compareRows() {
+  return ["Groceries", "Coffee & drinks", "Dining out", "Taxis"].map(label => ({
+    label,
+    oct: pace13(catSum("oct", label)),
+    nov: catSum("nov", label),
+  }));
+}
+function jacketStory() {
+  const now = sgroup("nov");
+  const withJacket = now + JACKET;
+  const gain = bonusCents(withJacket) - bonusCents(now);
+  return { withJacket, gain, loss: JACKET - gain, over: JACKET - guidance().spend };
+}
 
 function novPlan() {
   const now = sgroup("nov");
@@ -745,7 +980,7 @@ function txNote(r) {
   if (r.key === "rosso") return "Dinner that earns Bonus and counts toward the step.";
   if (r.sgroup && r.cat === "Groceries") return "This shop counts toward the Bonus step.";
   if (!r.sgroup && (r.cat === "Groceries" || r.cat === "Coffee & drinks")) return "This place pays no Bonus. The same kind of purchase at Prisma, S-market, Picnic, or ABC would.";
-  if (r.basket === "regular") return "This leaves on its own schedule. It sits outside the safe-to-spend number.";
+  if (r.basket === "regular") return "This leaves on its own schedule. A bill due before payday is subtracted in the safe-to-spend number. A later one is not.";
   if (r.sgroup) return "This earns Bonus.";
   return "This is everyday spending, chosen one payment at a time.";
 }
@@ -754,38 +989,86 @@ const state = {
   month: "oct",
   preview: false,
   saver: false,
-  weekMode: "calmer",
+  effort: "steady",
+  years: 5,
+  transfer: false,
   cut: 0.2,
+  purchase: "open",
+  subs: { netflix: "open", gym: "open", spotify: "open" },
+  watch: { bolt: "open", refund: "open" },
+  homeEuro: HOME_EURO_DEFAULT,
+  rateTenths: 40,
   messages: [{
     role: "coach",
-    paragraphs: ["Ask about October or 1–13 November. I answer from Aino’s payments only."],
+    paragraphs: ["I answer from your payments only. The figures are counted, and I can still be wrong. Check anything that would move money. I am not a person at the bank, and I do not move money."],
   }],
 };
 
 const RAIL = [
-  { group: "Start", label: "Today", blurb: "What is safe this week, then where the money went.", frame: { screen: "today" } },
-  { group: "Start", label: "Coach", blurb: "Questions the ledger can answer. The replies are written from these payments.", frame: { screen: "coach" } },
-  { group: "Where it went", label: "Spending", blurb: "Food, drink, and every other category, from the same ledger.", frame: { screen: "spending" } },
-  { group: "Where it went", label: "Groceries", blurb: "Which shops earned Bonus.", frame: { screen: "category", category: "Groceries" } },
-  { group: "Where it went", label: "Coffee and drinks", blurb: "Robert’s, Picnic, and ABC.", frame: { screen: "category", category: "Coffee & drinks" } },
-  { group: "Where it went", label: "Dining out", blurb: "Wolt and Rosso.", frame: { screen: "category", category: "Dining out" } },
-  { group: "Where it went", label: "Three baskets", blurb: "Must every month, must when it happens, and everyday.", frame: { screen: "baskets" } },
-  { group: "Answers", label: "What kind of spender", blurb: "A reading of October, the last full month.", frame: { screen: "spender" } },
-  { group: "Answers", label: "Safe this week", blurb: "The holds, then the money that can slip.", frame: { screen: "week" } },
-  { group: "Answers", label: "Dining, minus 20%", blurb: "Drag the share. Wolt and Rosso stay visible.", frame: { screen: "cut" } },
-  { group: "Answers", label: "Bonus", blurb: "The step, the next €86, and what extra spending would actually cost.", frame: { screen: "bonus" } },
+  { group: "MVP", label: "SpendSight", blurb: "Six questions from her own payments. Each figure names its source. Answers can be wrong.", frame: { screen: "coach" } },
+  { group: "MVP", label: "Today", blurb: "Safe to spend until payday, safe to save, and a slip line that sends one note.", frame: { screen: "today" } },
+  { group: "MVP", label: "What kind of spender", blurb: "October’s habits: what leaves on a schedule, and where the small payments go.", frame: { screen: "spender" } },
+  { group: "MVP", label: "Safe this week", blurb: "Balance, minus bills due before payday, minus the buffer.", frame: { screen: "week" } },
+  { group: "MVP", label: "Dining, minus 20%", blurb: "A fifth for the month and the year, or one meal a week less, or two.", frame: { screen: "cut" } },
+  { group: "MVP", label: "Impulse", blurb: "The dated payments that slip. October’s coffee has no weekday.", frame: { screen: "impulse" } },
+  { group: "MVP", label: "Days left", blurb: "Balance divided by November’s pace, with rent left out of the pace.", frame: { screen: "runway" } },
+  { group: "Your money", label: "Spending", blurb: "Food, drink, and every other category, from the same ledger.", frame: { screen: "spending" } },
+  { group: "Your money", label: "Groceries", blurb: "Which shops earned Bonus.", frame: { screen: "category", category: "Groceries" } },
+  { group: "Your money", label: "Coffee and drinks", blurb: "Robert’s, Picnic, and ABC.", frame: { screen: "category", category: "Coffee & drinks" } },
+  { group: "Your money", label: "Dining out", blurb: "Wolt and Rosso.", frame: { screen: "category", category: "Dining out" } },
+  { group: "Your money", label: "Three baskets", blurb: "Must every month, must when it happens, and everyday. A pie of the same numbers.", frame: { screen: "baskets" } },
+  { group: "Your money", label: "Charts", blurb: "This November against October’s pace. No invented average.", frame: { screen: "charts" } },
+  { group: "Your money", label: "Safe to save", blurb: "Small, steady, or big. The week moves with the choice.", frame: { screen: "save" } },
+  { group: "Your money", label: "This purchase", blurb: "A jacket against the week, the Bonus step, and Thursday’s salary.", frame: { screen: "purchase" } },
+  { group: "Your money", label: "Bonus", blurb: "The step, the next €86, and what extra spending would actually cost.", frame: { screen: "bonus" } },
+  { group: "Your money", label: "Subscriptions", blurb: "Repeating charges the coach filed, and can ask about.", frame: { screen: "subs" } },
+  { group: "Your money", label: "Watch", blurb: "A possible second taxi charge, and a refund that has not landed.", frame: { screen: "watch" } },
+  { group: "Later", label: "Home", blurb: "Not in the MVP chat. The ASP months, the cushion, and no lending decision.", frame: { screen: "home" } },
+  { group: "Later", label: "Loan sketch", blurb: "Not in the MVP chat. Drag the price and the rate. Not an offer, and not a payoff plan.", frame: { screen: "loan" } },
 ];
 
 const TITLES = {
-  today: "My money",
+  today: "Today",
   spending: "Spending",
   category: "Spending",
   baskets: "Baskets",
+  charts: "Charts",
   spender: "Spender",
   week: "This week",
+  save: "Save",
+  purchase: "This purchase",
   cut: "Dining out",
+  home: "Home",
+  loan: "Loan sketch",
   bonus: "Bonus",
-  coach: "Coach",
+  subs: "Subscriptions",
+  watch: "Watch",
+  coach: "SpendSight",
+  impulse: "Impulse",
+  runway: "Days left",
+};
+
+const ACCOUNTS = {
+  tili: {
+    title: "S-Tili",
+    body: "Everyday account. Salary, rent, and Bonus land here. The safe-to-spend number is counted from this account.",
+  },
+  asp: {
+    title: "ASP account",
+    body: "For a first home. A month is €50 to €1,500, and the loan wants at least 20 months. Pauses are allowed, so a missed month is not a failure. S-Pankki pays 1% while you save. Another 4% is paid when you buy the home, for the year you started and up to five calendar years after that. Both are tax-free. The extra interest is paid at the purchase. It is not a monthly forecast, and it is not paid on money you took out before then. Opening the account happens with S-Pankki. This screen does not open one.",
+  },
+  tuotto: {
+    title: "S-Tuottotili",
+    body: "Savings you can take out when you need them. The cushion for a broken machine belongs here, not on the ASP account. Interest depends on the balance. This design does not quote a rate.",
+  },
+  maara: {
+    title: "S-Määräaikaistili",
+    body: "A fixed date. The money stays until that date. Use it only for an amount you already know you will not need.",
+  },
+  saastaja: {
+    title: "Säästäjä",
+    body: "Four ways to save. Send Bonus to a fund. Set aside €0.50 to €5 on each debit-card payment. Move a monthly sum. Add extra when you want. The funds can fall. This design does not predict them. October’s Bonus stays on S-Tili unless you send the next one.",
+  },
 };
 
 let stack = [{ screen: "today" }];
@@ -913,6 +1196,19 @@ function navHTML() {
   return `<div class="nav">${statusHTML()}<div class="nav-row">${back}<div class="nav-title">${title}</div><button type="button" class="avatar" data-act="about" aria-label="About Aino">A</button></div></div>`;
 }
 
+function effortSeg() {
+  return `<div class="seg" role="tablist">${["small", "steady", "big"].map(id => `<button type="button" data-act="effort" data-id="${id}" class="${state.effort === id ? "on" : ""}">${EFFORT[id].name}</button>`).join("")}</div>`;
+}
+function pieHTML(parts) {
+  const total = parts.reduce((s, p) => s + p.amount, 0) || 1;
+  let at = 0;
+  const stops = parts.filter(p => p.amount > 0).map(p => {
+    const start = at;
+    at += p.amount / total * 100;
+    return p.color + " " + start.toFixed(2) + "% " + at.toFixed(2) + "%";
+  }).join(", ");
+  return `<div class="pie" style="background:conic-gradient(${stops})" role="img" aria-label="Share of the month"></div>`;
+}
 function monthSeg() {
   return `<div class="seg" role="tablist">
     <button type="button" data-act="month" data-month="oct" class="${state.month === "oct" ? "on" : ""}">October</button>
@@ -946,11 +1242,21 @@ function screenToday() {
     ["Coffee & drinks", catSum(foodMonth, "Coffee & drinks")],
     ["Dining out", catSum(foodMonth, "Dining out")],
   ];
+  const g = guidance();
+  const s = safeSpend();
+  const left = BALANCE + SALARY - holdSum();
+  const used = windowSlip();
   return `${navHTML(current())}<div class="scroll">
-    <p class="eyebrow">Safe until Wednesday</p>
-    <p class="hero">${eur(CALMER)}</p>
-    <p class="lede">Coffee, taxis, and meals out. Groceries stay in the food plan. Rent, bills, and a cushion are held apart.</p>
-    <button type="button" class="text-btn" data-go="week">See the arithmetic</button>
+    <div class="tags">
+      <button type="button" class="tag" data-go="week"><small>Safe to spend</small><b>${eur(s.spend)}</b></button>
+      <button type="button" class="tag" data-go="save"><small>Safe to save</small><b>${eur(g.save)}</b></button>
+    </div>
+    ${effortSeg()}
+    <p class="lede">${eur(BALANCE)} on S-Tili, minus ${eur(s.billSum)} due before Thursday, minus a ${eur(s.buf)} buffer. ${g.name} save is ${eur(g.save)}. ${eur(ASP_MAX)} would still count as one ASP month, and it would take ${eur(ASP_MAX - g.save)} from the ${eur(left)} that has to last until 15 December.</p>
+    <button type="button" class="card" data-go="coach">
+      <small class="quiet">Slip line · one note, not a block</small>
+      <p class="lede" style="margin-top:4px;color:var(--ink)">${eur(used)} of ${eur(g.spend)} has slipped since Friday, in coffee, taxis, and meals. Passing that line sends one note. The card is not blocked, and this line is not the safe-to-spend number.</p>
+    </button>
     <div class="card"><div class="split">
       <div><small>S-Tili now</small><b>${eur(BALANCE)}</b></div>
       <div><small>Salary Thursday</small><b>${eur(SALARY)}</b></div>
@@ -968,9 +1274,13 @@ function screenToday() {
       <div class="legend">${legendLines("oct")}</div>
       <p class="quiet" style="margin:12px 0 0">Everyday includes groceries. ${eur(slip("oct"))} of it slipped through: dining, coffee, taxis, the pharmacy, Sokos.</p>
     </button>
-    <button type="button" class="card" data-go="coach">
-      <small class="quiet">Coach</small>
-      <p class="lede" style="margin-top:4px;color:var(--ink)">You pay the regular things. Dining, coffee, and taxis are the part that slips through.</p>
+    <button type="button" class="card" data-go="purchase">
+      <small class="quiet">Before you pay</small>
+      <p class="lede" style="margin-top:4px;color:var(--ink)">A Sokos jacket is ${eur(JACKET)}. The week has ${eur(g.spend)}. The pause sits here, before the payment.</p>
+    </button>
+    <button type="button" class="card" data-go="subs">
+      <small class="quiet">Still leaving the account</small>
+      <p class="lede" style="margin-top:4px;color:var(--ink)">Fressi was ${eur(keySum("oct", "gym"))} on 2 Oct and is due again. Netflix, ${eur(holdAmount("Netflix"))}, has not left yet.</p>
     </button>
   </div>`;
 }
@@ -1002,7 +1312,8 @@ function screenSpending() {
       <button type="button" data-go="category" data-cat="Dining out"><b>${eur(catSum(month, "Dining out"))}</b><small>Dining out</small></button>
     </div>
     <div class="rows">${rows}</div>
-    <p class="note">${month === "oct" ? "Twenty lines, rolled up by place. A green dot on the next screen means the place earns Bonus." : "Sixteen payments. Open one to see how the coach reads it."}</p>
+    <p class="note">${month === "oct" ? ledger.oct.length + " lines, rolled up by place. A green dot on the next screen means the place earns Bonus. Open a payment to file it yourself." : ledger.nov.length + " payments. Open one to file it yourself. SpendSight uses that filing next time."}</p>
+    <button type="button" class="text-btn" data-go="charts">Compare with October’s pace</button>
     <div class="stack" style="margin-top:12px;height:8px">${cats.map(c => `<i style="width:${(c.amount / sum(month) * 100).toFixed(2)}%;background:${BASKET[c.basket].color}"></i>`).join("")}</div>
   </div>`;
 }
@@ -1050,7 +1361,7 @@ function screenBaskets() {
         <div><i style="background:#C26A3A"></i><span>Slips through</span><b>${eur(slipped)}</b></div></div>`;
     }
     if (id === "regular" && month === "nov") {
-      extra += `<p class="note">Elisa, Helen, the season ticket, insurance, and Netflix have not left yet. They are held on This week.</p>`;
+      extra += `<p class="note">Elisa, Helen, the season ticket, insurance, Netflix, and Fressi have not left yet. They are held on This week.</p>`;
     }
     return `<section class="card"><p class="eyebrow" style="margin-top:0">${BASKET[id].name}</p>
       <p class="hero" style="font-size:32px">${eur(basketSum(month, id))}</p>
@@ -1059,7 +1370,7 @@ function screenBaskets() {
   return `${navHTML(current())}<div class="scroll">
     <p class="lede" style="margin-top:8px">Every payment sits in one basket. The first two have to be paid. The third is where a choice still exists.</p>
     ${monthSeg()}
-    ${stackBar(basketParts(month))}
+    <div class="pie-wrap">${pieHTML(basketParts(month))}<div class="legend" style="margin-top:0;flex:1">${legendLines(month)}</div></div>
     ${blocks}
   </div>`;
 }
@@ -1069,51 +1380,60 @@ function screenSpender() {
   const irregular = basketSum("oct", "irregular");
   const everyday = basketSum("oct", "everyday");
   const food = catSum("oct", "Groceries");
+  const when = impulseWhen();
   return `${navHTML(current())}<div class="scroll">
     <p class="eyebrow">From October, the last full month</p>
     <p class="hero" style="font-size:40px">A regular payer.</p>
-    <p class="lede">The money that slips goes out in small payments.</p>
+    <p class="lede">Most of the month leaves on a schedule. What slips through goes out in small payments, often at the same places.</p>
     <div class="card">
       ${stackBar(basketParts("oct"))}
       <div class="legend">${legendLines("oct")}</div>
     </div>
     <p class="lede">${eur(regular)} left on a schedule: rent, bills, and the season ticket.</p>
     <p class="lede">${eur(irregular)} had to be paid when it happened: a repair and the dentist.</p>
-    <p class="lede">${eur(everyday)} was everyday. Groceries were ${eur(food)}. Dining, coffee, taxis, the pharmacy, and Sokos were ${eur(slip("oct"))}.</p>
+    <p class="lede">${eur(everyday)} was everyday. Groceries were ${eur(food)}, mostly Prisma and S-market. Dining, coffee, taxis, the pharmacy, and Sokos were ${eur(slip("oct"))}.</p>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">Where the small ones go</p>
+      <p class="lede" style="color:var(--ink)">Robert’s Coffee was ${when.coffeeVisits} visits. Wolt was ${when.woltOrders} orders. October rolls those up by place, so it has no weekday. In November the busiest dated day is ${when.peak.when}: ${when.peak.places.join(", ")}, ${eur(when.peak.amount)}.</p>
+    </div>
+    <p class="note">${counted("October", "Three baskets", ledger.oct.length, "lines")}. Groceries and dining are rolled up by place.</p>
     <button type="button" class="text-btn" data-go="week">What is safe this week</button>
+    <button type="button" class="text-btn" data-go="impulse">When the impulse payments land</button>
     <button type="button" class="text-btn" data-go="cut">If dining out drops by a fifth</button>
   </div>`;
 }
 
 function screenWeek() {
-  const budget = state.weekMode === "calmer" ? CALMER : usualWeek();
-  const perDay = Math.round(budget / 7);
+  const g = guidance();
+  const s = safeSpend();
   const left = BALANCE + SALARY - holdSum();
-  const pace = usualWeek() - CALMER;
+  const later = holds.filter(h => !h.before && !h.buffer);
   return `${navHTML(current())}<div class="scroll">
-    <p class="eyebrow">Until Wednesday · slips only</p>
-    <p class="hero">${eur(budget)}</p>
-    <p class="lede">${state.weekMode === "calmer" ? "A calmer week. " + eur(pace) + " under October’s pace." : "October’s pace for dining, coffee, taxis, and small shops."} About ${eur(perDay)} a day. Groceries are not in this number.</p>
-    <div class="seg">
-      <button type="button" data-act="week" data-mode="calmer" class="${state.weekMode === "calmer" ? "on" : ""}">Calmer ${eur(CALMER)}</button>
-      <button type="button" data-act="week" data-mode="usual" class="${state.weekMode === "usual" ? "on" : ""}">Usual ${eur(usualWeek())}</button>
-    </div>
-    <p class="note">This choice does not touch rent, bills, food, or the cushion. ${eur(COFFEE_PLAN)} of coffee, at Picnic instead of Robert’s, is part of the Bonus step.</p>
-    <p class="section">Where the rest is held</p>
+    <p class="eyebrow">Until Thursday’s salary</p>
+    <p class="hero">${eur(s.spend)}</p>
+    <p class="lede">Balance, minus bills due before payday, minus a buffer. Groceries still to buy are a plan, so they are not in this number.</p>
     <div class="card">
       <div class="hold"><span><b>S-Tili now</b><small>Sample balance on 13 Nov</small></span><span class="amt">${eur(BALANCE)}</span></div>
+      ${s.bills.map(h => `<div class="hold"><span><b>${h.name}</b><small>${h.detail}</small></span><span class="amt">−${eur(h.amount)}</span></div>`).join("")}
+      <div class="hold"><span><b>Buffer</b><small>${holds.find(h => h.buffer).detail}</small></span><span class="amt">−${eur(s.buf)}</span></div>
+      <div class="sum"><span>Safe to spend</span><span>${eur(s.spend)}</span></div>
+    </div>
+    <p class="note">${counted("13 Nov", "Helen and Fressi", s.bills.length, "bills")}, plus the buffer. Elisa, the season ticket, insurance, Netflix, and December rent are dated after Thursday, so they stay out.</p>
+    <p class="section">A separate line for what slips</p>
+    ${effortSeg()}
+    <div class="card">
+      <div class="split"><div><small>${g.name} · coffee, taxis, meals</small><b>${eur(g.spend)}</b></div></div>
+      <p class="quiet" style="margin-top:8px">${eur(windowSlip())} has slipped since Friday. Passing this line sends one note. It does not block the card, and it does not change the ${eur(s.spend)} above. The matching save is ${eur(g.save)}.</p>
+    </div>
+    <p class="section">After payday, still to come</p>
+    <div class="card">
       <div class="hold"><span><b>Salary Thursday</b><small>15 Nov</small></span><span class="amt">${eur(SALARY)}</span></div>
-      <div class="sum"><span>Together</span><span>${eur(BALANCE + SALARY)}</span></div>
+      ${later.map(h => `<div class="hold"><span><b>${h.name}</b><small>${h.detail}</small></span><span class="amt">−${eur(h.amount)}</span></div>`).join("")}
+      <div class="sum"><span>Left until 15 Dec, with salary and every hold</span><span>${eur(left)}</span></div>
     </div>
-    <div class="card">
-      ${holds.map(h => `<div class="hold"><span><b>${h.name}</b><small>${h.detail}</small></span><span class="amt">−${eur(h.amount)}</span></div>`).join("")}
-      <div class="sum"><span>Held</span><span>−${eur(holdSum())}</span></div>
-    </div>
-    <div class="card">
-      <div class="split"><div><small>Left until 15 Dec</small><b>${eur(left)}</b></div></div>
-      <p class="quiet" style="margin-top:8px">This is the rest of the cycle, after December rent. It is not this week’s pocket money.</p>
-    </div>
-    <button type="button" class="text-btn" data-go="bonus">See the Bonus step</button>
+    <p class="note">That last figure adds Thursday’s salary and then subtracts every hold, including December rent and the grocery plan. It is the rest of the cycle. It is not this week’s safe-to-spend number.</p>
+    <button type="button" class="text-btn" data-go="runway">How many days the pace lasts</button>
+    <button type="button" class="text-btn" data-go="save">What is safe to save</button>
   </div>`;
 }
 
@@ -1136,6 +1456,10 @@ function screenCut() {
     <div class="pct-row"><span>0%</span><span class="cut-pct">${shown}%</span><span>50%</span></div>
     <p class="lede cut-year">${eur(saved)} a month · ${eur(saved * 12)} a year</p>
     <p class="lede cut-note"></p>
+    <div class="card">
+      <div class="hold"><span><b>Once a week, not twice</b><small>Four average meals saved, from ${diningPlan().orders} October payments</small></span><span class="amt">${eur(diningPlan().once)}</span></div>
+      <div class="hold"><span><b>Two meals a week less</b><small>Eight meals. October had ${diningPlan().orders}, so about one meal would remain.</small></span><span class="amt">${eur(diningPlan().twice)}</span></div>
+    </div>
     <div class="card">
       <div class="hold"><span><b>Wolt</b><small>Does not earn Bonus</small></span><span class="amt">${eur(keySum("oct", "wolt"))}</span></div>
       <div class="hold"><span><b>Rosso</b><small>Earns Bonus</small></span><span class="amt">${eur(keySum("oct", "rosso"))}</span></div>
@@ -1197,25 +1521,289 @@ function screenBonus() {
   </div>`;
 }
 
+function chartHTML(rows) {
+  const max = Math.max(...rows.map(r => Math.max(r.oct, r.nov)), 1);
+  return `<div class="chart">${rows.map(r => `<div class="chart-row"><span>${escapeHTML(r.label)}</span>
+      <div class="chart-line"><i class="was" style="width:${(r.oct / max * 100).toFixed(1)}%"></i><b>${eur(r.oct)}</b></div>
+      <div class="chart-line"><i class="now" style="width:${(r.nov / max * 100).toFixed(1)}%"></i><b>${eur(r.nov)}</b></div>
+    </div>`).join("")}</div>`;
+}
+
+function screenCharts() {
+  const rows = compareRows();
+  const dining = rows.find(r => r.label === "Dining out");
+  const taxis = rows.find(r => r.label === "Taxis");
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">1–13 November against October</p>
+    <p class="hero" style="font-size:34px">Your own pace.</p>
+    <p class="lede">Grey is October stretched to 13 days, counted as a 30-day month, the same way This week counts it. Green is what has actually left.</p>
+    ${chartHTML(rows)}
+    <div class="legend" style="margin-top:14px">
+      <div><i style="background:#C9D2CC"></i><span>October’s pace</span></div>
+      <div><i style="background:#00AA46"></i><span>1–13 November</span></div>
+    </div>
+    <p class="lede">Dining is ${eur(dining.nov)} against a pace of ${eur(dining.oct)}. Taxis are ${eur(taxis.nov)} against ${eur(taxis.oct)}. Groceries and coffee are under that pace.</p>
+    <p class="note">The same 13 days last year are not in this sample, so they are not drawn. Other households are a later feature. It would use anonymised open figures, such as Statistics Finland. No such figure is on this screen.</p>
+    <button type="button" class="text-btn" data-go="coach">Ask for a different chart</button>
+  </div>`;
+}
+
+function screenSave() {
+  const g = guidance();
+  const left = BALANCE + SALARY - holdSum();
+  const rate = Math.round(g.save / SALARY * 100);
+  const monthsLeft = ASP_MONTHS_NEED - ASP_MONTHS_DONE;
+  const euroGap = Math.round(HOME_EURO_DEFAULT * 100 * 10 / 100) - ASP_SAVED;
+  const monthsForEuros = Math.ceil(euroGap / g.save);
+  const savedPile = pile(g.save, state.years);
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">After Thursday’s salary · ${g.name}</p>
+    <div class="tags">
+      <button type="button" class="tag" data-go="home"><small>Save this month</small><b>${eur(g.save)}</b></button>
+      <div class="tag aside"><small>Not this month</small><b>${eur(ASP_MAX)}</b></div>
+    </div>
+    ${effortSeg()}
+    <p class="lede">${eur(g.save)} is ${rate}% of the ${eur(SALARY)} salary, inside the ${eur(ASP_MIN)}–${eur(ASP_MAX)} ASP allows. Safe to spend until payday is ${eur(safeSpend().spend)}. Coffee, taxis, and meals still have a separate line of ${eur(g.spend)}. ${monthsLeft} months still have to be counted before 20. The euros, at ${eur(g.save)} a month, take ${monthsForEuros} months. A ${eur(ASP_MAX)} month fills euros faster and still counts as one month.</p>
+    <div class="card">
+      <p class="lede" style="margin-top:0;color:var(--ink)">The money left until 15 December, after the holds, is ${eur(left)}. Moving ${eur(ASP_MAX)} instead of ${eur(g.save)} takes ${eur(ASP_MAX - g.save)} of it. The cushion for a broken machine is ${eur(holdAmount("Cushion"))}. Keep that extra where you can take it.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">If you set aside ${eur(g.save)} a month</p>
+      <p class="hero" style="font-size:40px">${eur(savedPile)}</p>
+      <p class="lede" style="color:var(--ink)">in ${state.years} ${state.years === 1 ? "year" : "years"}. This is only the money you put in. Interest is not added, so the pile is not a forecast.</p>
+      <div class="seg">
+        ${[1, 3, 5].map(n => `<button type="button" data-act="years" data-n="${n}" class="${state.years === n ? "on" : ""}">${n} ${n === 1 ? "year" : "years"}</button>`).join("")}
+      </div>
+    </div>
+    <button type="button" class="primary" data-act="prepare-transfer">${state.transfer ? "Monthly move prepared" : "Prepare the monthly move"}</button>
+    <p class="note">${state.transfer ? "A move of " + eur(g.save) + " from S-Tili is prepared for after Thursday. It has not run. You can cancel it." : "The coach can prepare a move. It does not open an account, and it does not run, until you confirm."}</p>
+    <p class="section">Where a euro can sit</p>
+    <div class="rows">
+      <button type="button" class="row" data-act="account" data-id="tili"><span class="name"><b>S-Tili</b><small>Everyday. Bonus lands here.</small></span><span class="chev">›</span></button>
+      <button type="button" class="row" data-act="account" data-id="asp"><span class="name"><b>ASP account</b><small>The home. Plan to leave it there.</small></span><span class="chev">›</span></button>
+      <button type="button" class="row" data-act="account" data-id="tuotto"><span class="name"><b>S-Tuottotili</b><small>Savings you can take.</small></span><span class="chev">›</span></button>
+      <button type="button" class="row" data-act="account" data-id="maara"><span class="name"><b>S-Määräaikaistili</b><small>Stays until a date.</small></span><span class="chev">›</span></button>
+      <button type="button" class="row" data-act="account" data-id="saastaja"><span class="name"><b>Säästäjä</b><small>Bonus, card rounding, or a monthly sum. A fund can fall.</small></span><span class="chev">›</span></button>
+    </div>
+    <button type="button" class="text-btn" data-go="home">Open the home plan</button>
+    <button type="button" class="text-btn" data-go="bonus">Open the Bonus step</button>
+  </div>`;
+}
+
+function screenHome() {
+  const goal = Math.round(HOME_EURO_DEFAULT * 100 * 10 / 100);
+  const gap = goal - ASP_SAVED;
+  const must = basketSum("oct", "regular");
+  const rate = Math.round(ASP_MONTH / SALARY * 100);
+  const rentShare = Math.round(keySum("oct", "rent") / SALARY * 100);
+  const width = Math.min(100, ASP_SAVED / goal * 100);
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">Later · not in the MVP chat</p>
+    <p class="hero" style="font-size:40px">${eur(ASP_SAVED)}</p>
+    <p class="lede">of ${eur(goal)}, the 10% of a ${eur(HOME_EURO_DEFAULT * 100)} home. ${ASP_MONTHS_DONE} of ${ASP_MONTHS_NEED} months are counted. ${eur(gap)} of savings is still ahead.</p>
+    <div class="stack" style="margin-top:14px;height:8px"><i style="width:${width.toFixed(1)}%;background:#00AA46"></i></div>
+    <div class="card">
+      <div class="split">
+        <div><small>Saving from salary</small><b>${rate}%</b></div>
+        <div><small>Rent from salary</small><b>${rentShare}%</b></div>
+      </div>
+      <p class="quiet" style="margin-top:8px">No other loan is in this ledger. October’s Bonus, ${eur(bonusCents(sgroup("oct")))}, is already on S-Tili.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">This month’s ${eur(ASP_MONTH)}</p>
+      <p class="lede" style="color:var(--ink)">It keeps both clocks moving: one more counted month, and ${eur(ASP_MONTH)} closer to the 10%. The account pays 1% while you save. Another 4% is paid when you buy the home, on the years that qualify. Both are tax-free. This is the account’s term, not a forecast of a fund.</p>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">Cushion, a different job</p>
+      <p class="lede" style="color:var(--ink)">One quiet month of rent, bills, and the season ticket was ${eur(must)}. The cushion is ${eur(holdAmount("Cushion"))}, about half of October’s ${eur(keySum("oct", "repair"))} repair. A calm target is one such month, kept on S-Tuottotili, where you can take it. The ASP account is the pocket you do not plan to take from.</p>
+    </div>
+    <p class="note">Säästäjä can take the next Bonus. The fund can fall, so this screen does not show a performance.</p>
+    <button type="button" class="primary" data-go="loan">Sketch a loan</button>
+    <button type="button" class="text-btn" data-go="save">Why not €1,500</button>
+  </div>`;
+}
+
+function loanPos() {
+  return {
+    price: (state.homeEuro - 150000) / 250000,
+    rate: (state.rateTenths - 20) / 40,
+  };
+}
+function screenLoan() {
+  const f = loanFigures();
+  const pos = loanPos();
+  const savedGap = f.down - ASP_SAVED;
+  const rent = keySum("oct", "rent");
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">Arithmetic, not an offer</p>
+    <p class="hero loan-pay" style="font-size:44px">${eur(f.pay)}</p>
+    <p class="lede loan-share">a month · ${f.share.toFixed(1)}% of the ${eur(SALARY)} salary. Your rent is ${eur(rent)}, ${Math.round(rent / SALARY * 100)}% of that salary.</p>
+    <p class="section">Home price</p>
+    <p class="lede loan-price" style="color:var(--ink);font-weight:650">${eur(f.price)}</p>
+    <div class="slider" data-slider="price">
+      <div class="track"></div>
+      <div class="fill" style="width:${pos.price * 100}%"></div>
+      <div class="thumb" style="left:${pos.price * 100}%"></div>
+    </div>
+    <div class="pct-row"><span>€150,000</span><span>€400,000</span></div>
+    <p class="section">Rate, if it stayed this number</p>
+    <p class="lede" style="color:var(--ink);font-weight:650"><span class="loan-rate">${(state.rateTenths / 10).toFixed(1)}%</span> · 25 years</p>
+    <div class="slider" data-slider="rate">
+      <div class="track"></div>
+      <div class="fill" style="width:${pos.rate * 100}%"></div>
+      <div class="thumb" style="left:${pos.rate * 100}%"></div>
+    </div>
+    <div class="pct-row"><span>2%</span><span>6%</span></div>
+    <p class="note loan-stress">At 6%, the same loan is ${eur(f.stress)} a month. An ASP loan can include state interest support when the rate is above 3.8%, for up to 10 years, and only if a bank grants the loan.</p>
+    <div class="card">
+      <p class="lede loan-gap" style="margin-top:0;color:var(--ink)">${savedGap > 0 ? "The 10% for this price is " + eur(f.down) + ". You have " + eur(ASP_SAVED) + ". The gap is " + eur(savedGap) + "." : "You already have the 10% for this price, " + eur(f.down) + "."} The sketch uses that 10% as the down payment, not today’s balance. The city also limits how large an ASP loan can be. This screen does not look that up.</p>
+    </div>
+    <p class="note">A real decision also looks at other loans, the collateral, and whether the payment still fits after rent becomes a loan. Nothing here is an application. The chat does not answer how to pay a loan off.</p>
+  </div>`;
+}
+
+function screenPurchase() {
+  const story = jacketStory();
+  const chosen = state.purchase;
+  const slipLine = guidance().spend;
+  const room = safeSpend().spend - JACKET;
+  const note = chosen === "wait"
+    ? "You chose to wait. Thursday’s salary is " + eur(SALARY) + ". The jacket is still " + eur(JACKET) + ". You can change this."
+    : chosen === "take"
+      ? "You chose to take it from the slip line. That line would be " + eur(slipLine - JACKET) + ". Safe to spend until payday would still cover it. This preview does not pay Sokos."
+      : chosen === "skip"
+        ? "You left it. The slip line stays " + eur(slipLine) + "."
+        : "The small repeats are the other kind of impulse: coffee was 11 visits in October, Wolt was 7. This pause is for the one payment in front of you.";
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">Sokos · not paid</p>
+    <p class="hero">${eur(JACKET)}</p>
+    <p class="lede">Safe to spend until payday is ${eur(safeSpend().spend)}, so the jacket fits inside it with ${eur(room)} left. The slip line for coffee, taxis, and meals is ${eur(slipLine)}, and the jacket is ${eur(story.over)} over that line. Paying this as new money takes S-group purchases to ${eur(story.withJacket)}. Bonus rises by ${eur(story.gain)}. You would be ${eur(story.loss)} poorer.</p>
+    <p class="note">${note}</p>
+    <button type="button" class="primary ${chosen === "wait" ? "on" : ""}" data-act="purchase" data-choice="wait">Wait until Thursday</button>
+    <button type="button" class="choice ${chosen === "take" ? "on" : ""}" data-act="purchase" data-choice="take">Take it from the slip line</button>
+    <button type="button" class="choice ${chosen === "skip" ? "on" : ""}" data-act="purchase" data-choice="skip">Not this one</button>
+    <button type="button" class="text-btn" data-go="bonus">The shop that does raise Bonus</button>
+  </div>`;
+}
+
+function subLine(id) {
+  const v = state.subs[id];
+  if (v === "keep") return "You are keeping it.";
+  if (v === "ask") return "The coach will ask again before the next charge.";
+  if (v === "cancel") return "Marked as cancelled. The next charge is still in the holds until the bank confirms it. You can undo this.";
+  return "No choice yet.";
+}
+function screenSubs() {
+  const row = (id, title, detail) => `<div class="card">
+      <p class="eyebrow" style="margin-top:0">${title}</p>
+      <p class="lede" style="color:var(--ink)">${detail}</p>
+      <p class="note" style="margin-top:8px">${subLine(id)}</p>
+      <button type="button" class="choice ${state.subs[id] === "keep" ? "on" : ""}" data-act="sub" data-id="${id}" data-choice="keep">Keep it</button>
+      <button type="button" class="choice ${state.subs[id] === "ask" ? "on" : ""}" data-act="sub" data-id="${id}" data-choice="ask">Ask me next month</button>
+      <button type="button" class="choice ${state.subs[id] === "cancel" ? "on" : ""}" data-act="sub" data-id="${id}" data-choice="${state.subs[id] === "cancel" ? "open" : "cancel"}">${state.subs[id] === "cancel" ? "Undo, I still have this" : "I have cancelled it"}</button>
+    </div>`;
+  const cut = subscriptionCut();
+  const marked = cut.items.filter(item => state.subs[item.id] === "cancel");
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">If the three repeating ones stop</p>
+    <p class="hero" style="font-size:40px">${eur(cut.month)}</p>
+    <p class="lede">a month, ${eur(cut.year)} across a year. These are the three subscriptions outside rent, phone, power, insurance, and the season ticket. Only Fressi has a sign of low use. Netflix and Spotify have no use count, so this is not a measured ranking.</p>
+    <div class="card">
+      ${cut.items.map(item => `<div class="hold"><span><b>${item.name}</b><small>${item.use}</small></span><span class="amt">${eur(item.cents)}</span></div>`).join("")}
+    </div>
+    <p class="note">${marked.length ? "You already marked " + marked.map(item => item.name).join(" and ") + " as cancelled. The hold stays until the bank confirms it. " : ""}A reminder is not a cancellation. Spotify already left on 5 Nov, so a cancel starts from the next charge. ${counted("Oct–Nov", "Fressi, Netflix, Spotify", 2, "charges")} and 1 hold.</p>
+    <p class="section">Your choice on each one</p>
+    ${row("gym", "Fressi · " + eur(keySum("oct", "gym")), "Filed under Bills, because the same amount left in October and is due again. No visit is in the ledger. Open the October payment if that filing is wrong. SpendSight uses your filing from then on.")}
+    ${row("netflix", "Netflix · " + eur(holdAmount("Netflix")), "Due this month. In October it was inside the streaming line with Spotify. No play count is in the ledger.")}
+    ${row("spotify", "Spotify · " + eur(keySum("nov", "stream")), "Already left on 5 Nov. No play count is in the ledger, so it is not proven unused.")}
+    <p class="note">Money moves only when you, or the club, stop the charge.</p>
+  </div>`;
+}
+
+function screenWatch() {
+  const bolt = state.watch.bolt;
+  const refund = state.watch.refund;
+  const boltNote = bolt === "mine" ? "You recognised it. It stays out of the spending total in this design."
+    : bolt === "not" ? "Marked as not yours. In the bank app this would open a dispute. Here it only marks the row."
+    : "It is not in the spending total until you recognise it.";
+  const refundNote = refund === "landed" ? "Marked as landed. Today’s balance does not change in this design."
+    : "It is not on S-Tili yet.";
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">Look twice</p>
+    <p class="lede">Two things the list of payments does not settle on its own.</p>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">A second Bolt · ${eur(1180)}</p>
+      <p class="lede" style="color:var(--ink)">12 Nov, four minutes after the ${eur(1180)} ride that is already in the ledger. ${boltNote}</p>
+      <button type="button" class="choice ${bolt === "mine" ? "on" : ""}" data-act="watch" data-id="bolt" data-choice="mine">That’s mine</button>
+      <button type="button" class="choice ${bolt === "not" ? "on" : ""}" data-act="watch" data-id="bolt" data-choice="not">That isn’t mine</button>
+    </div>
+    <div class="card">
+      <p class="eyebrow" style="margin-top:0">Prisma refund · ${eur(420)}</p>
+      <p class="lede" style="color:var(--ink)">A return from 11 Nov. ${refundNote}</p>
+      <button type="button" class="choice ${refund === "wait" ? "on" : ""}" data-act="watch" data-id="refund" data-choice="wait">Still waiting</button>
+      <button type="button" class="choice ${refund === "landed" ? "on" : ""}" data-act="watch" data-id="refund" data-choice="landed">It landed</button>
+    </div>
+    <p class="note">Confirming a row here does not change S-Tili. The point is to notice the charge, and to remember the refund.</p>
+  </div>`;
+}
+
+function screenImpulse() {
+  const when = impulseWhen();
+  const days = when.days.map(d => `<div class="hold"><span><b>${d.when}</b><small>${d.n} ${d.n === 1 ? "payment" : "payments"} · ${d.places.join(", ")}</small></span><span class="amt">${eur(d.amount)}</span></div>`).join("");
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">${when.peak.when} · the busiest dated day</p>
+    <p class="hero" style="font-size:40px">${when.peak.n} payments</p>
+    <p class="lede">${when.peak.places.join(", ")}, ${eur(when.peak.amount)}. These are coffee, dining, taxis, and shopping. Groceries and rent are not in this reading. October’s ${when.coffeeVisits} coffee visits and ${when.woltOrders} Wolt orders are rolled up by place, so I will not name a weekday for them.</p>
+    <p class="note">${counted("1–13 Nov", "Dining, coffee, and taxis", when.n)}. No payment in this ledger has a time of day.</p>
+    <div class="card">${days}</div>
+    <button type="button" class="text-btn" data-go="purchase">Pause one purchase</button>
+    <button type="button" class="text-btn" data-go="spender">The October portrait</button>
+  </div>`;
+}
+
+function screenRunway() {
+  const r = runway();
+  return `${navHTML()}<div class="scroll">
+    <p class="eyebrow">At November’s pace, rent left out</p>
+    <p class="hero">${r.left} days</p>
+    <p class="lede">${eur(BALANCE)} on S-Tili divided by ${eur(r.perDay)} a day. That is ${r.left} days from today if nothing else changes. It is not a promise. Bills after payday are not subtracted here.</p>
+    <div class="card">
+      <div class="hold"><span><b>November so far</b><small>1–13 Nov, ${r.count} payments other than rent</small></span><span class="amt">${eur(r.variable)}</span></div>
+      <div class="hold"><span><b>Rent, left out</b><small>Already left on 3 Nov. It does not repeat inside this month.</small></span><span class="amt">${eur(r.rent)}</span></div>
+      <div class="hold"><span><b>A day</b><small>${eur(r.variable)} across ${r.days} days, rounded</small></span><span class="amt">${eur(r.perDay)}</span></div>
+      <div class="sum"><span>S-Tili ÷ a day</span><span>${r.left} days</span></div>
+    </div>
+    <p class="note">${counted("1–13 Nov", "All payments except rent", r.count)}. Safe to spend until Thursday is a different sum: it subtracts Helen, Fressi, and the buffer, and it does not divide by the daily pace.</p>
+    <button type="button" class="text-btn" data-go="week">See safe to spend</button>
+  </div>`;
+}
+
 function bubbleHTML(m) {
-  const paras = (m.paragraphs || [m.text]).map(p => `<p>${escapeHTML(p)}</p>`).join("");
-  const action = m.action ? `<button type="button" class="go" data-go="${m.action.go}" data-cat="${m.action.cat || ""}">${m.action.label}</button>` : "";
-  return `<div class="msg ${m.role}"><div class="bubble">${paras}${action}</div></div>`;
+  const limit = m.refused ? `<small class="limit">Outside what I answer</small>` : "";
+  const fact = m.fact ? `<div class="fact"><small>${escapeHTML(m.fact.kicker)}</small><b>${escapeHTML(m.fact.figure)}</b><p>${escapeHTML(m.fact.because)}</p></div>` : "";
+  const source = m.source ? `<span class="src">${escapeHTML(m.source)}</span>` : "";
+  const paras = (m.paragraphs || (m.text ? [m.text] : [])).map(p => `<p>${escapeHTML(p)}</p>`).join("");
+  const chart = m.chart ? chartHTML(m.chart) : "";
+  const action = m.action ? `<button type="button" class="go" data-go="${m.action.go}" data-cat="${escapeHTML(m.action.cat || "")}">${escapeHTML(m.action.label)}</button>` : "";
+  return `<div class="msg ${m.role}"><div class="bubble">${limit}${fact}${paras}${chart}${source}${action}</div></div>`;
 }
 function escapeHTML(s) {
   return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;" }[c]));
 }
 function screenCoach() {
   const chips = [
-    ["Taxis last month", "How much did I spend on taxis last month?"],
     ["What kind of spender", "What kind of spender am I?"],
-    ["Safe this week", "What is safe to spend this week?"],
-    ["Dining minus 20%", "How much if I cut dining out by 20%?"],
-    ["More Bonus", "How do I get more Bonus?"],
-    ["Groceries", "Where did groceries go?"],
+    ["Safe this week", "What is safe for me to spend this week?"],
+    ["Dining minus 20%", "How much could I save if I reduced dining out by 20%?"],
+    ["Once a week", "What if I dine out once a week instead of twice?"],
+    ["Impulse", "When do I tend to impulse spend?"],
+    ["Days left", "How many days until my money runs out at my current pace?"],
+    ["Cancel 3 subs", "What happens if I cancel my top 3 least-used subscriptions?"],
+    ["People like me", "What do people in the same class save?"],
   ];
   return `${navHTML(current())}<div class="scroll pad-composer"><div class="thread">${state.messages.map(bubbleHTML).join("")}</div></div>
     <div class="composer">
+      <p class="ai-note">Answers can be wrong. Check a decision before you act. This is not a person at the bank. <button type="button" data-act="privacy">Your data</button></p>
       <div class="chips">${chips.map(([label, ask]) => `<button type="button" class="chip" data-ask="${escapeHTML(ask)}">${escapeHTML(label)}</button>`).join("")}</div>
       <form class="ask" data-act="ask-form">
         <input id="ask" aria-label="Ask about your money" placeholder="Ask about your money" autocomplete="off" />
@@ -1229,60 +1817,211 @@ function answer(raw) {
   const plan = novPlan();
   const story = tierStory(plan.now);
   const go = (label, screen, cat) => ({ label, go: screen, cat });
+  const stop = (paragraphs, action) => ({ refused: true, paragraphs, action });
+  if (/hide money|launder|fake (income|salary)|lie (on|to) the|evade tax|tax evasion|don't tell the bank|dont tell the bank|cheat the bonus|false application/.test(q)) {
+    return stop(["I can’t help with hiding money, a false application, or a Bonus that was not earned. If a charge is not yours, that belongs in Watch."], go("Open Watch", "watch"));
+  }
+  if (/ignore (your|the) (rules|instructions)|jailbreak|developer mode|pretend you are|you are now a/.test(q)) {
+    return stop(["I only answer questions about your own spending. I can’t switch roles or ignore that limit."]);
+  }
+  if (/pay off|payoff|pay the loan|early repayment|get out of (the |my )?loan/.test(q)) {
+    return stop(["I don’t answer how to pay a loan off, or how to shape an application. A later screen can sketch a monthly payment. It is not an offer."]);
+  }
+  if (/peer|people like me|same class|other people|customers like|average person|neighbour|neighbor|what do people/.test(q)) {
+    return stop(["Comparing you with other households is later. It would use anonymised open figures, such as Statistics Finland. I will not invent an average."]);
+  }
+  if (/boyfriend|girlfriend|pregnant|diagnos|depress|politic|religion|password|pin code|henkilötunnus|another person|my (mom|dad|wife|husband|friend)'s/.test(q)) {
+    return stop(["I only answer questions about your payments. I don’t answer about health, relationships, beliefs, secrets, or another person’s money."]);
+  }
+  if (/impulse|when do i tend|spur of the moment|unplanned/.test(q)) {
+    const when = impulseWhen();
+    return {
+      fact: {
+        kicker: when.peak.when + " · busiest dated day",
+        figure: when.peak.n + " payments",
+        because: when.peak.places.join(", ") + ", " + eur(when.peak.amount) + ". October’s coffee is " + when.coffeeVisits + " visits rolled up by place, so that month has no weekday.",
+      },
+      paragraphs: ["Groceries and rent are not counted as impulse. No payment here has a time of day, so I will not guess evening or payday."],
+      source: counted("1–13 Nov", "Dining, coffee, and taxis", when.n),
+      action: go("See the days", "impulse"),
+    };
+  }
+  if (/run out|days until|money last|current pace/.test(q)) {
+    const r = runway();
+    return {
+      fact: {
+        kicker: "Rent left out of the pace",
+        figure: r.left + " days",
+        because: eur(BALANCE) + " divided by " + eur(r.perDay) + " a day. " + eur(r.variable) + " left in " + r.days + " days, not counting rent that already left.",
+      },
+      paragraphs: ["Bills after Thursday are not subtracted here. Safe to spend until payday is the number that does that."],
+      source: counted("1–13 Nov", "All payments except rent", r.count),
+      action: go("See the division", "runway"),
+    };
+  }
+  if (/top 3|least-used|least used|cancel my/.test(q)) {
+    const cut = subscriptionCut();
+    return {
+      fact: {
+        kicker: "If all three stop",
+        figure: eur(cut.month),
+        because: eur(cut.year) + " across a year. Fressi has a charge and no visit. Netflix and Spotify have no use count, so this is not a measured ranking of use.",
+      },
+      paragraphs: [cut.items.map(item => item.name + " " + eur(item.cents)).join(", ") + ". Spotify already left on 5 Nov, so a cancel starts next time. Nothing here cancels a charge."],
+      source: counted("Oct–Nov", "Fressi, Netflix, Spotify", 2, "charges") + " and 1 hold",
+      action: go("Open subscriptions", "subs"),
+    };
+  }
+  if (/buy|jacket|afford this|purchase/.test(q)) {
+    const jacket = jacketStory();
+    return { paragraphs: [
+      `The Sokos jacket is ${eur(JACKET)}. This week’s line is ${eur(guidance().spend)}, so it is ${eur(jacket.over)} over.`,
+      `Sokos earns Bonus. As new spending, Bonus rises ${eur(jacket.gain)} and you are ${eur(jacket.loss)} poorer. The grocery shop you already need is the payment that raises the step.`,
+      `Thursday’s salary is ${eur(SALARY)}. Waiting is the calm choice. You can still take it from the slip line.`,
+    ], source: counted("13 Nov", "S-group purchases plus this jacket", ledger.nov.filter(r => r.sgroup).length + 1), action: go("Open the pause", "purchase") };
+  }
+  if (/home plan|first home|how is the home|asp account|save up for a house|saving for a house/.test(q)) {
+    const g = guidance();
+    const goal = Math.round(HOME_EURO_DEFAULT * 100 * 10 / 100);
+    return {
+      fact: { kicker: "This month, not a loan decision", figure: eur(g.save), because: "That is the save that matches your " + g.name.toLowerCase() + " setting. The multi-year home screen is later." },
+      paragraphs: [
+        `The later plan has ${eur(ASP_SAVED)} of ${eur(goal)}, and ${ASP_MONTHS_DONE} of ${ASP_MONTHS_NEED} months. I will not say whether a bank should lend, and I will not answer how to pay a loan off.`,
+      ],
+      source: "Your save setting · " + g.name + " · not a count of payments",
+      action: go("Open the later plan", "home"),
+    };
+  }
+  if (/safe to save|how much should i save|how much is safe to save|saving too much|save too much|asp/.test(q)) {
+    const g = guidance();
+    return {
+      fact: { kicker: g.name + " save", figure: eur(g.save), because: Math.round(g.save / SALARY * 100) + "% of Thursday’s salary. Safe to spend until payday is " + eur(safeSpend().spend) + ". €1,500 would still be one ASP month." },
+      paragraphs: [`The cushion is ${eur(holdAmount("Cushion"))}, and it is already the buffer in the safe-to-spend number. Keep anything above this save where you can take it.`],
+      source: "Your save setting · " + g.name + " · not a count of payments",
+      action: go("Open Save", "save"),
+    };
+  }
+  if (/subscri|gym|fressi|netflix|forgot|recurring/.test(q)) {
+    return { paragraphs: [
+      `Spotify, ${eur(keySum("nov", "stream"))}, already left on 5 Nov.`,
+      `Netflix, ${eur(holdAmount("Netflix"))}, has not left yet. Fressi was ${eur(keySum("oct", "gym"))} on 2 Oct and is due again. The ledger has the charge and no visit, so I ask before treating it as wanted.`,
+    ], source: counted("Oct–Nov", "Fressi, Netflix, Spotify", 2, "charges") + " and 1 hold", action: go("Open subscriptions", "subs") };
+  }
+  if (/refund|fraud|odd|isn't mine|isnt mine|billing|second bolt/.test(q)) {
+    return { paragraphs: [
+      `A second Bolt of ${eur(1180)} sits four minutes after the ride on 12 Nov. It is not in the spending total.`,
+      `Prisma still owes ${eur(420)} from 11 Nov. It is not on S-Tili.`,
+    ], source: "12 Nov and 11 Nov · a second Bolt and a refund · 2 items kept out of the total", action: go("Open Watch", "watch") };
+  }
+  if (/chart|show me|against october|compare/.test(q)) {
+    let rows = compareRows();
+    if (/coffee|drink/.test(q)) rows = rows.filter(r => r.label === "Coffee & drinks");
+    else if (/din|wolt|restaurant/.test(q)) rows = rows.filter(r => r.label === "Dining out");
+    else if (/taxi|bolt/.test(q)) rows = rows.filter(r => r.label === "Taxis");
+    else if (/grocer|food/.test(q)) rows = rows.filter(r => r.label === "Groceries");
+    const line = rows.length === 1
+      ? `${rows[0].label}. Grey is October’s pace for 13 days, ${eur(rows[0].oct)}. Green is 1–13 November, ${eur(rows[0].nov)}.`
+      : "Grey is October’s pace for 13 days. Green is what has left so far in November.";
+    return { paragraphs: [line], chart: rows, source: counted("1–13 Nov", rows.length === 1 ? rows[0].label : "Groceries, coffee, dining, taxis", rows.length, rows.length === 1 ? "category" : "categories"), action: go("See the charts", "charts") };
+  }
+  if (/loan|mortgage|afford a home|house price/.test(q)) {
+    const f = loanFigures();
+    return { paragraphs: [
+      `At ${eur(f.price)} with 10% down, a 25-year sketch at ${(state.rateTenths / 10).toFixed(1)}% is ${eur(f.pay)} a month. That is ${f.share.toFixed(1)}% of salary. Rent today is ${eur(keySum("oct", "rent"))}.`,
+      `This is arithmetic, not an offer, and it is not how much the bank will lend. Drag the price if the payment is too large a share.`,
+    ], source: "A price and a rate you set · 25 years · not your payments", action: go("Open the sketch", "loan") };
+  }
+  if (/emergency|cushion/.test(q)) {
+    return { paragraphs: [
+      `The cushion is ${eur(holdAmount("Cushion"))}. One quiet month of must-pay in October was ${eur(basketSum("oct", "regular"))}.`,
+      `Keep the cushion where you can take it. The ASP account is for the home.`,
+    ], source: counted("October", "Must, every month", ledger.oct.filter(r => r.basket === "regular").length, "lines"), action: go("Open the home plan", "home") };
+  }
   if (/taxi|bolt|uber/.test(q)) {
     return { paragraphs: [
       `Taxis in October were ${eur(keySum("oct", "bolt"))}, two Bolt rides.`,
       `The HSL season ticket was ${eur(keySum("oct", "hsl"))}. That one is the plan. The rides are the part that slips through.`,
-    ], action: go("Open taxis", "category", "Taxis") };
+    ], source: counted("October", "Taxis", visitCount(ledger.oct.find(r => r.key === "bolt")), "rides"), action: go("Open taxis", "category", "Taxis") };
   }
-  if (/spender|kind of|what am i|who am i/.test(q)) {
-    return { paragraphs: [
-      `In October, ${eur(basketSum("oct", "regular"))} left on a schedule: rent, bills, and the season ticket.`,
-      `When something happened, you paid that too. The repair and the dentist were ${eur(basketSum("oct", "irregular"))}.`,
-      `Everyday spending was ${eur(basketSum("oct", "everyday"))}. Groceries were ${eur(catSum("oct", "Groceries"))}. The part that slipped through was ${eur(slip("oct"))}.`,
-    ], action: go("Open the portrait", "spender") };
+  if (/spender|kind of spender/.test(q)) {
+    return {
+      fact: {
+        kicker: "October, the last full month",
+        figure: "A regular payer.",
+        because: eur(basketSum("oct", "regular")) + " left on a schedule. " + eur(slip("oct")) + " slipped through in small payments. Robert’s was " + impulseWhen().coffeeVisits + " visits. Wolt was " + impulseWhen().woltOrders + " orders.",
+      },
+      paragraphs: [`Groceries were ${eur(catSum("oct", "Groceries"))}, mostly Prisma and S-market. The repair and the dentist were ${eur(basketSum("oct", "irregular"))}, and the day was not yours to pick. October’s small payments are rolled up by place, so that month has no weekday.`],
+      source: counted("October", "Three baskets", ledger.oct.length, "lines"),
+      action: go("Open the portrait", "spender"),
+    };
   }
-  if (/safe|this week|pocket/.test(q)) {
-    return { paragraphs: [
-      `${eur(CALMER)} is the calmer number for coffee, taxis, and meals out until Wednesday. October’s pace would be ${eur(usualWeek())}.`,
-      `Thursday’s salary is ${eur(SALARY)}. December’s rent has to come from it, because the rent leaves on the 2nd and the next salary is the 15th.`,
-    ], action: go("See the arithmetic", "week") };
+  if (/once a week|twice a week/.test(q)) {
+    const d = diningPlan();
+    return {
+      fact: {
+        kicker: "Once a week, not twice",
+        figure: eur(d.once),
+        because: "October had " + d.orders + " dining payments, about two a week. The average was " + eur(d.meal) + ". One fewer each week, for four weeks, is " + eur(d.once) + " a month, " + eur(d.onceYear) + " a year.",
+      },
+      paragraphs: [`Two meals a week less would be ${eur(d.twice)} a month. October only had ${d.orders} payments, so about one meal would remain. A 20% cut is smaller, ${eur(d.fifth)} a month, ${eur(d.fifthYear)} a year, and it can come from Wolt. Rosso, ${eur(d.rosso)}, earns Bonus.`],
+      source: counted("October", "Dining out", d.orders),
+      action: go("Move the percentage", "cut"),
+    };
+  }
+  if (/safe|this week|pocket/.test(q) && !/save/.test(q)) {
+    const s = safeSpend();
+    const g = guidance();
+    return {
+      fact: {
+        kicker: "Balance − bills before payday − buffer",
+        figure: eur(s.spend),
+        because: eur(BALANCE) + " on S-Tili, minus " + s.bills.map(h => h.name + " " + eur(h.amount)).join(" and ") + ", minus a " + eur(s.buf) + " buffer.",
+      },
+      paragraphs: [`Elisa, the season ticket, insurance, Netflix, and December rent are after Thursday, so they are not in this number. Coffee, taxis, and meals have a separate line of ${eur(g.spend)}. Passing that line sends one note. The card is not blocked.`],
+      source: counted("13 Nov", "Helen and Fressi", s.bills.length, "bills") + ", plus the buffer",
+      action: go("See the arithmetic", "week"),
+    };
   }
   if (/dining|wolt|restaurant|20%|20 percent|cut/.test(q)) {
-    const dining = catSum("oct", "Dining out");
-    const saved = Math.round(dining * 0.2);
-    return { paragraphs: [
-      `Dining out in October was ${eur(dining)}. A fifth of that is ${eur(saved)} a month, ${eur(saved * 12)} across a year.`,
-      `Wolt was ${eur(keySum("oct", "wolt"))}. The ${eur(saved)} can come from Wolt. Rosso was ${eur(keySum("oct", "rosso"))}, and Rosso earns Bonus.`,
-    ], action: go("Move the percentage", "cut") };
+    const d = diningPlan();
+    return {
+      fact: {
+        kicker: "Dining out, minus 20%",
+        figure: eur(d.fifth),
+        because: "A month, from October’s " + eur(d.dining) + ". Across a year that is " + eur(d.fifthYear) + ". It can come from Wolt, " + eur(d.wolt) + ". Rosso stays.",
+      },
+      paragraphs: [`Once a week instead of twice would save ${eur(d.once)} a month, ${eur(d.onceYear)} a year. Two meals a week less would save ${eur(d.twice)} a month, and about one of the ${d.orders} October meals would remain. Rosso, ${eur(d.rosso)}, earns Bonus.`],
+      source: counted("October", "Dining out", d.orders),
+      action: go("Move the percentage", "cut"),
+    };
   }
   if (/bonus|tier|green card|säästä|saasta|prisma/.test(q)) {
     return { paragraphs: [
       `This month S-group purchases are ${eur(plan.now)}, so the step is ${story.rate}% and Bonus so far is ${eur(story.nowBonus)}.`,
       `The next step is ${story.next.pct}% at ${eur(story.next.at)}. That is ${eur(story.gap)} away, and that ${eur(story.gap)} changes the rate on the whole amount. Bonus becomes ${eur(story.thenBonus)}.`,
       `Use the green card for the grocery shop and two café visits you are going to buy anyway. If the whole food plan stays there, November reaches ${eur(plan.monthAt)} and Bonus is ${eur(bonusCents(plan.monthAt))}.`,
-    ], action: go("Open Bonus", "bonus") };
+    ], source: counted("1–13 Nov", "S-group places", ledger.nov.filter(r => r.sgroup).length), action: go("Open Bonus", "bonus") };
   }
   if (/coffee|drink|robert|picnic/.test(q)) {
     return { paragraphs: [
       `Coffee and drinks in October were ${eur(catSum("oct", "Coffee & drinks"))}. Robert’s Coffee was ${eur(keySum("oct", "roberts"))}. Picnic was ${eur(keySum("oct", "picnic"))} and ABC was ${eur(keySum("oct", "abc"))}. Picnic and ABC earn Bonus.`,
       `Two café visits this week, ${eur(COFFEE_PLAN)}, are part of the move to the next step.`,
-    ], action: go("Open coffee and drinks", "category", "Coffee & drinks") };
+    ], source: counted("October", "Coffee and drinks", impulseWhen().coffeeVisits, "visits"), action: go("Open coffee and drinks", "category", "Coffee & drinks") };
   }
   if (/grocer|food|lidl|k-market|eat/.test(q)) {
     const outside = keySum("oct", "kmarket") + keySum("oct", "lidl");
     const inside = keySum("oct", "prisma") + keySum("oct", "smarket");
     return { paragraphs: [
       `Groceries in October were ${eur(catSum("oct", "Groceries"))}. Prisma and S-market were ${eur(inside)}. K-Market and Lidl were ${eur(outside)}, and that part earned no Bonus.`,
-    ], action: go("Open groceries", "category", "Groceries") };
+    ], source: counted("October", "Groceries", ledger.oct.filter(r => r.cat === "Groceries").length, "lines"), action: go("Open groceries", "category", "Groceries") };
   }
   if (/rent|bill|hsl|salary/.test(q)) {
     return { paragraphs: [
       `The regular basket in October was ${eur(basketSum("oct", "regular"))}: rent ${eur(keySum("oct", "rent"))}, bills ${eur(catSum("oct", "Bills"))}, and the season ticket ${eur(keySum("oct", "hsl"))}.`,
-      `November’s rent has already left. The bills that have not left yet are held on This week.`,
-    ], action: go("Open the baskets", "baskets") };
+      `November’s rent has already left. Bills due before Thursday are in the safe-to-spend number. The later ones are not.`,
+    ], source: counted("October", "Must, every month", ledger.oct.filter(r => r.basket === "regular").length, "lines"), action: go("Open the baskets", "baskets") };
   }
-  return { paragraphs: ["I can answer from this sample ledger: October, and 1–13 November. Ask about taxis, groceries, coffee, Bonus, this week, or dining out."] };
+  return { paragraphs: ["I can answer what kind of spender you are, what is safe this week, a smaller dining habit, when impulse payments cluster, how many days the current pace lasts, and what cancelling three subscriptions would keep. I stop for other people’s money, for paying a loan off, and for anything that is not a payment."] };
 }
 
 function render(frame, back) {
@@ -1295,9 +2034,41 @@ function render(frame, back) {
   if (frame.screen === "spender") return screenSpender();
   if (frame.screen === "week") return screenWeek();
   if (frame.screen === "cut") return screenCut();
+  if (frame.screen === "charts") return screenCharts();
+  if (frame.screen === "save") return screenSave();
+  if (frame.screen === "home") return screenHome();
+  if (frame.screen === "loan") return screenLoan();
+  if (frame.screen === "purchase") return screenPurchase();
+  if (frame.screen === "subs") return screenSubs();
+  if (frame.screen === "watch") return screenWatch();
   if (frame.screen === "bonus") return screenBonus();
+  if (frame.screen === "impulse") return screenImpulse();
+  if (frame.screen === "runway") return screenRunway();
   if (frame.screen === "coach") return screenCoach();
   return screenToday();
+}
+
+function paintLoanNumbers() {
+  const f = loanFigures();
+  const pos = loanPos();
+  const priceSlider = q('[data-slider="price"]');
+  if (!priceSlider) return;
+  const rateSlider = q('[data-slider="rate"]');
+  const rent = keySum("oct", "rent");
+  priceSlider.querySelector(".fill").style.width = (pos.price * 100) + "%";
+  priceSlider.querySelector(".thumb").style.left = (pos.price * 100) + "%";
+  rateSlider.querySelector(".fill").style.width = (pos.rate * 100) + "%";
+  rateSlider.querySelector(".thumb").style.left = (pos.rate * 100) + "%";
+  q(".loan-pay").textContent = eur(f.pay);
+  q(".loan-share").textContent = "a month · " + f.share.toFixed(1) + "% of the " + eur(SALARY) + " salary. Your rent is " + eur(rent) + ", " + Math.round(rent / SALARY * 100) + "% of that salary.";
+  q(".loan-price").textContent = eur(f.price);
+  q(".loan-rate").textContent = (state.rateTenths / 10).toFixed(1) + "%";
+  q(".loan-stress").textContent = "At 6%, the same loan is " + eur(f.stress) + " a month. An ASP loan can include state interest support when the rate is above 3.8%, for up to 10 years, and only if a bank grants the loan.";
+  const savedGap = f.down - ASP_SAVED;
+  q(".loan-gap").textContent = (savedGap > 0
+    ? "The 10% for this price is " + eur(f.down) + ". You have " + eur(ASP_SAVED) + ". The gap is " + eur(savedGap) + ". "
+    : "You already have the 10% for this price, " + eur(f.down) + ". ")
+    + "The sketch uses that 10% as the down payment, not today’s balance. The city also limits how large an ASP loan can be. This screen does not look that up.";
 }
 
 function setCut(pct) {
@@ -1322,10 +2093,8 @@ function setCut(pct) {
 
 function afterPaint() {
   if (current().screen === "cut") setCut(state.cut);
-  if (current().screen === "coach") {
-    const sc = q(".scroll");
-    if (sc) sc.scrollTop = sc.scrollHeight;
-  }
+  if (current().screen === "loan") paintLoanNumbers();
+  if (current().screen === "coach") pinThread();
   edge.style.pointerEvents = sheetOpen || stack.length < 2 ? "none" : "auto";
 }
 
@@ -1342,9 +2111,12 @@ function updateChrome() {
   list.querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.key === key));
   const item = RAIL.find(r => frameKey(r.frame) === key);
   caption.textContent = item ? item.blurb : "";
-  const tab = frame.screen === "spending" || frame.screen === "category" ? "spending"
-    : frame.screen === "bonus" ? "bonus"
-    : frame.screen === "coach" || frame.screen === "cut" ? "coach" : "today";
+  const spend = ["spending", "category", "charts", "baskets"];
+  const save = ["save", "home", "loan", "bonus", "subs", "watch"];
+  const coach = ["coach", "cut", "purchase", "spender", "impulse", "runway"];
+  const tab = spend.includes(frame.screen) ? "spending"
+    : save.includes(frame.screen) ? "save"
+    : coach.includes(frame.screen) ? "coach" : "today";
   tabbar.querySelectorAll(".tab").forEach(el => {
     const on = el.dataset.go === tab;
     el.classList.toggle("on", on);
@@ -1441,19 +2213,40 @@ function closeSheet(immediate) {
 }
 function openTx(month, index) {
   const r = ledger[month][index];
+  const filed = r.userFiled ? "You filed this as " + r.cat + ". SpendSight counts it that way now." : "Filed as " + r.cat + ".";
+  const roll = month === "oct" ? " October is one line per place, so a new filing covers that whole line." : "";
+  const choices = FILING.map(([cat, basket]) => `<button type="button" class="row" data-act="resort" data-month="${month}" data-i="${index}" data-cat="${escapeHTML(cat)}" data-basket="${basket}"><span class="name"><b>${escapeHTML(cat)}</b><small>${BASKET[basket].name}</small></span></button>`).join("");
   openSheet(`<h2 id="sheet-title">${r.place}</h2>
     <p class="sheet-amt">${eur(r.amount)}</p>
     <p class="quiet">${r.when} · ${r.detail}</p>
     <div class="rows"><div class="row" style="cursor:default"><span class="name"><b>${r.cat}</b><small>${BASKET[r.basket].name}</small></span></div>
     <div class="row" style="cursor:default"><span class="name"><b>${r.sgroup ? "Earns Bonus" : "No Bonus at this place"}</b><small>${r.sgroup ? "Counts toward this month’s S-group step." : "S-group shops and Rosso, Picnic, ABC, and Sokos do."}</small></span></div></div>
     <p>${txNote(r)}</p>
+    <p>${filed}${roll} A new filing changes the basket. It does not change whether this place earns Bonus.</p>
+    <div class="rows">${choices}</div>
+    <button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
+}
+function openPrivacy() {
+  openSheet(`<h2 id="sheet-title">Your data</h2>
+    <p>SpendSight reads your payments for October and 1–13 November, the holds, and the save setting you pick, and only so it can answer you. It does not read other customers. The reading stays inside the bank.</p>
+    <p>Answers can be wrong. Each figure names the category, the period, and how many payments it used. Check anything that would move money. This is an automated assistant, not a person at S-Pankki.</p>
+    <p>Your questions are not used to train an external model. In this design they stay in the page until you close it. A real app would let you export or delete that record.</p>
+    <p>If you refile a payment, the next answer uses your filing. A move between accounts is prepared only after you confirm. Booking a person uses the existing S-Pankki and Prisma customer service. This screen does not book a time, and it does not send the chat.</p>
+    <button type="button" class="text-btn" data-act="book">Book a person</button>
+    <button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
+}
+function openBook() {
+  openSheet(`<h2 id="sheet-title">Book a person</h2>
+    <p>S-Pankki and Prisma already book customer service. This design does not reserve a time, and it does not send what you asked the coach.</p>
     <button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
 }
 function openAbout() {
   openSheet(`<h2 id="sheet-title">Aino Korhonen</h2>
     <p>Helsinki. One person. Co-op member, with S-Etukortti Visa.</p>
-    <p>This is a design ledger: October rolled up by place, and every payment from 1 to 13 November. The coach answers from these payments only.</p>
+    <p>SpendSight is a design ledger: October rolled up by place, and every payment from 1 to 13 November. It answers from these payments, the holds, and a sample ASP plan. It does not move money, and an answer can be wrong.</p>
     <p>Bonus follows the S-group steps. One percentage covers the whole month once a step is reached. Under €50 in a month, Bonus is €0. The steps run from 1% at €50 to 5% at €900.</p>
+    <p>The ASP figures use S-Pankki’s published terms: €50–€1,500 a month, 20 months, 10% of the home, 1% while saving, and 4% more when the home is bought. The loan sketch is arithmetic, not an offer.</p>
+    <button type="button" class="text-btn" data-act="privacy">Your data</button>
     <button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
 }
 function openAlert(opts) {
@@ -1476,28 +2269,58 @@ function submitAsk(text) {
   replyTimer = setTimeout(() => {
     state.messages.push(reply);
     const live = q(".thread");
-    if (live) {
-      live.insertAdjacentHTML("beforeend", bubbleHTML(reply));
-      const sc = q(".scroll");
-      if (sc) sc.scrollTop = sc.scrollHeight;
-    }
+    if (live) live.insertAdjacentHTML("beforeend", bubbleHTML(reply));
+    pinThread();
   }, reduceMotion ? 0 : 280);
+  pinThread();
+}
+function pinThread() {
   const sc = q(".scroll");
-  if (sc) sc.scrollTop = sc.scrollHeight;
+  const last = q(".thread .msg:last-child");
+  if (!sc || !last) return;
+  sc.scrollTop = Math.max(0, last.offsetTop - 108);
 }
 
 function onAct(act, target) {
   if (act === "back") return pop();
   if (act === "about") return openAbout();
+  if (act === "privacy") return openPrivacy();
+  if (act === "book") return openBook();
   if (act === "close-sheet") return closeSheet(false);
   if (act === "month") {
     state.month = target.dataset.month;
     return swap();
   }
-  if (act === "week") {
-    state.weekMode = target.dataset.mode;
+  if (act === "effort") {
+    if (!EFFORT[target.dataset.id]) return;
+    state.effort = target.dataset.id;
     return swap();
   }
+  if (act === "years") {
+    state.years = +target.dataset.n;
+    return swap();
+  }
+  if (act === "prepare-transfer") {
+    const g = guidance();
+    if (state.transfer) {
+      openAlert({
+        title: "Cancel the prepared move",
+        body: "The " + eur(g.save) + " stays on S-Tili. Nothing has moved.",
+        no: "close-alert", noLabel: "Keep it prepared",
+        yes: "transfer-undo", yesLabel: "Cancel the move",
+      });
+    } else {
+      openAlert({
+        title: "Prepare the monthly move",
+        body: "After Thursday’s salary, " + eur(g.save) + " would move from S-Tili to the ASP account. The coach prepared this. It does not run until you confirm, and it does not open a new account. You can cancel it before Thursday.",
+        no: "close-alert", noLabel: "Not now",
+        yes: "transfer-yes", yesLabel: "Prepare it",
+      });
+    }
+    return;
+  }
+  if (act === "transfer-yes") { state.transfer = true; closeAlert(); return swap(); }
+  if (act === "transfer-undo") { state.transfer = false; closeAlert(); return swap(); }
   if (act === "preview") {
     const was = state.preview;
     state.preview = !state.preview;
@@ -1538,6 +2361,35 @@ function onAct(act, target) {
   if (act === "close-alert") return closeAlert();
   if (act === "saver-yes") { state.saver = true; closeAlert(); return swap(); }
   if (act === "saver-undo") { state.saver = false; closeAlert(); return swap(); }
+  if (act === "account") {
+    const item = ACCOUNTS[target.dataset.id];
+    if (!item) return;
+    openSheet(`<h2 id="sheet-title">${item.title}</h2><p>${item.body}</p><button type="button" class="text-btn" data-act="close-sheet">Done</button>`);
+    return;
+  }
+  if (act === "resort") {
+    const rows = ledger[target.dataset.month];
+    const row = rows && rows[+target.dataset.i];
+    const filing = FILING.find(([cat]) => cat === target.dataset.cat);
+    if (!row || !filing) return;
+    row.cat = filing[0];
+    row.basket = filing[1];
+    row.userFiled = true;
+    closeSheet(true);
+    return swap();
+  }
+  if (act === "purchase") {
+    state.purchase = target.dataset.choice;
+    return swap();
+  }
+  if (act === "sub") {
+    state.subs[target.dataset.id] = target.dataset.choice;
+    return swap();
+  }
+  if (act === "watch") {
+    state.watch[target.dataset.id] = target.dataset.choice;
+    return swap();
+  }
   if (act === "send") {
     const field = q("#ask");
     if (field) submitAsk(field.value);
@@ -1547,15 +2399,15 @@ function onAct(act, target) {
 const ICONS = {
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z"/></svg>',
   spending: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h9"/></svg>',
-  bonus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18" stroke-linecap="round"/></svg>',
+  save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><path d="M12 8v8M8 12h8" stroke-linecap="round"/></svg>',
   coach: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5 16.5V7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v6A2.5 2.5 0 0 1 16.5 16H9l-4 3z"/></svg>',
 };
 function buildTabs() {
-  const tabs = [["today", "Today"], ["spending", "Spending"], ["bonus", "Bonus"], ["coach", "Coach"]];
+  const tabs = [["today", "Today"], ["spending", "Spending"], ["save", "Save"], ["coach", "SpendSight"]];
   tabbar.innerHTML = tabs.map(([id, label]) => `<button type="button" class="tab" data-go="${id}" data-how="tab">${ICONS[id]}${label}</button>`).join("");
 }
 function buildRail() {
-  let html = `<h1>My money</h1><p class="lede">A design for S-mobiili. Sample customer Aino Korhonen. The phone is the prototype. Bonus is computed from the ledger.</p>`;
+  let html = `<h1>SpendSight</h1><p class="lede">A design for S-mobiili. The coach answers six questions from Aino’s payments, shows the count behind each figure, and stops outside that. Answers can be wrong.</p>`;
   let group = "";
   RAIL.forEach((item, i) => {
     if (item.group !== group) {
@@ -1725,7 +2577,16 @@ device.addEventListener("pointercancel", endSlider);
 function moveSlider(e, slider) {
   const rect = slider.getBoundingClientRect();
   const f = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  setCut(f * 0.5);
+  const kind = slider.dataset.slider;
+  if (kind === "price") {
+    state.homeEuro = Math.round((150000 + f * 250000) / 1000) * 1000;
+    paintLoanNumbers();
+  } else if (kind === "rate") {
+    state.rateTenths = Math.round(20 + f * 40);
+    paintLoanNumbers();
+  } else {
+    setCut(f * 0.5);
+  }
 }
 
 alertWrap.addEventListener("click", (e) => { if (e.target === alertWrap) closeAlert(); });
@@ -1749,8 +2610,9 @@ window.addEventListener("resize", fit);
 function selfCheck() {
   const errs = [];
   const eq = (name, got, want) => { if (got !== want) errs.push(name + "=" + got + " want " + want); };
-  eq("oct", sum("oct"), 221400);
-  eq("regular", basketSum("oct", "regular"), 100800);
+  eq("oct", sum("oct"), 224390);
+  eq("regular", basketSum("oct", "regular"), 103790);
+  eq("gym", keySum("oct", "gym"), 2990);
   eq("irregular", basketSum("oct", "irregular"), 21000);
   eq("everyday", basketSum("oct", "everyday"), 99600);
   eq("slip", slip("oct"), 35600);
@@ -1765,10 +2627,33 @@ function selfCheck() {
   eq("month at", novPlan().monthAt, 51000);
   eq("bonus 510", bonusCents(51000), 1530);
   eq("food only", bonusCents(novPlan().foodOnly), 1235);
-  eq("holds", holdSum(), 135600);
-  eq("left", BALANCE + SALARY - holdSum(), 266820);
+  eq("holds", holdSum(), 138590);
+  eq("left", BALANCE + SALARY - holdSum(), 263830);
   eq("gain", tierStory(21400).gain, 279);
   eq("loss", tierStory(21400).loss, 8321);
+  eq("jacket gain", jacketStory().gain, 285);
+  eq("jacket loss", jacketStory().loss, 8615);
+  eq("pay", loanFigures().pay, 104512);
+  eq("stress", loanFigures().stress, 127572);
+  eq("pace groc", pace13(catSum("oct", "Groceries")), 27733);
+  eq("asp goal", Math.round(HOME_EURO_DEFAULT * 100 * 10 / 100), 2200000);
+  eq("meal", diningPlan().meal, 2067);
+  eq("fifth", diningPlan().fifth, 3720);
+  eq("once", diningPlan().once, 8268);
+  eq("twice", diningPlan().twice, 16536);
+  eq("window", windowSlip(), 560);
+  eq("pile", pile(EFFORT.steady.save, 5), 2400000);
+  eq("steady spend", guidance().spend, 6400);
+  eq("safe", safeSpend().spend, 102830);
+  eq("bills before", safeSpend().billSum, 7590);
+  eq("runway days", runway().left, 38);
+  eq("runway day", runway().perDay, 3049);
+  eq("runway n", runway().count, 15);
+  eq("impulse n", impulseWhen().n, 9);
+  eq("impulse peak n", impulseWhen().peak.n, 3);
+  eq("impulse peak", impulseWhen().peak.amount, 5140);
+  eq("subs month", subscriptionCut().month, 4990);
+  eq("subs year", subscriptionCut().year, 59880);
   const el = document.getElementById("check");
   el.textContent = errs.length ? errs.join(" | ") : "ok";
   if (errs.length) console.error(el.textContent);
@@ -1781,7 +2666,9 @@ buildRail();
 buildTabs();
 selfCheck();
 fit();
-jump(start ? start.frame : { screen: "today" });
+const ask = params.get("ask");
+jump(ask ? { screen: "coach" } : (start ? start.frame : { screen: "coach" }));
+if (ask) submitAsk(ask);
 </script>
 </body>
 </html>
