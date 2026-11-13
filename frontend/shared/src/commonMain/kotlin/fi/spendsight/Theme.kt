@@ -190,8 +190,9 @@ fun Segmented(options: List<Pair<String, Boolean>>, onSelect: (Int) -> Unit) {
 
 @Composable
 fun EffortPicker(store: SpendSightStore) {
-    Segmented(Sample.efforts.map { it.name to (it.id == store.effortId) }) { index ->
-        store.effortId = Sample.efforts[index].id
+    val selected = store.pendingEffort ?: store.settings.selected
+    Segmented(store.settings.efforts.map { it.name to (it.id == selected) }) { index ->
+        store.selectEffort(store.settings.efforts[index].id)
     }
 }
 

@@ -3,6 +3,7 @@ package fi.spendsight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
@@ -26,6 +29,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,15 +42,39 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun App(store: SpendSightStore = remember { SpendSightStore() }) {
+    LaunchedEffect(store) { store.load() }
     SystemBack(enabled = store.dialog != null || store.sheet != null || store.canBack) {
         store.onBack()
     }
     Box(Modifier.fillMaxSize().background(Bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             TopBar(store)
+            store.notice?.let { text ->
+                Text(
+                    text,
+                    color = Slip,
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable { store.notice = null }.padding(horizontal = 20.dp, vertical = 4.dp),
+                )
+            }
             Box(Modifier.weight(1f).fillMaxWidth()) {
-                ScreenBody(store, Modifier.fillMaxSize())
-                if (store.canBack && store.sheet == null) {
+                when (store.phase) {
+                    LoadPhase.Loading -> StatusPane(
+                        "Reading the ledger",
+                        "SpendSight is asking the service for every figure.",
+                    )
+                    LoadPhase.Failed -> Column(
+                        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Hero("The service did not answer", 32)
+                        Lede(store.error)
+                        PrimaryButton("Try again") { store.load() }
+                        Note("This build calls $baseUrl.")
+                    }
+                    LoadPhase.Ready -> ScreenBody(store, Modifier.fillMaxSize())
+                }
+                if (store.phase == LoadPhase.Ready && store.canBack && store.sheet == null) {
                     var dragged = 0f
                     Box(
                         Modifier
@@ -65,8 +93,8 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
                     )
                 }
             }
-            if (store.current == Screen.Coach) Composer(store)
-            TabBar(store)
+            if (store.phase == LoadPhase.Ready && store.current == Screen.Coach) Composer(store)
+            if (store.phase == LoadPhase.Ready) TabBar(store)
         }
         store.sheet?.let { SheetHost(store, it) }
         store.dialog?.let { dialog ->
@@ -174,13 +202,21 @@ private fun SheetHost(store: SpendSightStore, sheet: Sheet) {
     ) {
         Column(
             Modifier.fillMaxWidth().navigationBarsPadding().padding(horizontal = 24.dp).padding(bottom = 28.dp),
-            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             when (sheet) {
                 Sheet.About -> {
-                    Text("Aino Korhonen", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Lede("Helsinki. One person. Co-op member, with S-Etukortti Visa.")
-                    Lede("SpendSight is a design ledger: October rolled up by place, and every payment from 1 to 13 November. It answers from these payments, the holds, and a sample ASP plan. It does not move money, and an answer can be wrong.")
+                    val session = store.ledger?.session
+                    val name = session?.customerId ?: "SpendSight"
+                    Text(name, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Lede(
+                        if (session == null) {
+                            "The service has not answered yet."
+                        } else {
+                            "Postal code ${session.postalCode}. Age ${session.age}. Account ${session.accountId}."
+                        },
+                    )
+                    Lede(session?.note ?: "Today, Spending, and Save come from the service. The coach answers separately, from the design sample. It does not move money, and an answer can be wrong.")
                     Lede("Bonus follows the S-group steps. One percentage covers the whole month once a step is reached. Under €50 in a month, Bonus is €0. The steps run from 1% at €50 to 5% at €900.")
                     Lede("The ASP figures use S-Pankki’s published terms: €50–€1,500 a month, 20 months, 10% of the home, 1% while saving, and 4% more when the home is bought. The loan sketch is arithmetic, not an offer.")
                     TextLink("Your data") { store.sheet = Sheet.Privacy }
@@ -189,7 +225,8 @@ private fun SheetHost(store: SpendSightStore, sheet: Sheet) {
                     Text("Your data", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Lede("SpendSight reads your payments for October and 1–13 November, the holds, and the save setting you pick, and only so it can answer you. It does not read other customers. The reading stays inside the bank.")
                     Lede("Answers can be wrong. Each figure names the category, the period, and how many payments it used. Check anything that would move money. This is an automated assistant, not a person at S-Pankki.")
-                    Lede("Your questions are not used to train an external model. You can leave this thread when you close the app. A connected service would let you export or delete that record.")
+                    Lede("Your questions are not used to train an external model. The service keeps this thread until you delete it. Deleting clears the thread. It does not change the payments.")
+                    TextLink("Delete this thread") { store.deleteThread() }
                     Lede("If you refile a payment, the next list uses your filing. A move between accounts is prepared only after you confirm. Booking a person uses the existing S-Pankki and Prisma customer service. This screen does not book a time, and it does not send the chat.")
                     TextLink("Book a person") { store.sheet = Sheet.Book }
                 }
@@ -198,31 +235,43 @@ private fun SheetHost(store: SpendSightStore, sheet: Sheet) {
                     Lede("S-Pankki and Prisma already book customer service. This screen does not reserve a time, and it does not send what you asked the coach.")
                 }
                 is Sheet.Account -> {
-                    val account = Sample.accounts.first { it.id == sheet.id }
+                    val account = accountCopy.first { it.id == sheet.id }
                     Text(account.title, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Lede(account.body)
                 }
                 is Sheet.PaymentSheet -> {
-                    val row = store.payments.first { it.id == sheet.id }
-                    Text(row.place, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Text(eur(row.amountCents), color = Ink, fontSize = 32.sp, fontWeight = FontWeight.Bold)
-                    Note("${row.whenLabel} · ${row.detail}")
-                    Lede(row.category, strong = true)
-                    Note(row.basket.title)
-                    Lede(if (row.earnsBonus) "Earns Bonus. Counts toward this month’s S-group step." else "No Bonus at this place. S-group shops and Rosso, Picnic, ABC, and Sokos do.")
-                    Lede(paymentNote(row))
-                    Lede(
-                        (if (row.filedByCustomer) "You filed this as ${row.category}. SpendSight counts it that way now." else "Filed as ${row.category}.") +
-                            (if (row.month == Month.Oct) " October is one line per place, so a new filing covers that whole line." else "") +
-                            " A new filing changes the basket. It does not change whether this place earns Bonus.",
-                    )
-                    Sample.filings.forEach { (category, basket) ->
-                        ChevronRow(category, basket.title) { store.refile(row.id, category, basket) }
+                    val row = store.payment(sheet.id)
+                    if (row == null) {
+                        Note("That payment is not loaded.")
+                    } else {
+                        Text(row.place, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                        Text(row.shownAmount(), color = Ink, fontSize = 32.sp, fontWeight = FontWeight.Bold)
+                        Note("${row.whenLabel} · ${row.detail}")
+                        Lede(row.category, strong = true)
+                        Note(row.basket.title)
+                        Lede(if (row.earnsBonus) "Earns Bonus. Counts toward this month’s S-group step." else "No Bonus at this place. S-group shops and Rosso, Picnic, ABC, and Sokos do.")
+                        Lede(row.reason)
+                        Lede(
+                            (if (row.month == Month.Oct) "October is one line per place, so a new filing covers that whole line. " else "") +
+                                "A new filing changes the basket. It does not change whether this place earns Bonus.",
+                        )
+                        store.filingChoices().forEach { (category, basket) ->
+                            ChevronRow(category, basket.title) { store.refile(row.id, category) }
+                        }
                     }
                 }
             }
             TextLink("Done") { store.sheet = null }
         }
+    }
+}
+
+@Composable
+private fun StatusPane(title: String?, body: String?) {
+    if (title == null) return
+    Column(Modifier.fillMaxSize().padding(24.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Hero(title, 32)
+        if (body != null) Lede(body)
     }
 }
 

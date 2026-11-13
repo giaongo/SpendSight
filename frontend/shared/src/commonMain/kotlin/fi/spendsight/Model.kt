@@ -1,31 +1,29 @@
 package fi.spendsight
 
-enum class Month(val label: String, val eyebrow: String) {
-    Oct("October", "October, by place"),
-    Nov("1–13 Nov", "1–13 November, every payment"),
+enum class Month(val label: String, val eyebrow: String, val code: String) {
+    Oct("October", "October, by place", "oct"),
+    Nov("1–13 Nov", "1–13 November, every payment", "nov"),
+    ;
+
+    companion object {
+        fun fromCode(code: String): Month = entries.first { it.code == code }
+    }
 }
 
-enum class Basket(val title: String, val line: String) {
-    Regular("Must, every month", "These leave even when you buy nothing else."),
-    Irregular("Must, when it happens", "You cannot skip these. You also cannot pick the day."),
+enum class Basket(val title: String, val line: String, val code: String) {
+    Regular("Must, every month", "These leave even when you buy nothing else.", "regular"),
+    Irregular("Must, when it happens", "You cannot skip these. You also cannot pick the day.", "irregular"),
     Everyday(
         "Everyday",
         "Chosen one payment at a time. Food for the house is in here, and so is the money that slips through.",
+        "everyday",
     ),
+    ;
+
+    companion object {
+        fun fromCode(code: String): Basket = entries.first { it.code == code }
+    }
 }
-
-enum class EffortId { Small, Steady, Big }
-
-data class Effort(
-    val id: EffortId,
-    val name: String,
-    val saveCents: Int,
-    val slipCents: Int,
-    val salaryPercent: Int,
-    val monthsForEuros: Int,
-    val piles: Map<Int, Int>,
-    val jacketOverCents: Int,
-)
 
 data class Payment(
     val id: Int,
@@ -39,17 +37,12 @@ data class Payment(
     val detail: String,
     val key: String,
     val filedByCustomer: Boolean = false,
+    val inSlip: Boolean = false,
+    val reason: String = "",
+    val amount: String = "",
 )
 
 data class CategoryTotal(val name: String, val basket: Basket, val amountCents: Int)
-
-data class Hold(
-    val name: String,
-    val detail: String,
-    val amountCents: Int,
-    val beforePayday: Boolean = false,
-    val buffer: Boolean = false,
-)
 
 data class ChartRow(val label: String, val octoberCents: Int, val novemberCents: Int)
 
@@ -74,6 +67,7 @@ data class CoachMessage(
     val actionLabel: String? = null,
     val action: Screen? = null,
     val chart: List<ChartRow>? = null,
+    val limit: String? = null,
 )
 
 sealed interface Screen {

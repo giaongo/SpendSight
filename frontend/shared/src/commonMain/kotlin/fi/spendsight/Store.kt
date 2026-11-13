@@ -5,55 +5,240 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import kotlin.math.abs
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
-class SpendSightStore {
+enum class LoadPhase { Loading, Ready, Failed }
+
+data class LedgerSnapshot(
+    val session: CustomerSessionDto,
+    val customerToday: CustomerTodayDto,
+    val spending: SpendingDto,
+    val customerSave: CustomerSaveDto,
+    val effort: EffortSettingsDto,
+    val payments: List<Payment>,
+    val summary: SummaryDto,
+    val week: WeekDto,
+    val spender: SpenderDto,
+    val dining: DiningDto,
+    val impulse: ImpulseDto,
+    val runway: RunwayDto,
+    val subs: SubsDto,
+    val charts: ChartsDto,
+    val bonus: BonusDto,
+    val purchase: PurchaseDto,
+    val watch: WatchDto,
+    val loan: LoanDto,
+)
+
+class SpendSightStore(
+    private val api: SpendSightApi = SpendSightApi(),
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate),
+) {
+    var phase by mutableStateOf(LoadPhase.Loading)
+    var error by mutableStateOf("")
+    var notice by mutableStateOf<String?>(null)
+    var disclaimer by mutableStateOf("")
+    var asking by mutableStateOf(false)
+    var pendingEffort by mutableStateOf<String?>(null)
+
     var month by mutableStateOf(Month.Oct)
-    var effortId by mutableStateOf(EffortId.Steady)
     var years by mutableStateOf(5)
     var transferPrepared by mutableStateOf(false)
     var bonusPreview by mutableStateOf(false)
     var saver by mutableStateOf(false)
-    var purchase by mutableStateOf("open")
+    var purchaseChoice by mutableStateOf("open")
     var cutPercent by mutableStateOf(20)
-    var homeEuro by mutableStateOf(Sample.homeEuro)
+    var homeEuro by mutableStateOf(220_000)
     var rateTenths by mutableStateOf(40)
     val subs = mutableStateMapOf("gym" to "open", "netflix" to "open", "spotify" to "open")
     val watch = mutableStateMapOf("bolt" to "open", "refund" to "open")
-    val payments = mutableStateListOf<Payment>().apply { addAll(samplePayments()) }
-    val messages = mutableStateListOf(openingMessage)
+    val messages = mutableStateListOf<CoachMessage>()
     var stack by mutableStateOf(listOf<Screen>(Screen.Coach))
     var sheet by mutableStateOf<Sheet?>(null)
     var dialog by mutableStateOf<Dialog?>(null)
 
-    val current: Screen get() = stack.last()
-    val effort: Effort get() = Sample.effort(effortId)
-    val canBack: Boolean get() = stack.size > 1
+    var ledger by mutableStateOf<LedgerSnapshot?>(null)
+        private set
 
-    fun rows(month: Month = this.month) = payments.filter { it.month == month }
+    private var loadJob: Job? = null
+    private var loanJob: Job? = null
+    private var loanToken = 0
+    private var pendingFiling = false
+
+    private val book: LedgerSnapshot get() = checkNotNull(ledger)
+
+    val current: Screen get() = stack.last()
+    val canBack: Boolean get() = stack.size > 1
+    val customer: CustomerTodayDto get() = book.customerToday
+    val spendingView: SpendingDto get() = book.spending
+    val customerSave: CustomerSaveDto get() = book.customerSave
+    val settings: EffortSettingsDto get() = book.effort
+    var newestSpendMonth by mutableStateOf<String?>(null)
+    val effortRow: EffortRowDto
+        get() {
+            val id = pendingEffort ?: book.effort.selected
+            return book.effort.efforts.first { it.id == id }
+        }
+
+    val loanPriceEuro: Int
+        get() = (homeEuro.coerceIn(150_000, 400_000) / 10_000) * 10_000
+
+    val loanRateTenths: Int
+        get() {
+            val raw = rateTenths.coerceIn(20, 60)
+            return ((raw - 20) / 5) * 5 + 20
+        }
+
+    val loanRateQuery: String
+        get() {
+            val tenths = loanRateTenths
+            return "${tenths / 10}.${tenths % 10}"
+        }
+
+    fun loanMatches(): Boolean {
+        val loan = ledger?.loan ?: return false
+        val expected = loanRateTenths / 10.0
+        return loan.priceEur == loanPriceEuro && abs(loan.ratePercent - expected) < 0.001
+    }
+
+    fun pileCents(): Int = effortRow.pilesCents[years.toString()] ?: 0
+
+    fun rows(month: Month = this.month) = book.payments.filter { it.month == month }
     fun total(month: Month = this.month) = rows(month).sumOf { it.amountCents }
     fun catSum(month: Month, category: String) = rows(month).filter { it.category == category }.sumOf { it.amountCents }
     fun basketSum(month: Month, basket: Basket) = rows(month).filter { it.basket == basket }.sumOf { it.amountCents }
-    fun keySum(month: Month, key: String) = rows(month).filter { it.key == key }.sumOf { it.amountCents }
-    fun slip(month: Month) = rows(month).filter { it.category in Sample.slipCategories }.sumOf { it.amountCents }
+    fun slip(month: Month) = rows(month).filter { it.inSlip }.sumOf { it.amountCents }
 
     fun categories(month: Month = this.month): List<CategoryTotal> =
         rows(month).groupBy { it.category }.map { (name, list) ->
             CategoryTotal(name, list.maxBy { it.amountCents }.basket, list.sumOf { it.amountCents })
         }.sortedByDescending { it.amountCents }
 
-    fun impulseDays(): List<ImpulseDay> =
-        rows(Month.Nov).filter { it.category in Sample.impulseCategories }
-            .groupBy { it.whenLabel }
-            .map { (whenLabel, list) ->
-                ImpulseDay(whenLabel, list.size, list.map { it.place }, list.sumOf { it.amountCents })
+    fun payment(id: Int): Payment? = ledger?.payments?.firstOrNull { it.id == id }
+
+    fun filingChoices(): List<Pair<String, Basket>> {
+        val present = ledger?.payments?.associate { it.category to it.basket } ?: return emptyList()
+        val known = filingOrder.filter { it in present }.map { it to present.getValue(it) }
+        val extra = present.filterKeys { it !in filingOrder }.map { it.key to it.value }
+        return known + extra
+    }
+
+    fun load() {
+        loadJob?.cancel()
+        loadJob = scope.launch {
+            phase = LoadPhase.Loading
+            notice = null
+            try {
+                replaceLedger(preserveLoan = false)
+                phase = LoadPhase.Ready
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                error = e.message ?: "The service did not answer."
+                phase = LoadPhase.Failed
             }
-            .sortedBy { it.whenLabel.substringBefore(" ").toIntOrNull() ?: 0 }
+        }
+    }
 
-    fun coffeeVisits(): Int =
-        rows(Month.Oct).filter { it.category == "Coffee & drinks" }.sumOf { visitCount(it.detail) }
+    fun ask(text: String) {
+        val question = text.trim().take(280)
+        if (question.isEmpty() || asking) return
+        messages.add(CoachMessage(role = "user", text = question))
+        asking = true
+        scope.launch {
+            try {
+                val reply = api.ask(question)
+                disclaimer = reply.disclaimer
+                val charts = ledger?.charts?.rows?.map { it.toRow() }
+                messages.add(reply.toMessage(charts))
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                messages.add(CoachMessage(role = "coach", paragraphs = listOf(e.message ?: "I could not reach the service.")))
+            } finally {
+                asking = false
+            }
+        }
+    }
 
-    fun woltOrders(): Int =
-        rows(Month.Oct).find { it.key == "wolt" }?.let { visitCount(it.detail) } ?: 0
+    fun selectEffort(id: String) {
+        val current = ledger?.effort?.selected ?: return
+        if (id == current || pendingEffort != null) return
+        pendingEffort = id
+        scope.launch {
+            try {
+                api.putEffort(id)
+                replaceLedger(preserveLoan = true)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = e.message ?: "The save setting did not update."
+            } finally {
+                pendingEffort = null
+            }
+        }
+    }
+
+    fun refile(id: Int, category: String) {
+        if (pendingFiling) return
+        pendingFiling = true
+        scope.launch {
+            try {
+                api.refile(id, category)
+                replaceLedger(preserveLoan = true)
+                sheet = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = e.message ?: "The filing did not save."
+            } finally {
+                pendingFiling = false
+            }
+        }
+    }
+
+    fun scheduleLoan() {
+        val price = loanPriceEuro
+        val rate = loanRateQuery
+        val token = ++loanToken
+        loanJob?.cancel()
+        loanJob = scope.launch {
+            delay(150)
+            try {
+                val view = api.loan(price, rate)
+                if (token != loanToken) return@launch
+                if (view.priceEur != price || abs(view.ratePercent - loanRateTenths / 10.0) >= 0.001) return@launch
+                ledger = ledger?.copy(loan = view)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                if (token == loanToken) notice = e.message ?: "The loan sketch did not update."
+            }
+        }
+    }
+
+    fun deleteThread() {
+        scope.launch {
+            try {
+                api.deleteThread()
+                messages.clear()
+                val note = ledger?.session?.note
+                if (note != null) messages.add(CoachMessage(role = "coach", paragraphs = listOf(note)))
+                sheet = null
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = e.message ?: "The thread was not deleted."
+            }
+        }
+    }
 
     fun jump(screen: Screen) {
         stack = listOf(screen)
@@ -78,20 +263,6 @@ class SpendSightStore {
         }
     }
 
-    fun ask(text: String) {
-        val question = text.trim().take(280)
-        if (question.isEmpty()) return
-        messages.add(CoachMessage(role = "user", text = question))
-        messages.add(sampleReply(question, effort))
-    }
-
-    fun refile(id: Int, category: String, basket: Basket) {
-        val index = payments.indexOfFirst { it.id == id }
-        if (index < 0) return
-        payments[index] = payments[index].copy(category = category, basket = basket, filedByCustomer = true)
-        sheet = null
-    }
-
     fun confirmDialog() {
         when (dialog?.confirm) {
             Confirm.PrepareTransfer -> transferPrepared = true
@@ -104,7 +275,7 @@ class SpendSightStore {
     }
 
     fun prepareTransfer() {
-        val amount = eur(effort.saveCents)
+        val amount = effortRow.save
         dialog = if (transferPrepared) {
             Dialog(
                 "Cancel the prepared move",
@@ -116,7 +287,7 @@ class SpendSightStore {
         } else {
             Dialog(
                 "Prepare the monthly move",
-                "After Thursday’s salary, $amount would move from S-Tili to the ASP account. The coach prepared this. It does not run until you confirm, and it does not open a new account. You can cancel it before Thursday.",
+                "A move of $amount would leave S-Tili for the ASP account. The coach prepared this on the design sample. It does not run until you confirm, and the service has no transfer route.",
                 "Not now",
                 "Prepare it",
                 Confirm.PrepareTransfer,
@@ -125,6 +296,7 @@ class SpendSightStore {
     }
 
     fun toggleSaver() {
+        val october = eur(book.bonus.octoberBonusCents)
         dialog = if (saver) {
             Dialog(
                 "Keep Bonus on S-Tili",
@@ -136,11 +308,48 @@ class SpendSightStore {
         } else {
             Dialog(
                 "Send the next Bonus to Säästäjä",
-                "From 10 Dec, Bonus would go to Säästäjä instead of S-Tili. October’s Bonus is already on S-Tili. You can change this later. This preview does not move money.",
+                "Bonus would go to Säästäjä instead of S-Tili. October’s Bonus, $october, is already on S-Tili. You can change this later. This preview does not move money.",
                 "Not now",
                 "Send next Bonus",
                 Confirm.SendBonus,
             )
+        }
+    }
+
+    private suspend fun replaceLedger(preserveLoan: Boolean) {
+        val kept = if (preserveLoan) ledger?.loan else null
+        val fresh = api.loadBundle().toSnapshot()
+        ledger = if (kept != null) fresh.copy(loan = kept) else fresh
+        newestSpendMonth = fresh.spending.month
+        if (messages.isEmpty()) {
+            messages.add(CoachMessage(role = "coach", paragraphs = listOf(fresh.session.note)))
+        }
+    }
+
+    fun loadSpending(month: String) {
+        scope.launch {
+            try {
+                val view = api.spending(month)
+                ledger = ledger?.copy(spending = view)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = e.message ?: "That month is not in the service."
+            }
+        }
+    }
+
+    fun loadCustomerSave(years: Int) {
+        this.years = years
+        scope.launch {
+            try {
+                val view = api.save(years)
+                ledger = ledger?.copy(customerSave = view)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = e.message ?: "The save reading did not update."
+            }
         }
     }
 
@@ -150,11 +359,23 @@ class SpendSightStore {
     }
 }
 
-/** Share of salary, in tenths of a percent, for a published monthly payment. */
-fun salaryShareTenths(payCents: Int): Int =
-    (((payCents * 1000L) + Sample.salary / 2) / Sample.salary).toInt()
-
-fun shareLabel(payCents: Int): String {
-    val tenths = salaryShareTenths(payCents)
-    return "${tenths / 10}.${tenths % 10}%"
-}
+private fun WireBundle.toSnapshot() = LedgerSnapshot(
+    session = session,
+    customerToday = customerToday,
+    spending = spending,
+    customerSave = customerSave,
+    effort = effort,
+    payments = payments.map { it.toPayment() },
+    summary = summary,
+    week = week,
+    spender = spender,
+    dining = dining,
+    impulse = impulse,
+    runway = runway,
+    subs = subs,
+    charts = charts,
+    bonus = bonus,
+    purchase = purchase,
+    watch = watch,
+    loan = loan,
+)
