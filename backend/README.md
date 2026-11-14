@@ -50,6 +50,46 @@ backend/
 └── API.md                 Detailed API and runtime reference
 ```
 
+## Quick start
+
+### 1. Install dependencies
+
+From `backend/`:
+
+```bash
+uv sync --extra dev
+```
+
+### 2. Set up local HTTPS
+
+Create a self-signed certificate (one time only):
+
+```bash
+mkdir -p .cache/certs
+openssl req -x509 -newkey rsa:2048 -nodes \
+  -keyout .cache/certs/localhost.key \
+  -out .cache/certs/localhost.crt \
+  -days 825 \
+  -subj "/CN=localhost" \
+  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+```
+
+### 3. Start the service
+
+```bash
+uv run python -m app
+```
+
+Verify it's running:
+
+```bash
+curl -k https://127.0.0.1:8000/health
+```
+
+Interactive API docs: [https://127.0.0.1:8000/docs](https://127.0.0.1:8000/docs)
+
+**Note:** First start may take several minutes while Junction transaction CSVs are indexed into SQLite.
+
 ## Requirements
 
 - Python 3.11 or newer; the container uses Python 3.12
@@ -160,31 +200,27 @@ Never commit `.env`, certificates, CSV data, or the SQLite cache.
 
 ```mermaid
 flowchart LR
-    API[FastAPI routes] --> Session["/session"]
-    API --> Customer["/customers/{id}/*"]
+    API[FastAPI routes] --> Customer["/customers/{id}/*"]
     API --> Sample["/tools/* + sample ledger routes"]
-    API --> Junction["/junction/*"]
+    API --> Offers["/campaigns + coupons"]
     API --> Ops["/health + /healthz"]
-    API --> Stats["/statistics/*"]
+    API --> Loan["/loan/sketch"]
 ```
 
 | Group | Representative routes | Data source |
 | --- | --- | --- |
-| Session and customer views | `/session`, `/customers/{id}/today`, `/spending`, `/save` | Junction customer transactions |
+| Customer views | `/customers/{id}`, `/customers/{id}/today`, `/customers/{id}/spending`, `/customers/{id}/save` | Junction customer transactions |
 | Customer coach | `/customers/{id}/coach/ask` | Backend-computed customer facts with the Verda safety boundary |
+| Offers | `/campaigns`, `/customers/{id}/coupons`, `/customers/{id}/coupons/{coupon_id}/activate` | S-Pankki sample offers and qualifications |
 | Design-sample ledger | `/ledger/summary`, `/payments`, `/settings/effort` | Aino's fixed ledger and in-memory session |
-| Design-sample tools | `/tools/week`, `/tools/spender`, `/tools/dining`, `/tools/impulse`, `/tools/runway`, `/tools/subscriptions` | Aino's fixed ledger |
-| Planning and reference | `/charts`, `/bonus`, `/purchase`, `/watch`, `/loan/sketch` | Design sample or parameter-only arithmetic |
-| Raw Junction reads | `/junction/customers`, `/junction/mortgages`, `/junction/status` | CSV metadata and SQLite index |
-| External statistics | `/statistics/education-assets` | Statistics Finland PxWeb |
+| Design-sample tools | `/tools/week`, `/tools/spender`, `/tools/dining`, `/tools/impulse`, `/tools/runway`, `/tools/subscriptions`, `/charts`, `/bonus`, `/purchase`, `/watch` | Aino's fixed ledger |
+| Loan calculator | `/loan/sketch?price_eur=...&rate_percent=...&years=...&down_percent=...` | Parameter-only arithmetic |
 
 See [API.md](API.md) for route parameters, validation rules, response semantics, and reference customer figures.
 
-### Session identity
+### Customer entry point
 
-`GET /session` is the client entry point. It returns the server-selected customer and a `reads` object containing the exact Today, Spending, and Save paths. The client follows those paths. A customer id supplied in a request body does not choose the signed-in identity.
-
-Resource routes that intentionally include `{customer_id}` in the URL remain available for explicit customer lookup and testing.
+`GET /customers/{customer_id}` is the client entry point. It returns the customer's summary, account balance, transaction count, and a `reads` object containing the exact Today, Spending, and Save paths. The client follows those paths. A customer id supplied in a request body does not choose the signed-in identity.
 
 ### Money contract
 
