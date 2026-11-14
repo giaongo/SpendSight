@@ -73,13 +73,15 @@ Unknown customer ids return 404. A `month` the customer does not have returns 40
 
 ### Ask about one customer
 
-`POST /customers/{customer_id}/coast/ask` with `{ "text": "How much did I spend last month?" }`.
+`POST /customers/{customer_id}/coach/ask` with `{ "text": "How much did I spend last month?" }`.
 
 A question about that customer's spending, balance, salary, bills, savings, or mortgage is answered from their transactions. The service computes the figures and sends them with the question. The model may phrase the answer. It does not choose the cents.
 
 Any other question is answered on its own. Their transactions are not included. `uses_customer_data` is true only for the spending case.
 
 The call is `POST <VERDA_BASE_URL>/v1/chat/completions`. The question is not stored.
+
+The system prompt (`SPENDING_PROMPT` and `OTHER_PROMPT` in `app/verda.py`) sets SpendSight's voice in the S-Pankki app, forbids investment, tax, legal, and loan advice, and marks the question as untrusted data. Before the question leaves the service, a henkilötunnus, IBAN, card number, email, phone, customer id, and long digit runs are replaced with placeholders, and control, zero-width, and bidi characters and chat-template markers are removed. The question goes to the model as a JSON string. Every `*_cents` figure is sent as the service's euro string (`€1,539.16`), so the model never divides cents.
 
 The call needs `backend/.env`:
 

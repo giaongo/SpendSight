@@ -733,7 +733,7 @@ fun Composer(store: SpendSightStore) {
     var text by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
-            store.disclaimer.ifBlank { coastOpening },
+            store.disclaimer.ifBlank { coachOpening },
             color = Tertiary,
             fontSize = 12.sp,
             lineHeight = 16.sp,

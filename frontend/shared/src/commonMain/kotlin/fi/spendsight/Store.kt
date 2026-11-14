@@ -227,7 +227,7 @@ class SpendSightStore(
     fun deleteThread() {
         messages.clear()
         disclaimer = ""
-        messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening)))
+        messages.add(CoachMessage(role = "coach", paragraphs = listOf(coachOpening)))
         sheet = null
     }
 
@@ -313,7 +313,7 @@ class SpendSightStore(
         ledger = if (kept != null) fresh.copy(loan = kept) else fresh
         newestSpendMonth = fresh.spending.month
         if (messages.isEmpty()) {
-            messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening)))
+            messages.add(CoachMessage(role = "coach", paragraphs = listOf(coachOpening)))
         }
     }
 

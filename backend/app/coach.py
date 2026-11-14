@@ -65,7 +65,11 @@ _REFUSALS: tuple[tuple[str, re.Pattern[str], str, str | None], ...] = (
         "manipulation",
         re.compile(
             r"ignore (your|the) (rules|instructions)|jailbreak|developer mode|"
-            r"pretend you are|you are now a"
+            r"pretend you are|you are now a|"
+            r"(ignore|disregard|forget|override) (all |any )?(of )?(the |your )?"
+            r"(previous|prior|above|earlier|system) (rules|instructions|prompts?|messages?)|"
+            r"system prompt|your (instructions|prompt|rules) (are|say)|reveal (your|the) (prompt|instructions)|"
+            r"act as (a |an )?(different|new|unrestricted)|\bdan mode\b|<\|im_start\|>|\[inst\]"
         ),
         "I only answer questions about your own spending. I can’t switch roles or ignore that limit.",
         None,

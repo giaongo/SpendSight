@@ -37,7 +37,7 @@ class FactModel(BaseModel):
     because: str
 
 
-class CoastResponse(BaseModel):
+class CustomerCoachResponse(BaseModel):
     customer_id: str
     answer: str
     model: str

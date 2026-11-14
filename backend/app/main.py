@@ -14,7 +14,7 @@ from app.junction_db import IndexNotReady, JunctionLibrary, index_ready, query_t
 from app.ledger import SLIP_CATEGORIES, loan_sketch
 from app.schemas import (
     AskRequest,
-    CoastResponse,
+    CustomerCoachResponse,
     CoachResponse,
     EffortRequest,
     FilingPreviewRequest,
@@ -175,11 +175,11 @@ def customer_months(customer_id: str, request: Request) -> dict:
 
 
 @router.post(
-    "/customers/{customer_id}/coast/ask",
+    "/customers/{customer_id}/coach/ask",
     tags=["Customers"],
-    response_model=CoastResponse,
+    response_model=CustomerCoachResponse,
 )
-def customer_coast_ask(customer_id: str, body: AskRequest, request: Request) -> dict:
+def customer_coach_ask(customer_id: str, body: AskRequest, request: Request) -> dict:
     """Answer one question with Verda, using only this customer's transactions."""
     try:
         return ask_customer(_book(request, customer_id), body.text)
