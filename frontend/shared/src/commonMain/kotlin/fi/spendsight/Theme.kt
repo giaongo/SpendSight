@@ -3,6 +3,7 @@ package fi.spendsight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,21 +20,51 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 val Green = Color(0xFF00AA46)
 val GreenPress = Color(0xFF008F3C)
+val Forest = Color(0xFF255933)
 val Deep = Color(0xFF002616)
 val Ink = Color(0xFF042117)
 val Secondary = Color(0xFF4A5E54)
 val Tertiary = Color(0xFF7A8B82)
-val Bg = Color(0xFFF3F6F4)
+val Bg = Color(0xFFECF1ED)
+val Mint = Color(0xFFDFF1E5)
+val Mist = Color(0xFFDFE8FB)
+val Cream = Color(0xFFF6F0D8)
+
+/** True while the finger is on the ask field, so an outside tap can hide the keyboard. */
+internal class EditorGate {
+    var down: Boolean = false
+}
+
+@Composable
+internal fun hideKeyboard(): () -> Unit {
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    return {
+        focusManager.clearFocus()
+        keyboard?.hide()
+    }
+}
+
+/** Taps on empty page space clear the ask field. Child clicks still win. */
+@Composable
+fun Modifier.dismissKeyboardOnTap(): Modifier {
+    val hide = hideKeyboard()
+    val interaction = remember { MutableInteractionSource() }
+    return clickable(interactionSource = interaction, indication = null, onClick = hide)
+}
 val Card = Color.White
 val Line = Color(0x1A042117)
 val Slip = Color(0xFFC26A3A)

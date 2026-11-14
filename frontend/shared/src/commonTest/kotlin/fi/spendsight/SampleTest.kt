@@ -48,6 +48,22 @@ class ApiContractTest {
         assertTrue(t(Lang.Sv, R.string.T_bonus_follows_the_s_group_steps_one_percentage_cov).contains("1 %"))
         assertEquals("b a", formatString("%2\$s %1\$s", arrayOf("a", "b")))
         assertEquals("5%", formatString("5%%", emptyArray()))
+        assertEquals(0, daysSinceEpoch(1970, 1, 1))
+        assertEquals("Tuesday 1 October", formatAsOf("2024-10-01", Lang.En))
+        assertEquals("Wednesday 30 September", formatAsOf("2026-09-30", Lang.En))
+        assertEquals("Keskiviikko 30.9.", formatAsOf("2026-09-30", Lang.Fi))
+        assertEquals("Onsdag 30 september", formatAsOf("2026-09-30", Lang.Sv))
+        val cats = listOf(
+            SpendCategoryDto("Housing", 1, -10_000, ""),
+            SpendCategoryDto("Restaurants", 2, -5_000, ""),
+            SpendCategoryDto("Salary", 1, 20_000, ""),
+            SpendCategoryDto("Invest Deposit", 1, -3_000, ""),
+        )
+        assertEquals(10_000, essentialsCents(cats))
+        assertEquals(5_000, everydayCents(cats))
+        val look = worthALook(cats, listOf(SpendCategoryDto("Restaurants", 1, -1_000, "")))
+        assertEquals("Housing", look?.name)
+        assertEquals(10_000, look?.deltaCents)
     }
 
     @Test
@@ -281,6 +297,44 @@ class ApiContractTest {
     }
 
     @Test
+    fun decodesCouponsAndCampaigns() {
+        val coupons = ApiJson.decodeFromString<CouponsDto>(
+            """
+            {
+              "customer_id": "CUST00001",
+              "count": 1,
+              "activated_count": 0,
+              "note": "Sample offers for the demo. They are not real S-Pankki offers.",
+              "coupons": [{
+                "coupon_id": "CPN-GROCERY-5",
+                "title": "€5 back on groceries",
+                "description": "Pay €200 or more for groceries.",
+                "benefit": "€5 back",
+                "value_cents": 500,
+                "value": "€5.00",
+                "min_spend_cents": 20000,
+                "min_spend": "€200.00",
+                "percent": null,
+                "days_left": 47,
+                "reason": "Offered because you paid for groceries.",
+                "activated": false,
+                "activate": "/customers/CUST00001/coupons/CPN-GROCERY-5/activate"
+              }]
+            }
+            """.trimIndent(),
+        )
+        val coupon = coupons.coupons.single()
+        assertEquals(500, coupon.valueCents)
+        assertEquals("€5 back", coupon.benefit)
+        assertEquals("/customers/CUST00001/coupons/CPN-GROCERY-5/activate", coupon.activate)
+        assertFalse(coupon.activated)
+        val campaigns = ApiJson.decodeFromString<CampaignsDto>(
+            """{"count":1,"campaigns":[{"campaign_id":"CMP-WINTER-2026","title":"Winter","description":"Now","days_left":47,"coupon_count":3}]}""",
+        )
+        assertEquals(3, campaigns.campaigns.single().couponCount)
+    }
+
+    @Test
     fun mapsCoachScreensAndReadsFastApiDetail() {
         assertEquals(Screen.Spender, screenFor("spender"))
         assertEquals(Screen.Cut, screenFor("cut"))
@@ -302,6 +356,36 @@ class ApiContractTest {
         assertTrue(isLocalDevHost("192.168.1.20"))
         assertFalse(isLocalDevHost("example.com"))
         assertFalse(isLocalDevHost("1.1.1.1"))
+    }
+
+    @Test
+    fun rendersCoachMarkdownWithoutTouchingPlainMoney() {
+        val plain = parseMarkdown("The balance is €4,723.58.")
+        val paragraph = plain.single() as MdBlock.Paragraph
+        assertEquals(listOf(MdInline.Text("The balance is €4,723.58.")), paragraph.inlines)
+
+        val rich = parseMarkdown(
+            """
+            Left the account was **€2,114.38**.
+
+            - Groceries were **€640.10**
+            - Restaurants were *less*
+            1. Salary landed on 15 Sep
+            See [the note](https://example.invalid/secret).
+            """.trimIndent(),
+        )
+        assertTrue(rich[0] is MdBlock.Paragraph)
+        val first = (rich[0] as MdBlock.Paragraph).inlines
+        assertEquals(MdInline.Bold("€2,114.38"), first[1])
+        assertTrue(rich[1] is MdBlock.Bullet)
+        assertEquals(MdInline.Bold("€640.10"), (rich[1] as MdBlock.Bullet).inlines[1])
+        assertEquals(MdInline.Italic("less"), (rich[2] as MdBlock.Bullet).inlines[1])
+        val step = rich[3] as MdBlock.Numbered
+        assertEquals(1, step.number)
+        assertEquals("Salary landed on 15 Sep", (step.inlines.single() as MdInline.Text).value)
+        val note = (rich[4] as MdBlock.Paragraph).inlines.single() as MdInline.Text
+        assertEquals("See the note.", note.value)
+        assertFalse(note.value.contains("example.invalid"))
     }
 
     @Test

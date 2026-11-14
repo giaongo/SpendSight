@@ -3,6 +3,9 @@ package fi.spendsight
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -36,6 +39,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,16 +50,34 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun ScreenBody(store: SpendSightStore, modifier: Modifier = Modifier) {
-    if (store.current == Screen.Coach) {
-        CoachScreen(store, modifier)
-        return
+    when (store.current) {
+        Screen.Coach -> {
+            CoachScreen(store, modifier)
+            return
+        }
+        Screen.Today -> {
+            HomeRoot(store, modifier)
+            return
+        }
+        Screen.Insight -> {
+            InsightRoot(store, modifier)
+            return
+        }
+        Screen.Save -> {
+            SavingsRoot(store, modifier)
+            return
+        }
+        Screen.Offers -> {
+            OffersRoot(store, modifier)
+            return
+        }
+        else -> Unit
     }
     Column(
         modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         when (val screen = store.current) {
-            Screen.Today -> TodayScreen(store)
             Screen.Spending -> SpendingScreen(store)
             is Screen.Category -> CategoryScreen(store, screen.name)
             Screen.Baskets -> BasketsScreen(store)
@@ -60,7 +85,6 @@ fun ScreenBody(store: SpendSightStore, modifier: Modifier = Modifier) {
             Screen.Spender -> SpenderScreen(store)
             Screen.Week -> WeekScreen(store)
             Screen.Cut -> CutScreen(store)
-            Screen.Save -> SaveScreen(store)
             Screen.Home -> HomeScreen(store)
             Screen.Loan -> LoanScreen(store)
             Screen.Purchase -> PurchaseScreen(store)
@@ -69,34 +93,9 @@ fun ScreenBody(store: SpendSightStore, modifier: Modifier = Modifier) {
             Screen.Watch -> WatchScreen(store)
             Screen.Impulse -> ImpulseScreen(store)
             Screen.Runway -> RunwayScreen(store)
-            Screen.Coach -> Unit
+            Screen.Today, Screen.Insight, Screen.Save, Screen.Offers, Screen.Coach -> Unit
         }
     }
-}
-
-@Composable
-private fun TodayScreen(store: SpendSightStore) {
-    val today = store.customer
-    Eyebrow("${today.customerId} · ${today.postalCode} · ${t(R.string.T_age)} ${today.age}")
-    Hero(eur(today.balanceCents))
-    Lede(knownNote(today.note))
-    CardBox {
-        HoldRow(t(R.string.T_as_of), today.accountId, today.asOf)
-        HoldRow(t(R.string.T_latest_salary), today.latestSalaryDate ?: t(R.string.T_no_salary_in_the_file), today.latestSalaryCents?.let { eur(it) } ?: "—")
-        HoldRow(t(R.string.T_money_in, today.month), t(R.string.T_not_part_of_spending), eur(today.monthInCents))
-        HoldRow(t(R.string.T_money_out, today.month), t(R.string.T_left_the_account), eur(today.monthOutCents))
-        SumRow(t(R.string.T_transactions_on_file), today.transactionCount.toString())
-    }
-    Note(t(R.string.T_from_to_transactions, today.firstDate, today.asOf, today.transactionCount))
-    if (today.mortgageCustomerId == null) {
-        Note(t(R.string.T_no_mortgage_id_on_this_customer))
-    } else {
-        val decision = today.mortgageDecision?.let { decisionLabel(it) } ?: t(R.string.T_none)
-        Note(t(R.string.T_mortgage_decision, today.mortgageCustomerId, decision))
-    }
-    TextLink("${t(R.string.T_open)} ${today.month}") { store.push(Screen.Spending) }
-    TextLink(t(R.string.T_open_saving)) { store.push(Screen.Save) }
-    TextLink(t(R.string.T_ask)) { store.push(Screen.Coach) }
 }
 
 @Composable
@@ -355,27 +354,6 @@ private fun CutScreen(store: SpendSightStore) {
         HoldRow("Rosso", t(R.string.T_earns_bonus), eur(dining.rossoCents))
     }
     TextLink(t(R.string.T_what_rosso_does_for_the_step)) { store.push(Screen.Bonus) }
-}
-
-@Composable
-private fun SaveScreen(store: SpendSightStore) {
-    val save = store.customerSave
-    Eyebrow(save.customerId)
-    Hero(eur(save.depositedCents))
-    Lede(knownNote(save.note))
-    Segmented(listOf(1, 3, 5).map { n -> "$n ${if (n == 1) t(R.string.T_year) else t(R.string.T_years)}" to (save.years == n) }) { index ->
-        store.loadCustomerSave(listOf(1, 3, 5)[index])
-    }
-    CardBox {
-        HoldRow(t(R.string.T_window), "${save.windowStart} – ${save.windowEnd}", "${save.deposits} ${t(R.string.T_deposits)}")
-        HoldRow(t(R.string.T_latest_deposit), save.latestDepositDate ?: t(R.string.T_none_in_this_window), save.latestDepositCents?.let { eur(it) } ?: "—")
-        HoldRow(t(R.string.T_balance), save.accountId, eur(save.balanceCents))
-        SumRow(t(R.string.T_deposited), eur(save.depositedCents))
-    }
-    Section(t(R.string.T_where_a_euro_can_sit))
-    accounts(store.language).forEach { account ->
-        ChevronRow(account.title, account.subtitle) { store.sheet = Sheet.Account(account.id) }
-    }
 }
 
 @Composable
@@ -676,13 +654,15 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
     }
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize().padding(horizontal = 16.dp),
+        modifier = modifier.fillMaxSize().dismissKeyboardOnTap().padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         items(store.messages.size) { index ->
-            Bubble(store.messages[index]) { action ->
-                if (action != null) store.push(action)
-            }
+            Bubble(
+                store.messages[index],
+                onAction = { action -> if (action != null) store.push(action) },
+                onEdit = { store.draft = it },
+            )
         }
         if (store.asking) {
             item { Note(t(R.string.T_writing_the_answer)) }
@@ -692,86 +672,137 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
 }
 
 @Composable
-private fun Bubble(message: CoachMessage, onAction: (Screen?) -> Unit) {
+private fun Bubble(message: CoachMessage, onAction: (Screen?) -> Unit, onEdit: (String) -> Unit) {
     val mine = message.role == "user"
-    Column(Modifier.fillMaxWidth(), horizontalAlignment = if (mine) Alignment.End else Alignment.Start) {
-        Column(
-            Modifier
-                .fillMaxWidth(if (mine) 0.86f else 1f)
-                .clip(RoundedCornerShape(18.dp))
-                .background(if (mine) Deep else Card)
-                .padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            val color = if (mine) Color.White else Ink
-            val muted = if (mine) Color(0xFFD5E4DB) else Secondary
-            if (message.refused) {
-                Text(message.limit ?: t(R.string.T_outside_what_i_answer), color = Slip, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+    val paragraphs = message.paragraphs.ifEmpty { listOfNotNull(message.text) }
+    if (mine) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
+            Column(
+                Modifier
+                    .fillMaxWidth(0.86f)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(Green)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+            ) {
+                paragraphs.forEach { Text(it, color = Color.White, fontSize = 15.sp, lineHeight = 21.sp) }
             }
-            message.fact?.let { fact ->
-                Column {
-                    Text(fact.kicker, color = muted, fontSize = 12.sp)
-                    Text(presentMoney(fact.figure), color = color, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                    Text(fact.because, color = color, fontSize = 15.sp, lineHeight = 20.sp)
-                }
-            }
-            val paragraphs = message.paragraphs.ifEmpty { listOfNotNull(message.text) }
-            paragraphs.forEach { Text(it, color = color, fontSize = 15.sp, lineHeight = 21.sp) }
-            message.chart?.let { ChartBlock(it) }
-            message.source?.let { Text(it, color = muted, fontSize = 12.sp) }
-            if (message.actionLabel != null && message.action != null && !mine) {
+            message.text?.let { sent ->
                 Text(
-                    message.actionLabel,
+                    t(R.string.T_edit),
                     color = Green,
+                    fontSize = 12.sp,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onAction(message.action) },
+                    modifier = Modifier.clickable { onEdit(sent) }.padding(top = 4.dp, end = 4.dp),
                 )
             }
+        }
+        return
+    }
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (message.refused) {
+            Text(message.limit ?: t(R.string.T_outside_what_i_answer), color = Slip, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+        }
+        message.fact?.let { fact ->
+            CardBox {
+                Text(fact.kicker, color = Secondary, fontSize = 12.sp)
+                Text(presentMoney(fact.figure), color = Ink, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                Text(fact.because, color = Ink, fontSize = 15.sp, lineHeight = 20.sp)
+            }
+        }
+        paragraphs.forEach { MarkdownBody(it) }
+        message.chart?.let { ChartBlock(it) }
+        message.source?.let { Text(it, color = Secondary, fontSize = 12.sp) }
+        if (message.actionLabel != null && message.action != null) {
+            Text(
+                message.actionLabel,
+                color = Green,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { onAction(message.action) },
+            )
         }
     }
 }
 
 @Composable
-fun Composer(store: SpendSightStore) {
-    var text by remember { mutableStateOf("") }
-    Column(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 16.dp, vertical = 8.dp)) {
-        Text(
-            store.disclaimer.ifBlank { coastOpening(store.language) },
-            color = Tertiary,
-            fontSize = 12.sp,
-            lineHeight = 16.sp,
-        )
-        Text(
-            t(R.string.T_your_data),
-            color = Green,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.SemiBold,
-            modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(bottom = 8.dp),
-        )
-        Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            coachChips(store.language).forEach { (label, ask) ->
-                Text(
-                    label,
-                    color = Deep,
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Fill)
-                        .clickable { store.ask(ask) }
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                )
+fun Composer(store: SpendSightStore, compact: Boolean = false) {
+    val text = store.draft
+    val gate = LocalEditorGate.current
+    val hide = hideKeyboard()
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(Bg)
+            .dismissKeyboardOnTap()
+            .padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 8.dp),
+    ) {
+        if (compact && store.current == Screen.Today && text.isBlank()) {
+            val questions = homeQuestions(store.language)
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                questions.forEachIndexed { index, question ->
+                    Text(
+                        question,
+                        color = Deep,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(if (index % 2 == 0) Mint else Mist)
+                            .clickable { store.ask(question) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
             }
         }
-        Spacer(Modifier.height(8.dp))
+        if (!compact) {
+            Text(
+                store.disclaimer.ifBlank { coastOpening(store.language) },
+                color = Tertiary,
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+            )
+            Text(
+                t(R.string.T_your_data),
+                color = Green,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(bottom = 8.dp),
+            )
+            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                coachChips(store.language).forEach { (label, ask) ->
+                    Text(
+                        label,
+                        color = Deep,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(Fill)
+                            .clickable { store.ask(ask) }
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
+                    )
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Card).padding(horizontal = 14.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            SearchGlyph()
+            Spacer(Modifier.width(8.dp))
             BasicTextField(
                 value = text,
-                onValueChange = { text = it.take(280) },
-                modifier = Modifier.weight(1f).padding(vertical = 8.dp),
+                onValueChange = { store.draft = it.take(280) },
+                modifier = Modifier.weight(1f).padding(vertical = 8.dp).pointerInput(gate) {
+                    awaitEachGesture {
+                        awaitFirstDown(pass = PointerEventPass.Main)
+                        gate.down = true
+                        waitForUpOrCancellation()
+                    }
+                },
                 textStyle = TextStyle(color = Ink, fontSize = 16.sp),
                 decorationBox = { inner ->
                     Box {
@@ -787,13 +818,33 @@ fun Composer(store: SpendSightStore) {
                     .clip(CircleShape)
                     .background(if (enabled) Green else Fill)
                     .clickable(enabled = enabled) {
+                        hide()
                         store.ask(text)
-                        text = ""
                     },
                 contentAlignment = Alignment.Center,
             ) {
                 Text("↑", color = if (enabled) Color.White else Tertiary, fontWeight = FontWeight.Bold)
             }
         }
+    }
+}
+
+@Composable
+private fun SearchGlyph() {
+    Canvas(Modifier.size(18.dp)) {
+        val s = size.minDimension
+        drawCircle(
+            color = Tertiary,
+            radius = s * 0.30f,
+            center = Offset(s * 0.40f, s * 0.40f),
+            style = Stroke(width = s * 0.11f),
+        )
+        drawLine(
+            color = Tertiary,
+            start = Offset(s * 0.62f, s * 0.62f),
+            end = Offset(s * 0.88f, s * 0.88f),
+            strokeWidth = s * 0.11f,
+            cap = StrokeCap.Round,
+        )
     }
 }
