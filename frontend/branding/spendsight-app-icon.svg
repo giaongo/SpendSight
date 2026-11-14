@@ -1,9 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
-  <title id="title">SpendSight app icon</title>
-  <desc id="description">An eye-shaped money insight mark with a rising line, on a green background.</desc>
-  <rect width="1024" height="1024" fill="#00AA46"/>
-  <path d="M628 1024c8-199 81-356 220-470 55-45 114-78 176-100v570H628Z" fill="#008F3C"/>
-  <path d="M180 512c84-162 204-242 332-242s248 80 332 242c-84 162-204 242-332 242S264 674 180 512Z" fill="#FFFFFF"/>
-  <circle cx="512" cy="512" r="150" fill="#002616"/>
-  <path d="m410 574 80-80 58 58 78-110" fill="none" stroke="#DFF1E5" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#00A651"/>
+      <stop offset="1" stop-color="#005A32"/>
+    </linearGradient>
+    <linearGradient id="bubble" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#E6F5EC"/>
+    </linearGradient>
+    <clipPath id="lensClip">
+      <circle cx="470" cy="470" r="150"/>
+    </clipPath>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#003D22" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- App tile -->
+  <rect width="1024" height="1024" rx="228" fill="url(#bg)"/>
+  <circle cx="860" cy="150" r="260" fill="#FFFFFF" opacity="0.06"/>
+
+  <!-- Chat bubble: talk with your own data -->
+  <g filter="url(#shadow)">
+    <path d="M512 196
+             C700 196 836 316 836 476
+             C836 636 700 756 512 756
+             C470 756 430 750 393 739
+             L262 818
+             C248 826 232 813 237 798
+             L272 690
+             C220 638 188 562 188 476
+             C188 316 324 196 512 196 Z"
+          fill="url(#bubble)"/>
+  </g>
+
+  <!-- Lens: clear, transparent insight -->
+  <circle cx="470" cy="470" r="150" fill="#E6F5EC"/>
+  <g clip-path="url(#lensClip)">
+    <!-- Bars: simple spending charts -->
+    <rect x="378" y="500" width="44" height="140" rx="12" fill="#7FD3A5"/>
+    <rect x="448" y="440" width="44" height="200" rx="12" fill="#00A651"/>
+    <rect x="518" y="388" width="44" height="252" rx="12" fill="#006B3F"/>
+    <!-- Trend line -->
+    <polyline points="372,470 440,420 500,438 580,352"
+              fill="none" stroke="#005A32" stroke-width="16"
+              stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="580" cy="352" r="16" fill="#005A32"/>
+  </g>
+  <circle cx="470" cy="470" r="150" fill="none" stroke="#005A32" stroke-width="34"/>
+
+  <!-- Lens handle -->
+  <line x1="580" y1="580" x2="676" y2="676"
+        stroke="#005A32" stroke-width="56" stroke-linecap="round"/>
+
 </svg>

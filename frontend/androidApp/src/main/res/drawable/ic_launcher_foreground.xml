@@ -1,23 +1,83 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Foreground layer of branding/spendsight-app-icon.svg, drawn in the SVG's own 1024-unit
+     coordinates. The group maps that tile onto the 72dp visible area of the 108dp canvas. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path
-        android:fillColor="#008F3C"
-        android:pathData="M66.23,108C67.07,87.02 74.77,70.46 89.43,58.45C95.23,53.72 101.45,50.24 108,47.92L108,108Z" />
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M18.98,54C27.84,36.91 40.5,28.48 54,28.48C67.5,28.48 80.16,36.91 89.02,54C80.16,71.09 67.5,79.52 54,79.52C40.5,79.52 27.84,71.09 18.98,54Z" />
-    <path
-        android:fillColor="#002616"
-        android:pathData="M54,38.18A15.82,15.82 0,1 1,54,69.82A15.82,15.82 0,1 1,54,38.18" />
-    <path
-        android:fillColor="@android:color/transparent"
-        android:pathData="M43.24,60.54L51.68,52.1L57.8,58.22L66.02,46.62"
-        android:strokeColor="#DFF1E5"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:strokeWidth="5.48" />
+    <group
+        android:scaleX="0.0703125"
+        android:scaleY="0.0703125"
+        android:translateX="18"
+        android:translateY="18">
+
+        <!-- Soft drop shadow under the bubble (VectorDrawable has no blur, so stack offsets). -->
+        <group android:translateY="6">
+            <path android:fillColor="#003D22" android:fillAlpha="0.07"
+                android:pathData="M512,196C700,196 836,316 836,476C836,636 700,756 512,756C470,756 430,750 393,739L262,818C248,826 232,813 237,798L272,690C220,638 188,562 188,476C188,316 324,196 512,196Z" />
+        </group>
+        <group android:translateY="14">
+            <path android:fillColor="#003D22" android:fillAlpha="0.07"
+                android:pathData="M512,196C700,196 836,316 836,476C836,636 700,756 512,756C470,756 430,750 393,739L262,818C248,826 232,813 237,798L272,690C220,638 188,562 188,476C188,316 324,196 512,196Z" />
+        </group>
+        <group android:translateY="22">
+            <path android:fillColor="#003D22" android:fillAlpha="0.07"
+                android:pathData="M512,196C700,196 836,316 836,476C836,636 700,756 512,756C470,756 430,750 393,739L262,818C248,826 232,813 237,798L272,690C220,638 188,562 188,476C188,316 324,196 512,196Z" />
+        </group>
+        <group android:translateY="30">
+            <path android:fillColor="#003D22" android:fillAlpha="0.05"
+                android:pathData="M512,196C700,196 836,316 836,476C836,636 700,756 512,756C470,756 430,750 393,739L262,818C248,826 232,813 237,798L272,690C220,638 188,562 188,476C188,316 324,196 512,196Z" />
+        </group>
+
+        <!-- Chat bubble: talk with your own data -->
+        <path android:pathData="M512,196C700,196 836,316 836,476C836,636 700,756 512,756C470,756 430,750 393,739L262,818C248,826 232,813 237,798L272,690C220,638 188,562 188,476C188,316 324,196 512,196Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="512"
+                    android:startY="196"
+                    android:endX="512"
+                    android:endY="822">
+                    <item android:offset="0" android:color="#FFFFFFFF" />
+                    <item android:offset="1" android:color="#FFE6F5EC" />
+                </gradient>
+            </aapt:attr>
+        </path>
+
+        <!-- Lens: clear, transparent insight -->
+        <path android:fillColor="#E6F5EC"
+            android:pathData="M320,470A150,150 0,1 1,620,470A150,150 0,1 1,320,470Z" />
+        <group android:name="lens">
+            <clip-path android:pathData="M320,470A150,150 0,1 1,620,470A150,150 0,1 1,320,470Z" />
+            <!-- Bars: simple spending charts -->
+            <path android:fillColor="#7FD3A5"
+                android:pathData="M390,500H410A12,12 0,0 1,422,512V628A12,12 0,0 1,410,640H390A12,12 0,0 1,378,628V512A12,12 0,0 1,390,500Z" />
+            <path android:fillColor="#00A651"
+                android:pathData="M460,440H480A12,12 0,0 1,492,452V628A12,12 0,0 1,480,640H460A12,12 0,0 1,448,628V452A12,12 0,0 1,460,440Z" />
+            <path android:fillColor="#006B3F"
+                android:pathData="M530,388H550A12,12 0,0 1,562,400V628A12,12 0,0 1,550,640H530A12,12 0,0 1,518,628V400A12,12 0,0 1,530,388Z" />
+            <!-- Trend line -->
+            <path
+                android:pathData="M372,470L440,420L500,438L580,352"
+                android:strokeColor="#005A32"
+                android:strokeWidth="16"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round" />
+            <path android:fillColor="#005A32"
+                android:pathData="M564,352A16,16 0,1 1,596,352A16,16 0,1 1,564,352Z" />
+        </group>
+        <path
+            android:pathData="M320,470A150,150 0,1 1,620,470A150,150 0,1 1,320,470Z"
+            android:strokeColor="#005A32"
+            android:strokeWidth="34" />
+
+        <!-- Lens handle -->
+        <path
+            android:pathData="M580,580L676,676"
+            android:strokeColor="#005A32"
+            android:strokeWidth="56"
+            android:strokeLineCap="round" />
+    </group>
 </vector>

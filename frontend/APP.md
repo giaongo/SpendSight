@@ -6,7 +6,10 @@ The service is documented in [`backend/API.md`](../backend/API.md). The interact
 
 ## Launcher icon
 
-[`branding/spendsight-app-icon.svg`](branding/spendsight-app-icon.svg) is the editable launcher-icon source. Android uses matching adaptive vector resources, including an Android 13 themed icon. iOS uses the opaque PNG sizes in `Assets.xcassets/AppIcon.appiconset`, generated from that SVG because iOS launcher assets do not accept SVG files.
+[`branding/spendsight-app-icon.svg`](branding/spendsight-app-icon.svg) is the editable launcher-icon source: a chat bubble with a magnifying lens over spending bars, on a green gradient tile.
+
+- Android uses adaptive vector resources in `androidApp/src/main/res/drawable/`: `ic_launcher_background` (gradient), `ic_launcher_foreground` (the artwork in the SVG's own 1024-unit coordinates, mapped onto the 72dp visible area), and `ic_launcher_monochrome` (a line version for the Android 13 themed icon). VectorDrawable has no blur, so stacked translucent offsets approximate the bubble's drop shadow. If the SVG changes, update these by hand.
+- iOS uses the opaque PNG sizes in `Assets.xcassets/AppIcon.appiconset`, because iOS launcher assets do not accept SVG files. They are rendered from a full-bleed copy of the SVG (the tile's `rx="228"` removed, because iOS applies its own corner mask), then downsampled to each size in `Contents.json`.
 
 ## Run
 

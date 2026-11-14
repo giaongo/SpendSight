@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Background layer of branding/spendsight-app-icon.svg. The 1024-unit tile maps to the
+     72dp visible area (offset 18dp, scale 72/1024); the gradient clamps beyond it. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0H108V108H0Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="18"
+                android:startY="18"
+                android:endX="90"
+                android:endY="90">
+                <item android:offset="0" android:color="#FF00A651" />
+                <item android:offset="1" android:color="#FF005A32" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillAlpha="0.06"
+        android:pathData="M60.19,28.55A18.28,18.28 0,1 1,96.75,28.55A18.28,18.28 0,1 1,60.19,28.55Z" />
+</vector>
