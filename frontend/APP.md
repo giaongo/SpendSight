@@ -55,7 +55,7 @@ That load calls, in parallel:
 
 | Call | What the phone keeps |
 | --- | --- |
-| `GET /session` | Customer id, postal code, age, account, balance, the coach’s opening note, and the `reads` paths for this customer |
+| `GET /customers/CUST00007` | Customer id, postal code, age, account, balance, and the `reads` paths for this customer (`CUSTOMER_ID` in `ApiClient.kt`) |
 | `reads.today` | Today. The session names this path, for example `/customers/CUST00001/today` |
 | `reads.spending` | Latest month on Spending |
 | `reads.save?years=5` | Save, five-year window |
@@ -110,7 +110,7 @@ Any screen that starts with “Design sample. Today, Spending, and Save are this
 | Home | Sample buffer and October Bonus. The service has no ASP plan for this customer, so the screen does not invent one |
 | Loan sketch | `GET /loan/sketch` |
 
-The chat sends `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is the one from `GET /session`. The reply is `answer`, `model`, `source`, and `disclaimer`. A chip is a question about that customer's transactions. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question. `POST /coach/ask` is the design-sample coach. The chat does not call it.
+The chat sends `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is `CUSTOMER_ID` (CUST00007). The reply is `answer`, `model`, `source`, and `disclaimer`. A chip is a question about that customer's transactions. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question. `POST /coach/ask` is the design-sample coach. The chat does not call it.
 
 The effort picker sends `PUT /settings/effort` with `{ "effort": "..." }`. Refiling a design-sample payment sends `POST /payments/{id}/filing` with `{ "category": "..." }`. Customer transactions are not refiled.
 

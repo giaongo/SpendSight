@@ -162,13 +162,13 @@ Android and iOS accept the SpendSight self-signed development certificate only f
 
 ## Startup data flow
 
-The first request is `GET /session`. Its `reads` object names the selected customer's Today, Spending, and Save paths. The client preserves those server-provided paths instead of constructing endpoints from a customer id.
+The first request is `GET /customers/CUST00007` (`CUSTOMER_ID` in `ApiClient.kt`). Its `reads` object names the selected customer's Today, Spending, and Save paths. The client preserves those server-provided paths instead of constructing endpoints from a customer id.
 
 ```mermaid
 sequenceDiagram
     participant App as Mobile app
     participant API as FastAPI
-    App->>API: GET /session
+    App->>API: GET /customers/CUST00007
     API-->>App: customer + reads paths
     par Customer views
         App->>API: GET reads.today
@@ -181,7 +181,7 @@ sequenceDiagram
     App-->>App: render one LedgerSnapshot
 ```
 
-After `/session`, the remaining opening calls run in parallel. One failure fails the whole opening load and shows the service error plus the build's base URL. “Try again” repeats the load.
+After that, the remaining opening calls run in parallel. One failure fails the whole opening load and shows the service error plus the build's base URL. “Try again” repeats the load.
 
 ## Screens and data ownership
 
@@ -220,7 +220,7 @@ When a backend response changes:
 4. Add or update focused backend and shared-client tests.
 5. Update [APP.md](APP.md) and [backend/API.md](../backend/API.md).
 
-Keep money fields as integer `*_cents` values. Preserve the `reads` paths returned by `/session`.
+Keep money fields as integer `*_cents` values. Preserve the `reads` paths returned by `/customers/{CUSTOMER_ID}`.
 
 ## Tests and verification
 

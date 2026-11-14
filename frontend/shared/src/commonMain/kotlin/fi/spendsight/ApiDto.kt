@@ -26,7 +26,7 @@ data class CustomerSessionDto(
     val balance: String,
     @SerialName("transaction_count") val transactionCount: Int,
     val reads: CustomerReadsDto,
-    val note: String,
+    val note: String? = null,
 )
 
 @Serializable
