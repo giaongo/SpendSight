@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,17 +32,23 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-val Green = Color(0xFF00AA46)
-val GreenPress = Color(0xFF008F3C)
-val Forest = Color(0xFF255933)
-val Deep = Color(0xFF002616)
-val Ink = Color(0xFF042117)
-val Secondary = Color(0xFF4A5E54)
-val Tertiary = Color(0xFF7A8B82)
+// Tokens from the "SpendSight – MVP screens v2" design.
+val Green = Color(0xFF00703C)
+val GreenPress = Color(0xFF005A30)
+val Forest = Color(0xFF005A30)
+val Deep = Color(0xFF005A30)
+val Ink = Color(0xFF1C1C1E)
+val Secondary = Color(0xFF636366)
+val Tertiary = Color(0xFF8A8A8E)
+val Graphite = Color(0xFF3A3A3C)
 val Bg = Color(0xFFECF1ED)
-val Mint = Color(0xFFDFF1E5)
-val Mist = Color(0xFFDFE8FB)
-val Cream = Color(0xFFF6F0D8)
+val Mint = Color(0xFFD9F2E3)
+val Mist = Color(0xFFDDE8FA)
+val Cream = Color(0xFFF7E9CC)
+val Lilac = Color(0xFFE9E3F7)
+val HeroMuted = Color(0xFFC8F0D8)
+val EssentialTeal = Color(0xFF0F5C5C)
+val EverydayBlue = Color(0xFF3D6FB6)
 
 /** True while the finger is on the ask field, so an outside tap can hide the keyboard. */
 internal class EditorGate {
@@ -66,12 +73,12 @@ fun Modifier.dismissKeyboardOnTap(): Modifier {
     return clickable(interactionSource = interaction, indication = null, onClick = hide)
 }
 val Card = Color.White
-val Line = Color(0x1A042117)
+val Line = Color(0xFFD1D1D6)
 val Slip = Color(0xFFC26A3A)
 val Gold = Color(0xFFC4A15A)
-val Fill = Color(0xFFE7EEEA)
+val Fill = Color(0xFFE5E5EA)
 val TagYellow = Color(0xFFFFE14A)
-val Pace = Color(0xFFC9D2CC)
+val Pace = Color(0xFFC7C7CC)
 
 fun basketColor(basket: Basket) = when (basket) {
     Basket.Regular -> Deep
@@ -109,10 +116,10 @@ fun CardBox(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null, conten
     Column(
         modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(22.dp))
             .background(Card)
             .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(16.dp),
+            .padding(20.dp),
         content = content,
     )
 }
@@ -171,13 +178,14 @@ fun PrimaryButton(label: String, on: Boolean = false, onClick: () -> Unit) {
     Box(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(25.dp))
             .background(if (on) Deep else Green)
             .clickable(onClick = onClick)
+            .heightIn(min = 50.dp)
             .padding(vertical = 14.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+        Text(label, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 17.sp)
     }
 }
 
@@ -207,13 +215,14 @@ fun Segmented(options: List<Pair<String, Boolean>>, onSelect: (Int) -> Unit) {
             Box(
                 Modifier
                     .weight(1f)
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(9.dp))
                     .background(if (on) Card else Color.Transparent)
                     .clickable { onSelect(index) }
-                    .padding(vertical = 8.dp),
+                    .heightIn(min = 44.dp)
+                    .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(label, color = if (on) Deep else Secondary, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium, fontSize = 14.sp)
+                Text(label, color = if (on) Deep else Graphite, fontWeight = FontWeight.SemiBold, fontSize = 15.sp)
             }
         }
     }

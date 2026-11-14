@@ -112,7 +112,7 @@ fun Screen.tab(): Tab = when (this) {
 fun Screen.isRoot(): Boolean = this == Screen.Today || this == Screen.Insight || this == Screen.Save || this == Screen.Offers
 
 fun Screen.showsComposer(): Boolean =
-    this == Screen.Today || this == Screen.Insight || this == Screen.Save || this == Screen.Coach
+    this == Screen.Insight || this == Screen.Save || this == Screen.Coach
 
 sealed interface Sheet {
     data object About : Sheet

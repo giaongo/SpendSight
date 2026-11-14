@@ -38,7 +38,7 @@
   <string name="T_bills_due_before_payday_are_on_this_week_later_hol">Ennen palkkapäivää erääntyvät laskut ovat näkymässä Tämä viikko. Myöhemmät varaukset ovat siellä yhtenä summana, eivät erillisinä riveinä täällä.</string>
   <string name="T_bonus" translatable="false">Bonus</string>
   <string name="T_bonus_card_rounding_or_a_monthly_sum_a_fund_can_fa">Bonus, kortin pyöristys tai kuukausisumma. Rahasto voi laskea.</string>
-  <string name="T_bonus_follows_the_s_group_steps_one_percentage_cov">Bonus seuraa S-ryhmän portaita. Yksi prosentti kattaa koko kuukauden, kun porras täyttyy. Alle €50 kuukaudessa Bonus on €0. Portaat ovat 1 %% €50:stä 5 %%:iin €900:ssa.</string>
+  <string name="T_bonus_follows_the_s_group_steps_one_percentage_cov">Bonus seuraa S-ryhmän portaita. Yksi prosentti kattaa koko kuukauden, kun porras täyttyy. Alle 50 € kuukaudessa Bonus on 0 €. Portaat ovat 1 %% 50 €:stä 5 %%:iin 900 €:ssa.</string>
   <string name="T_bonus_if_the_next_stays_at_s_group_step">Bonus, jos seuraavat %1$s pysyvät S-ryhmässä. Porras %2$s %%.</string>
   <string name="T_bonus_so_far_step_on_at_s_group">Bonus tähän asti. Porras %1$s %% summasta %2$s S-ryhmässä.</string>
   <string name="T_bonus_would_go_to_s_st_j_instead_of_s_tili_october">Bonus menisi Säästäjään S-Tilin sijaan. Lokakuun Bonus, %1$s, on jo S-Tilillä. Voit muuttaa tätä myöhemmin. Esikatselu ei siirrä rahaa.</string>
@@ -74,8 +74,8 @@
   <string name="T_everyday">Arki</string>
   <string name="T_everyday_account_salary_rent_and_bonus_land_here_t">Käyttötili. Palkka, vuokra ja Bonus tulevat tänne. Turvallinen käyttövara lasketaan tältä tililtä.</string>
   <string name="T_everyday_bonus_lands_here">Arki. Bonus tulee tänne.</string>
-  <string name="T_for_a_first_home_a_month_is_50_to_1_500_and_the_lo">Ensimmäiseen kotiin. Kuukaudessa €50–€1 500, ja laina edellyttää vähintään 20 kuukautta. Tauot ovat sallittuja, joten väliin jäänyt kuukausi ei ole epäonnistuminen. S-Pankki maksaa 1 %% säästämisen aikana. Toiset 4 %% maksetaan, kun ostat kodin, aloitusvuodelta ja enintään viideltä seuraavalta kalenterivuodelta. Molemmat ovat verovapaita. Lisäkorko maksetaan kaupassa. Se ei ole kuukausiennuste, eikä sitä makseta rahoista, jotka otit ulos ennen sitä. Tilin avaaminen tapahtuu S-Pankissa. Tämä näkymä ei avaa tiliä.</string>
-  <string name="T_four_ways_to_save_send_bonus_to_a_fund_set_aside_0">Neljä tapaa säästää. Ohjaa Bonus rahastoon. Siirrä €0,50–€5 jokaisesta pankkikorttiostosta. Siirrä kuukausisumma. Lisää ylimääräistä, kun haluat. Rahastot voivat laskea. Tämä näkymä ei ennusta niitä. Lokakuun Bonus pysyy S-Tilillä, ellet ohjaa seuraavaa.</string>
+  <string name="T_for_a_first_home_a_month_is_50_to_1_500_and_the_lo">Ensimmäiseen kotiin. Kuukaudessa 50 €–1 500 €, ja laina edellyttää vähintään 20 kuukautta. Tauot ovat sallittuja, joten väliin jäänyt kuukausi ei ole epäonnistuminen. S-Pankki maksaa 1 %% säästämisen aikana. Toiset 4 %% maksetaan, kun ostat kodin, aloitusvuodelta ja enintään viideltä seuraavalta kalenterivuodelta. Molemmat ovat verovapaita. Lisäkorko maksetaan kaupassa. Se ei ole kuukausiennuste, eikä sitä makseta rahoista, jotka otit ulos ennen sitä. Tilin avaaminen tapahtuu S-Pankissa. Tämä näkymä ei avaa tiliä.</string>
+  <string name="T_four_ways_to_save_send_bonus_to_a_fund_set_aside_0">Neljä tapaa säästää. Ohjaa Bonus rahastoon. Siirrä 0,50 €–5 € jokaisesta pankkikorttiostosta. Siirrä kuukausisumma. Lisää ylimääräistä, kun haluat. Rahastot voivat laskea. Tämä näkymä ei ennusta niitä. Lokakuun Bonus pysyy S-Tilillä, ellet ohjaa seuraavaa.</string>
   <string name="T_from_october_payments">%1$s lokakuun maksusta</string>
   <string name="T_from_october_the_last_full_month">Lokakuusta, viimeisestä täydestä kuukaudesta</string>
   <string name="T_from_the_same_payments">Samoista %1$s maksusta.</string>
@@ -221,7 +221,7 @@
   <string name="T_that_payment_is_not_loaded">Tätä maksua ei ole ladattu.</string>
   <string name="T_that_s_mine">Se on minun</string>
   <string name="T_the_10_down_payment_on_this_price_is_the_sketch_us">10 %%:n käsiraha tästä hinnasta on %1$s. Luonnos käyttää sitä, ei tämän päivän saldoa. %2$s</string>
-  <string name="T_the_asp_figures_use_s_pankki_s_published_terms_50">ASP-luvut käyttävät S-Pankin julkaistuja ehtoja: €50–€1 500 kuussa, 20 kuukautta, 10 %% kodista, 1 %% säästäessä ja 4 %% lisää, kun koti ostetaan. Lainaluonnos on laskelma, ei tarjous.</string>
+  <string name="T_the_asp_figures_use_s_pankki_s_published_terms_50">ASP-luvut käyttävät S-Pankin julkaistuja ehtoja: 50 €–1 500 € kuussa, 20 kuukautta, 10 %% kodista, 1 %% säästäessä ja 4 %% lisää, kun koti ostetaan. Lainaluonnos on laskelma, ei tarjous.</string>
   <string name="T_the_busiest_dated_day">vilkkain päivätty päivä</string>
   <string name="T_the_chat_will_ask_again_before_the_next_charge">Keskustelu kysyy uudelleen ennen seuraavaa veloitusta.</string>
   <string name="T_the_filing_did_not_save">Kirjausta ei tallennettu.</string>
@@ -376,4 +376,36 @@
   <string name="T_typical_household">Mitä tyypillinen kotitalous kuluttaa?</string>
   <string name="T_where_go">Mihin rahani menivät?</string>
   <string name="T_where_question">Mihin rahani menivät viime kuussa?</string>
+  <string name="T_overview">Yleiskatsaus</string>
+  <string name="T_income_month">Tulot tässä kuussa</string>
+  <string name="T_outcome_month">Menot tässä kuussa</string>
+  <string name="T_see_all">Näytä kaikki</string>
+  <string name="T_essentials_in">Välttämättömät, %1$s</string>
+  <string name="T_everyday_in">Arjen menot, %1$s</string>
+  <string name="T_your_savings_accounts">Säästötilisi</string>
+  <string name="T_read_more">Lue lisää</string>
+  <string name="T_ends_on">Päättyy %1$s</string>
+  <string name="T_show_card">Näytä S-Etukortti</string>
+  <string name="T_claim_hint">Näytä S-Etukortti, niin kupongit käytetään</string>
+  <string name="T_card_reader">Pidä puhelinta kortinlukijan lähellä tai anna kassan lukea viivakoodi. Aktivoidut kupongit (%1$s) käytetään automaattisesti.</string>
+  <string name="T_member">Asiakasomistaja</string>
+  <string name="T_activated">Aktivoitu</string>
+  <string name="T_back">Takaisin</string>
+  <string name="T_ai_answer">Tekoälyn vastaus · luvut tulevat tapahtumistasi</string>
+  <string name="T_ask_next">Kysy seuraavaksi</string>
+  <string name="T_close">Sulje</string>
+  <string name="T_n_visits">%1$s käyntiä</string>
+  <string name="T_one_visit">1 käynti</string>
+  <string name="T_tap_group">Napauta ryhmää nähdäksesi päivät.</string>
+  <string name="T_weekday_day">Arkipäivä</string>
+  <string name="T_weekday_evening">Arki-ilta</string>
+  <string name="T_weekend">Viikonloppu</string>
+  <string name="T_active_coupons">Aktiiviset kupongit</string>
+  <string name="T_spending_change">Kulutuksen muutos</string>
+  <string name="T_more_on">enemmän kohteeseen %1$s kuin %2$s</string>
+  <string name="T_see_named">Näytä %1$s</string>
+  <string name="T_evening_visits">%1$s käyntiä (%2$s) arki-iltaisin, %3$s</string>
+  <string name="T_see_when">Näytä milloin</string>
+  <string name="T_activate_in_offers">%1$s. Aktivoi se Eduista.</string>
+  <string name="T_coupon">Kuponki</string>
 </resources>

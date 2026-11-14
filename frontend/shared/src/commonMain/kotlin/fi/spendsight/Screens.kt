@@ -2,6 +2,18 @@ package fi.spendsight
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -74,7 +86,7 @@ fun ScreenBody(store: SpendSightStore, modifier: Modifier = Modifier) {
         else -> Unit
     }
     Column(
-        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp),
+        modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 28.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         when (val screen = store.current) {
@@ -167,24 +179,90 @@ private fun CategoryScreen(store: SpendSightStore, name: String) {
 @Composable
 private fun CustomerCategory(store: SpendSightStore, name: String) {
     val spending = store.spendingView
-    val rows = spending.transactions.filter { it.category == name }
+    val rows = spending.transactions.filter { it.category == name }.sortedByDescending { it.txDate }
     val total = rows.sumOf { it.amountCents }
-    Eyebrow("${spending.month} · ${spending.customerId}")
-    Hero(eur(total))
-    Lede(t(R.string.T_lines_in_amounts_are_the_ones_the_service_sent, rows.size, categoryLabel(name)))
+    val month = monthName(spending.month, store.language).replaceFirstChar { it.uppercase() }
+    Text("${categoryLabel(name)} · $month", color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+    Text(
+        buildAnnotatedString {
+            withStyle(SpanStyle(color = Ink, fontWeight = FontWeight.Bold)) { append(eur(total)) }
+            append(" · ")
+            append(if (rows.size == 1) t(R.string.T_one_visit) else t(R.string.T_n_visits, rows.size))
+        },
+        color = Secondary,
+        fontSize = 15.sp,
+    )
     if (rows.isEmpty()) {
         Note(t(R.string.T_no_lines_in_this_category_for, spending.month))
-    } else {
-        rows.forEach { row ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(row.merchantId ?: typeLabel(row.transactionType), color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    Text("${row.txDate} · ${typeLabel(row.transactionType)}", color = Secondary, fontSize = 13.sp)
+        return
+    }
+    Text(t(R.string.T_tap_group), color = Graphite, fontSize = 15.sp)
+    val groups = rows.groupBy { timeBucket(it) }.toList().sortedBy { it.first.ordinal }
+    var open by remember(name) { mutableStateOf(if (groups.size == 1) groups.first().first else null) }
+    WhiteList {
+        groups.forEachIndexed { index, (bucket, list) ->
+            if (index > 0) Hairline()
+            val expanded = open == bucket
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 60.dp)
+                    .clickable { open = if (expanded) null else bucket }
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(bucket.label(), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.SemiBold)
+                    Text(if (list.size == 1) t(R.string.T_one_visit) else t(R.string.T_n_visits, list.size), color = Secondary, fontSize = 13.sp)
                 }
-                Text(eur(row.amountCents), color = Ink, fontWeight = FontWeight.SemiBold)
+                Text(eur(list.sumOf { it.amountCents }), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold, style = Tabular)
+                Spacer(Modifier.width(12.dp))
+                Glyph(Icon.ChevronRight, Tertiary, 16.dp, stroke = 2.6f, modifier = Modifier.rotate(if (expanded) 90f else 0f))
+            }
+            if (expanded) {
+                Column(Modifier.fillMaxWidth().padding(start = 16.dp, end = 16.dp, bottom = 12.dp)) {
+                    list.forEach { row ->
+                        Row(
+                            Modifier.fillMaxWidth().heightIn(min = 32.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                "${formatAsOf(row.txDate, store.language)} · ${row.merchantId ?: typeLabel(row.transactionType)}",
+                                color = Graphite,
+                                fontSize = 15.sp,
+                                modifier = Modifier.weight(1f),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(eur(row.amountCents), color = Graphite, fontSize = 15.sp, style = Tabular)
+                        }
+                    }
+                }
             }
         }
     }
+}
+
+internal enum class TimeBucket { WeekdayEvening, Weekend, WeekdayDay }
+
+@Composable
+private fun TimeBucket.label(): String = when (this) {
+    TimeBucket.WeekdayEvening -> t(R.string.T_weekday_evening)
+    TimeBucket.Weekend -> t(R.string.T_weekend)
+    TimeBucket.WeekdayDay -> t(R.string.T_weekday_day)
+}
+
+/** Matches the hour in `03OCT24:09:04:04` and in `2024-10-03T09:04:04`. */
+private val HourPattern = Regex("[T :]([0-9]{2}):[0-9]{2}")
+
+internal fun timeBucket(row: SpendTxDto): TimeBucket {
+    val parts = row.txDate.split("-").mapNotNull { it.toIntOrNull() }
+    val weekday = if (parts.size == 3) (daysSinceEpoch(parts[0], parts[1], parts[2]) + 3).mod(7) else 0
+    if (weekday >= 5) return TimeBucket.Weekend
+    val hour = HourPattern.find(row.txTimestamp)?.groupValues?.get(1)?.toIntOrNull() ?: 12
+    return if (hour >= 17) TimeBucket.WeekdayEvening else TimeBucket.WeekdayDay
 }
 
 @Composable
@@ -645,6 +723,7 @@ private fun SampleBanner() {
     Note(t(R.string.T_design_sample_today_spending_and_save_are_this_cus))
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
     val listState = rememberLazyListState()
@@ -654,9 +733,15 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
     }
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxSize().dismissKeyboardOnTap().padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        modifier = modifier.fillMaxSize().dismissKeyboardOnTap(),
+        contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        if (store.messages.isEmpty()) {
+            item {
+                Text(coastOpening(store.language), color = Ink, fontSize = 17.sp, lineHeight = 24.sp)
+            }
+        }
         items(store.messages.size) { index ->
             Bubble(
                 store.messages[index],
@@ -665,9 +750,30 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
             )
         }
         if (store.asking) {
-            item { Note(t(R.string.T_writing_the_answer)) }
+            item { Text(t(R.string.T_writing_the_answer), color = Secondary, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
+        } else {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (store.disclaimer.isNotBlank()) {
+                        Text(store.disclaimer, color = Secondary, fontSize = 13.sp, lineHeight = 18.sp)
+                    }
+                    Text(
+                        t(R.string.T_your_data),
+                        color = Green,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(vertical = 6.dp),
+                    )
+                    Text(t(R.string.T_ask_next), color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        coachChips(store.language).forEachIndexed { i, (label, ask) ->
+                            QuestionChip(label, if (i == 0) Lilac else Fill) { store.ask(ask) }
+                        }
+                    }
+                }
+            }
         }
-        item { Spacer(Modifier.height(12.dp)) }
+        item { Spacer(Modifier.height(8.dp)) }
     }
 }
 
@@ -679,52 +785,63 @@ private fun Bubble(message: CoachMessage, onAction: (Screen?) -> Unit, onEdit: (
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.End) {
             Column(
                 Modifier
-                    .fillMaxWidth(0.86f)
-                    .clip(RoundedCornerShape(18.dp))
+                    .fillMaxWidth(0.78f)
+                    .wrapContentWidth(Alignment.End)
+                    .clip(RoundedCornerShape(20.dp))
                     .background(Green)
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
             ) {
-                paragraphs.forEach { Text(it, color = Color.White, fontSize = 15.sp, lineHeight = 21.sp) }
+                paragraphs.forEach { Text(it, color = Color.White, fontSize = 17.sp, lineHeight = 23.sp) }
             }
             message.text?.let { sent ->
                 Text(
                     t(R.string.T_edit),
                     color = Green,
-                    fontSize = 12.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.clickable { onEdit(sent) }.padding(top = 4.dp, end = 4.dp),
+                    modifier = Modifier.clickable { onEdit(sent) }.padding(top = 8.dp, bottom = 4.dp, end = 4.dp),
                 )
             }
         }
         return
     }
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (message.refused) {
-            Text(message.limit ?: t(R.string.T_outside_what_i_answer), color = Slip, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+            Text(message.limit ?: t(R.string.T_outside_what_i_answer), color = Slip, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
         }
         message.fact?.let { fact ->
             CardBox {
-                Text(fact.kicker, color = Secondary, fontSize = 12.sp)
-                Text(presentMoney(fact.figure), color = Ink, fontSize = 28.sp, fontWeight = FontWeight.Bold)
-                Text(fact.because, color = Ink, fontSize = 15.sp, lineHeight = 20.sp)
+                Text(fact.kicker, color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                Text(presentMoney(fact.figure), color = Ink, fontSize = 30.sp, fontWeight = FontWeight.Bold, style = Tabular)
+                Text(fact.because, color = Ink, fontSize = 15.sp, lineHeight = 21.sp)
             }
         }
-        paragraphs.forEach { MarkdownBody(it) }
-        message.chart?.let { ChartBlock(it) }
-        message.source?.let { Text(it, color = Secondary, fontSize = 12.sp) }
+        paragraphs.forEach { MarkdownBody(presentMoneyIn(it)) }
+        message.chart?.let { CardBox { ChartBlock(it) } }
         if (message.actionLabel != null && message.action != null) {
             Text(
                 message.actionLabel,
                 color = Green,
+                fontSize = 17.sp,
                 fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onAction(message.action) },
+                modifier = Modifier.clickable { onAction(message.action) }.padding(vertical = 6.dp),
+            )
+        }
+        // The opening note is fixed app copy, not an answer.
+        if (paragraphs.none { it in coastOpenings }) {
+            Text(
+                listOfNotNull(t(R.string.T_ai_answer), message.source).joinToString(" · "),
+                color = Secondary,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
             )
         }
     }
 }
 
+/** Zone 3 on SpendSight, Savings and the chat: suggested questions (SpendSight only) and the ask field. */
 @Composable
-fun Composer(store: SpendSightStore, compact: Boolean = false) {
+fun Composer(store: SpendSightStore) {
     val text = store.draft
     val gate = LocalEditorGate.current
     val hide = hideKeyboard()
@@ -732,119 +849,60 @@ fun Composer(store: SpendSightStore, compact: Boolean = false) {
         Modifier
             .fillMaxWidth()
             .background(Bg)
+            .drawBehind { drawLine(Line, Offset(0f, 0f), Offset(size.width, 0f), strokeWidth = 1f) }
             .dismissKeyboardOnTap()
-            .padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 8.dp),
+            .padding(top = 10.dp, bottom = 8.dp),
     ) {
-        if (compact && store.current == Screen.Today && text.isBlank()) {
-            val questions = homeQuestions(store.language)
+        if (store.current == Screen.Insight && text.isBlank()) {
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(bottom = 8.dp),
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                questions.forEachIndexed { index, question ->
-                    Text(
-                        question,
-                        color = Deep,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(if (index % 2 == 0) Mint else Mist)
-                            .clickable { store.ask(question) }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
+                homeQuestions(store.language).forEachIndexed { index, question ->
+                    QuestionChip(question, QuestionTints[index % QuestionTints.size]) { store.ask(question) }
                 }
             }
-        }
-        if (!compact) {
-            Text(
-                store.disclaimer.ifBlank { coastOpening(store.language) },
-                color = Tertiary,
-                fontSize = 12.sp,
-                lineHeight = 16.sp,
-            )
-            Text(
-                t(R.string.T_your_data),
-                color = Green,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(bottom = 8.dp),
-            )
-            Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                coachChips(store.language).forEach { (label, ask) ->
-                    Text(
-                        label,
-                        color = Deep,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Fill)
-                            .clickable { store.ask(ask) }
-                            .padding(horizontal = 12.dp, vertical = 8.dp),
-                    )
-                }
-            }
-            Spacer(Modifier.height(8.dp))
         }
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Card).padding(horizontal = 14.dp, vertical = 6.dp),
+            Modifier
+                .padding(horizontal = 20.dp)
+                .fillMaxWidth()
+                .heightIn(min = 48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(Card)
+                .border(1.dp, Tertiary, RoundedCornerShape(24.dp))
+                .padding(start = 18.dp, end = 6.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            SearchGlyph()
-            Spacer(Modifier.width(8.dp))
+            Glyph(Icon.Chat, Green, 20.dp)
+            Spacer(Modifier.width(10.dp))
             BasicTextField(
                 value = text,
                 onValueChange = { store.draft = it.take(280) },
-                modifier = Modifier.weight(1f).padding(vertical = 8.dp).pointerInput(gate) {
+                modifier = Modifier.weight(1f).padding(vertical = 12.dp).pointerInput(gate) {
                     awaitEachGesture {
                         awaitFirstDown(pass = PointerEventPass.Main)
                         gate.down = true
                         waitForUpOrCancellation()
                     }
                 },
-                textStyle = TextStyle(color = Ink, fontSize = 16.sp),
+                textStyle = TextStyle(color = Ink, fontSize = 17.sp),
                 decorationBox = { inner ->
                     Box {
-                        if (text.isEmpty()) Text(t(R.string.T_ask_about_your_money), color = Tertiary, fontSize = 16.sp)
+                        if (text.isEmpty()) Text(t(R.string.T_ask_about_your_money), color = Secondary, fontSize = 17.sp, fontWeight = FontWeight.Medium)
                         inner()
                     }
                 },
             )
+            Spacer(Modifier.width(8.dp))
             val enabled = text.isNotBlank() && !store.asking
-            Box(
-                Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(if (enabled) Green else Fill)
-                    .clickable(enabled = enabled) {
-                        hide()
-                        store.ask(text)
-                    },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text("↑", color = if (enabled) Color.White else Tertiary, fontWeight = FontWeight.Bold)
-            }
+            SendDot(
+                enabled,
+                Modifier.clip(CircleShape).clickable(enabled = enabled) {
+                    hide()
+                    store.ask(text)
+                },
+            )
         }
-    }
-}
-
-@Composable
-private fun SearchGlyph() {
-    Canvas(Modifier.size(18.dp)) {
-        val s = size.minDimension
-        drawCircle(
-            color = Tertiary,
-            radius = s * 0.30f,
-            center = Offset(s * 0.40f, s * 0.40f),
-            style = Stroke(width = s * 0.11f),
-        )
-        drawLine(
-            color = Tertiary,
-            start = Offset(s * 0.62f, s * 0.62f),
-            end = Offset(s * 0.88f, s * 0.88f),
-            strokeWidth = s * 0.11f,
-            cap = StrokeCap.Round,
-        )
     }
 }

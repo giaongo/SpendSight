@@ -38,7 +38,7 @@
   <string name="T_bills_due_before_payday_are_on_this_week_later_hol">Bills due before payday are on This week. Later holds are one total there, not separate lines here.</string>
   <string name="T_bonus" translatable="false">Bonus</string>
   <string name="T_bonus_card_rounding_or_a_monthly_sum_a_fund_can_fa">Bonus, card rounding, or a monthly sum. A fund can fall.</string>
-  <string name="T_bonus_follows_the_s_group_steps_one_percentage_cov">Bonus follows the S-group steps. One percentage covers the whole month once a step is reached. Under €50 in a month, Bonus is €0. The steps run from 1%% at €50 to 5%% at €900.</string>
+  <string name="T_bonus_follows_the_s_group_steps_one_percentage_cov">Bonus follows the S-group steps. One percentage covers the whole month once a step is reached. Under 50 € in a month, Bonus is 0 €. The steps run from 1%% at 50 € to 5%% at 900 €.</string>
   <string name="T_bonus_if_the_next_stays_at_s_group_step">Bonus if the next %1$s stays at S-group. Step %2$s%%.</string>
   <string name="T_bonus_so_far_step_on_at_s_group">Bonus so far. Step %1$s%% on %2$s at S-group.</string>
   <string name="T_bonus_would_go_to_s_st_j_instead_of_s_tili_october">Bonus would go to Säästäjä instead of S-Tili. October’s Bonus, %1$s, is already on S-Tili. You can change this later. This preview does not move money.</string>
@@ -74,8 +74,8 @@
   <string name="T_everyday">Everyday</string>
   <string name="T_everyday_account_salary_rent_and_bonus_land_here_t">Everyday account. Salary, rent, and Bonus land here. The safe-to-spend number is counted from this account.</string>
   <string name="T_everyday_bonus_lands_here">Everyday. Bonus lands here.</string>
-  <string name="T_for_a_first_home_a_month_is_50_to_1_500_and_the_lo">For a first home. A month is €50 to €1,500, and the loan wants at least 20 months. Pauses are allowed, so a missed month is not a failure. S-Pankki pays 1%% while you save. Another 4%% is paid when you buy the home, for the year you started and up to five calendar years after that. Both are tax-free. The extra interest is paid at the purchase. It is not a monthly forecast, and it is not paid on money you took out before then. Opening the account happens with S-Pankki. This screen does not open one.</string>
-  <string name="T_four_ways_to_save_send_bonus_to_a_fund_set_aside_0">Four ways to save. Send Bonus to a fund. Set aside €0.50 to €5 on each debit-card payment. Move a monthly sum. Add extra when you want. The funds can fall. This design does not predict them. October’s Bonus stays on S-Tili unless you send the next one.</string>
+  <string name="T_for_a_first_home_a_month_is_50_to_1_500_and_the_lo">For a first home. A month is 50 € to 1 500 €, and the loan wants at least 20 months. Pauses are allowed, so a missed month is not a failure. S-Pankki pays 1%% while you save. Another 4%% is paid when you buy the home, for the year you started and up to five calendar years after that. Both are tax-free. The extra interest is paid at the purchase. It is not a monthly forecast, and it is not paid on money you took out before then. Opening the account happens with S-Pankki. This screen does not open one.</string>
+  <string name="T_four_ways_to_save_send_bonus_to_a_fund_set_aside_0">Four ways to save. Send Bonus to a fund. Set aside 0,50 € to 5 € on each debit-card payment. Move a monthly sum. Add extra when you want. The funds can fall. This design does not predict them. October’s Bonus stays on S-Tili unless you send the next one.</string>
   <string name="T_from_october_payments">From %1$s October payments</string>
   <string name="T_from_october_the_last_full_month">From October, the last full month</string>
   <string name="T_from_the_same_payments">From the same %1$s payments.</string>
@@ -221,7 +221,7 @@
   <string name="T_that_payment_is_not_loaded">That payment is not loaded.</string>
   <string name="T_that_s_mine">That’s mine</string>
   <string name="T_the_10_down_payment_on_this_price_is_the_sketch_us">The 10%% down payment on this price is %1$s. The sketch uses that, not today’s balance. %2$s</string>
-  <string name="T_the_asp_figures_use_s_pankki_s_published_terms_50">The ASP figures use S-Pankki’s published terms: €50–€1,500 a month, 20 months, 10%% of the home, 1%% while saving, and 4%% more when the home is bought. The loan sketch is arithmetic, not an offer.</string>
+  <string name="T_the_asp_figures_use_s_pankki_s_published_terms_50">The ASP figures use S-Pankki’s published terms: 50 €–1 500 € a month, 20 months, 10%% of the home, 1%% while saving, and 4%% more when the home is bought. The loan sketch is arithmetic, not an offer.</string>
   <string name="T_the_busiest_dated_day">the busiest dated day</string>
   <string name="T_the_chat_will_ask_again_before_the_next_charge">The chat will ask again before the next charge.</string>
   <string name="T_the_filing_did_not_save">The filing did not save.</string>
@@ -376,4 +376,36 @@
   <string name="T_typical_household">What does a typical household spend?</string>
   <string name="T_where_go">Where did my money go?</string>
   <string name="T_where_question">Where did my money go last month?</string>
+  <string name="T_overview">Overview</string>
+  <string name="T_income_month">Income this month</string>
+  <string name="T_outcome_month">Outcome this month</string>
+  <string name="T_see_all">See all</string>
+  <string name="T_essentials_in">Essentials in %1$s</string>
+  <string name="T_everyday_in">Everyday in %1$s</string>
+  <string name="T_your_savings_accounts">Your savings accounts</string>
+  <string name="T_read_more">Read more</string>
+  <string name="T_ends_on">Ends %1$s</string>
+  <string name="T_show_card">Show S-Etukortti</string>
+  <string name="T_claim_hint">Show your S-Etukortti to claim coupons</string>
+  <string name="T_card_reader">Hold your phone near the card reader, or let the cashier scan the barcode. Your activated coupons (%1$s) are used automatically.</string>
+  <string name="T_member">Co-op member</string>
+  <string name="T_activated">Activated</string>
+  <string name="T_back">Back</string>
+  <string name="T_ai_answer">AI answer · numbers come from your transactions</string>
+  <string name="T_ask_next">Ask next</string>
+  <string name="T_close">Close</string>
+  <string name="T_n_visits">%1$s visits</string>
+  <string name="T_one_visit">1 visit</string>
+  <string name="T_tap_group">Tap a group to see the dates.</string>
+  <string name="T_weekday_day">Weekday daytime</string>
+  <string name="T_weekday_evening">Weekday evening</string>
+  <string name="T_weekend">Weekend</string>
+  <string name="T_active_coupons">Active coupons</string>
+  <string name="T_spending_change">Spending change</string>
+  <string name="T_more_on">more on %1$s than in %2$s</string>
+  <string name="T_see_named">See %1$s</string>
+  <string name="T_evening_visits">%1$s %2$s visits on weekday evenings in %3$s</string>
+  <string name="T_see_when">See when</string>
+  <string name="T_activate_in_offers">%1$s. Activate it in Offers.</string>
+  <string name="T_coupon">Coupon</string>
 </resources>
