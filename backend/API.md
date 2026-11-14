@@ -101,6 +101,20 @@ A missing key or base URL returns 503. A deployment error returns 502. The respo
 
 CUST00001 is age 63, postal code 00990, account `ACC000001`, 581 transactions, balance €4,723.58 on 2026-09-30. CUST00002 is account `ACC000002`, balance €1,539.16 on the same date, with no investment deposits.
 
+## Coupons and campaigns
+
+Sample S-Pankki offers (`app/offers.py`). S-Pankki is the only issuer: there are no partner or merchant offers. None of them are real S-Pankki offers.
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| GET | `/campaigns` | Campaigns running today, with their coupon ids and `days_left` |
+| GET | `/customers/{customer_id}/coupons` | Coupons valid today that this customer qualifies for, with `activated` and `activated_at` |
+| POST | `/customers/{customer_id}/coupons/{coupon_id}/activate` | That coupon, now activated. Activating again returns the same `activated_at` |
+
+A coupon is valid from `valid_from` through `valid_to`, compared with today's date. A customer qualifies by a rule over their Junction data: categories paid in their last three months, age, whether they have investment deposits, and whether they have a mortgage application. `reason` says which rule matched. Amounts are `value_cents` and `min_spend_cents`, with display strings `value` and `min_spend`. `percent` is set for Bonus, rate, and fee coupons.
+
+Activations are kept in memory and are lost when the service restarts. An unknown customer or coupon returns 404, a coupon this customer does not qualify for returns 404, and a coupon outside its dates returns 409.
+
 ## Mortgages
 
 | Method | Path | Returns |
