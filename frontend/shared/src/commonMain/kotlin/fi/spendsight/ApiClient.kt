@@ -7,7 +7,6 @@ import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -29,7 +28,7 @@ import kotlinx.serialization.json.contentOrNull
  * Service address. Change this when you run the API somewhere else.
  * `python -m app` serves the API on HTTPS port 8000. `/docs` is the reference only.
  * `GET /customers/{CUSTOMER_ID}` names this customer's Today, Spending, and Save paths in `reads`.
- * The phone calls those paths. `/docs` is the reference only.
+ * The phone calls those paths.
  * This computer or the iOS simulator: https://127.0.0.1:8000
  * Android emulator: https://10.0.2.2:8000 (127.0.0.1 on the emulator is the emulator)
  * A build with `spendsight.apiUrl` set calls that deployed URL instead (see frontend/APP.md).
@@ -170,10 +169,6 @@ class SpendSightApi(
             parameter("years", 25)
             parameter("down_percent", "10")
         }.body()
-
-    suspend fun deleteThread() {
-        client.delete(endpoint("/thread"))
-    }
 
     private suspend inline fun <reified T> get(path: String): T = client.get(endpoint(path)).body()
 

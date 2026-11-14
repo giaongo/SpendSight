@@ -22,14 +22,9 @@ JACKET_CENTS = 8_900
 GROCERY_PLAN_CENTS = 28_000
 COFFEE_PLAN_CENTS = 1_600
 WEEK_SHOP_CENTS = 7_000
-ASP_SAVED_CENTS = 640_000
-ASP_GOAL_CENTS = 2_200_000
-ASP_MONTHS_DONE = 14
-ASP_MONTHS_NEED = 20
 ASP_MIN_CENTS = 5_000
 ASP_MAX_CENTS = 150_000
 HOME_EUR = 220_000
-RENT_CENTS = 82_000
 
 # Under €50 the rate is 0. Then 1% at €50, up to 5% at €900.
 BONUS_STEPS = (
@@ -58,19 +53,6 @@ BASKET_LINE = {
     ),
 }
 FOOD_CATEGORIES = ("Groceries", "Coffee & drinks", "Dining out")
-
-# The Save screen lists these. The read does not open or move any of them.
-ACCOUNTS = (
-    {"id": "tili", "title": "S-Tili", "subtitle": "Everyday. Bonus lands here."},
-    {"id": "asp", "title": "ASP account", "subtitle": "The home. Plan to leave it there."},
-    {"id": "tuotto", "title": "S-Tuottotili", "subtitle": "Savings you can take."},
-    {"id": "maara", "title": "S-Määräaikaistili", "subtitle": "Stays until a date."},
-    {
-        "id": "saastaja",
-        "title": "Säästäjä",
-        "subtitle": "Bonus, card rounding, or a monthly sum. A fund can fall.",
-    },
-)
 
 # A known category maps to one basket. Groceries stay everyday, outside the slip.
 FILING: tuple[tuple[str, str], ...] = (
@@ -348,45 +330,6 @@ class Ledger:
         row.filed_by_customer = True
         return row
 
-    def preview_filing(self, place: str, category: str | None) -> dict:
-        known = next((row for row in self.payments if row.place == place), None)
-        earns_bonus = known.earns_bonus if known else False
-        if category is None:
-            if known is None:
-                return {
-                    "place": place,
-                    "category": None,
-                    "basket": None,
-                    "basket_name": None,
-                    "earns_bonus": False,
-                    "unfiled": True,
-                    "reason": "A new merchant stays unfiled until a rule or you file it.",
-                }
-            return self._known_filing(known)
-        basket = FILING_BASKET.get(category)
-        if basket is None:
-            raise KeyError(category)
-        return {
-            "place": place,
-            "category": category,
-            "basket": basket,
-            "basket_name": BASKET_NAME[basket],
-            "earns_bonus": earns_bonus,
-            "unfiled": False,
-            "reason": "Filed by you. Bonus stays with the place.",
-        }
-
-    def _known_filing(self, row: Payment) -> dict:
-        return {
-            "place": row.place,
-            "category": row.category,
-            "basket": row.basket,
-            "basket_name": BASKET_NAME[row.basket],
-            "earns_bonus": row.earns_bonus,
-            "unfiled": False,
-            "reason": self.filing_reason(row),
-        }
-
     def is_recurring(self, row: Payment) -> bool:
         """Same merchant, a similar amount, and about a month between charges."""
         for other in self.payments:
@@ -541,24 +484,6 @@ class Ledger:
         ]
         month = sum(item["amount_cents"] for item in items)
         return {"items": items, "month_cents": month, "year_cents": month * 12}
-
-    def category_rows(self, month: str) -> list[dict]:
-        rows = []
-        present = {row.category for row in self.month(month)}
-        for name, basket in FILING:
-            if name not in present:
-                continue
-            amount = self.sum_month(month, lambda row, label=name: row.category == label)
-            rows.append(
-                {
-                    "name": name,
-                    "basket": basket,
-                    "basket_name": BASKET_NAME[basket],
-                    "amount_cents": amount,
-                    "amount": eur(amount),
-                }
-            )
-        return rows
 
     def basket_rows(self, month: str) -> list[dict]:
         rows = []
@@ -737,76 +662,6 @@ class Ledger:
             "note": (
                 "Passing the slip line sends one note. The card is not blocked. "
                 "Groceries stay outside the slip. The save setting does not change safe to spend."
-            ),
-        }
-
-    def spending_view(self, month: str) -> dict:
-        if month not in {"oct", "nov"}:
-            raise KeyError(month)
-        rows = self.month(month)
-        total = self.sum_month(month)
-        label = "October, by place" if month == "oct" else "1–13 November, every payment"
-        return {
-            "kind": "read",
-            "screen": "spending",
-            "month": month,
-            "label": label,
-            "total_cents": total,
-            "total": eur(total),
-            "line_count": len(rows),
-            "rolled_up_by_place": month == "oct",
-            "note": "Left the account. Salary is not in this number.",
-            "categories": self.category_rows(month),
-            "baskets": self.basket_rows(month),
-            "food": self.food_rows(month),
-            "groceries_cents": self.sum_month(month, lambda row: row.category == "Groceries"),
-            "slip_cents": self.sum_month(month, lambda row: row.category in SLIP_CATEGORIES),
-            "payments": [self.payment_view(row) for row in rows],
-            "charts": self.charts(),
-            "charts_note": "Her months only. Last year is not loaded, so it is not drawn.",
-        }
-
-    def save_view(self, years: int) -> dict:
-        if years not in {1, 3, 5}:
-            raise KeyError(years)
-        spec = self.effort_spec()
-        save = spec["save"]
-        slip = self.slip_cents()
-        week = self.safe_week()
-        holds = sum(hold.amount_cents for hold in self.holds)
-        remaining = ASP_GOAL_CENTS - ASP_SAVED_CENTS
-        piles = {str(span): save * 12 * span for span in (1, 3, 5)}
-        return {
-            "kind": "read",
-            "screen": "save",
-            "years": years,
-            "effort": self.effort,
-            "effort_name": spec["name"],
-            "save_cents": save,
-            "save": eur(save),
-            "slip_cents": slip,
-            "slip": eur(slip),
-            "salary_percent": spec["salary_percent"],
-            "salary_cents": self.salary_cents,
-            "safe_to_spend_cents": week["spend_cents"],
-            "left_after_salary_cents": self.balance_cents + self.salary_cents - holds,
-            "buffer_cents": week["buffer_cents"],
-            "asp_saved_cents": ASP_SAVED_CENTS,
-            "asp_goal_cents": ASP_GOAL_CENTS,
-            "asp_min_cents": ASP_MIN_CENTS,
-            "asp_max_cents": ASP_MAX_CENTS,
-            "asp_months_done": ASP_MONTHS_DONE,
-            "asp_months_need": ASP_MONTHS_NEED,
-            "months_still_to_count": ASP_MONTHS_NEED - ASP_MONTHS_DONE,
-            "months_for_euros": math.ceil(remaining / save),
-            "pile_cents": piles[str(years)],
-            "pile": eur(piles[str(years)]),
-            "piles_cents": piles,
-            "efforts": self.effort_view()["efforts"],
-            "accounts": [dict(row) for row in ACCOUNTS],
-            "note": (
-                "The pile is the monthly amount times twelve times the years, with no interest. "
-                "A prepared move is its own call. This read does not move money."
             ),
         }
 

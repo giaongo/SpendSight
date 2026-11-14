@@ -26,17 +26,6 @@ class FilingRequest(BaseModel):
     category: str = Field(min_length=1, max_length=80)
 
 
-class FilingPreviewRequest(BaseModel):
-    place: str = Field(min_length=1, max_length=120)
-    category: str | None = None
-
-
-class FactModel(BaseModel):
-    kicker: str
-    figure: str
-    because: str
-
-
 class CustomerCoachResponse(BaseModel):
     """The prose answer, plus the card the phone draws under the five fixed questions."""
 
@@ -54,12 +43,3 @@ class CustomerCoachResponse(BaseModel):
     caption: str | None = None
     follow_ups: list[dict] = Field(default_factory=list)
 
-
-class CoachResponse(BaseModel):
-    refused: bool
-    disclaimer: str
-    source: str | None = None
-    fact: FactModel | None = None
-    next: str | None = None
-    screen: str | None = None
-    limit: str | None = None

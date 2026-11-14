@@ -5,7 +5,7 @@
 #   infra/sync-data.sh 1.2.3.4    # or name it
 #   SSH_KEY=~/.ssh/other infra/sync-data.sh   # key; default ~/.ssh/verda if present
 #
-# Sends the four CSVs to /data/junction and the local index to /data/cache.
+# Sends the three CSVs the service reads to /data/junction and the local index to /data/cache.
 # rsync -t keeps modification times, so on the instance the index stays newer
 # than tx_junction_transactions.csv and the service opens it instead of
 # re-indexing on first boot. Unchanged files are skipped, so it is safe to re-run.
@@ -22,7 +22,6 @@ CSVS=(
   tx_customers_junction.csv
   tx_junction_transactions.csv
   mtg_tx_customer_link_and_final_mtg_infio.csv
-  mtg_negotiation_history.csv
 )
 
 HOST=${1:-$(terraform -chdir="$ROOT/infra/terraform" output -raw public_ip)}

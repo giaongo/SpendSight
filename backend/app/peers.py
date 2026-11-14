@@ -1,7 +1,7 @@
 """Compare one customer with people their age.
 
-The figures come from Statistics Finland table 15jx, the same response as
-``GET /statistics/education-assets``: deposits, listed shares, and mutual
+The figures come from Statistics Finland table 15jx, fetched by
+``app.statfi.fetch_education_assets``: deposits, listed shares, and mutual
 funds per person aged 18 and over. It does not count spending or income, and
 its unit is a person, not a household.
 

@@ -47,7 +47,7 @@ The coach does not read Junction customer data, and customer screens must not pr
 - Match layout, copy, and interaction intent from `design/my-money/index.html` and `design/my-money/NOTES.md`, while implementing them in the required stack above.
 - For sample ledger figures, the oracle is `selfCheck` in `design/my-money/index.html`, mirrored in `BACKLOG.md` and `backend/tests/test_oracle.py`. Do not “approximately” reproduce these values.
 - Reuse design tokens and fixed copy from `frontend/shared/src/commonMain/kotlin/fi/spendsight/Theme.kt` and `UiCopy.kt` rather than scattering near-duplicates.
-- Preserve API-provided `reads` paths from `GET /session`; the app should not construct customer endpoints from an assumed id.
+- Preserve API-provided `reads` paths from `GET /customers/{id}`; the app should not construct customer endpoints from an assumed id.
 
 ## Verification
 

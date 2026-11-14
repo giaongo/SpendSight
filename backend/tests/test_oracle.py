@@ -50,9 +50,9 @@ def test_charts_match_the_thirteen_day_pace(client):
     assert rows["Taxis"] == {"label": "Taxis", "october_pace_cents": 1_950, "november_cents": 2_600}
 
 
-def test_today_is_the_first_customer(client):
-    session = client.get("/session").json()
-    today = client.get("/today").json()
+def test_customer_today(client):
+    session = client.get("/customers/CUST00001").json()
+    today = client.get(session["reads"]["today"]).json()
     assert session["customer_id"] == "CUST00001"
     assert session["postal_code"] == "00990"
     assert session["age"] == 63
@@ -70,8 +70,8 @@ def test_today_is_the_first_customer(client):
     assert today["mortgage_customer_id"] is None
 
 
-def test_spending_and_save_are_the_first_customer(client):
-    spending = client.get("/spending").json()
+def test_customer_spending_and_save(client):
+    spending = client.get("/customers/CUST00001/spending").json()
     assert spending["kind"] == "read"
     assert spending["customer_id"] == "CUST00001"
     assert spending["month"] == "2026-09"
@@ -82,11 +82,11 @@ def test_spending_and_save_are_the_first_customer(client):
     assert categories["Housing"] == -53_934
     assert categories["Groceries"] == -37_979
     assert categories["Salary"] == 244_781
-    september = client.get("/spending", params={"month": "2026-09"}).json()
+    september = client.get("/customers/CUST00001/spending", params={"month": "2026-09"}).json()
     assert september["line_count"] == 32
-    assert client.get("/spending", params={"month": "oct"}).status_code == 400
+    assert client.get("/customers/CUST00001/spending", params={"month": "oct"}).status_code == 400
 
-    save = client.get("/save", params={"years": 5}).json()
+    save = client.get("/customers/CUST00001/save", params={"years": 5}).json()
     assert save["kind"] == "read"
     assert save["customer_id"] == "CUST00001"
     assert save["deposits"] == 24
@@ -94,18 +94,10 @@ def test_spending_and_save_are_the_first_customer(client):
     assert save["latest_deposit_cents"] == 23_572
     assert save["latest_deposit_date"] == "2026-09-18"
     assert "does not move money" in save["note"]
-    one_year = client.get("/save", params={"years": 1}).json()
+    one_year = client.get("/customers/CUST00001/save", params={"years": 1}).json()
     assert one_year["deposits"] == 12
     assert one_year["deposited_cents"] == 277_585
-    assert client.get("/save", params={"years": 2}).status_code == 400
-
-    asked = client.post(
-        "/coach/ask",
-        json={"text": "What is safe for me to spend this week?"},
-    ).json()
-    assert asked["refused"] is False
-    assert asked["fact"]["figure"] == "€1,028.30"
-    assert "kind" not in asked
+    assert client.get("/customers/CUST00001/save", params={"years": 2}).status_code == 400
 
 
 def test_effort_changes_the_slip_and_not_safe_to_spend(client):
