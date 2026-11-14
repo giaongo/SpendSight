@@ -164,7 +164,7 @@ private fun MarkerRow(marker: String, parts: List<MdInline>) {
 
 @Composable
 private fun BodyText(text: AnnotatedString, modifier: Modifier = Modifier) {
-    Text(text, modifier, color = Ink, fontSize = 15.sp, lineHeight = 21.sp)
+    Text(text, modifier, color = Ink, fontSize = 17.sp, lineHeight = 24.sp)
 }
 
 private fun inlines(parts: List<MdInline>): AnnotatedString = buildAnnotatedString {

@@ -3,34 +3,31 @@ package fi.spendsight
 import androidx.compose.runtime.Composable
 import kotlin.math.abs
 
-/** Finnish and Swedish grouping space. It does not break the amount across lines. */
-private const val GroupNordic = '\u00A0'
+/** Grouping space, and the space before €. Neither breaks the amount across lines. */
+private const val Nbsp = '\u00A0'
 
-/** Finnish and Swedish share a grouping space, a decimal comma, and a space before %. */
+/** Finnish and Swedish share a decimal comma and a space before %. */
 private fun Lang.nordic(): Boolean = this == Lang.Fi || this == Lang.Sv
 
 /**
  * Formats cents for the screen. This is presentation, not a ledger rule.
- * Finnish and Swedish: €1 028,30. English: €1,028.30. The sign is the Unicode minus.
+ * Every language uses the design's euro format: 1 028,30 €. The sign is the Unicode minus: −5,60 €.
  */
+@Suppress("UNUSED_PARAMETER")
 fun eur(cents: Int, lang: Lang): String {
     val sign = if (cents < 0) "−" else ""
     val value = abs(cents)
     val whole = value / 100
     val frac = (value % 100).toString().padStart(2, '0')
-    val grouped = group(whole.toLong(), if (lang.nordic()) GroupNordic else ',')
-    val decimal = if (lang.nordic()) ',' else '.'
-    return "$sign€$grouped$decimal$frac"
+    return "$sign${group(whole.toLong(), Nbsp)},$frac$Nbsp€"
 }
 
 @Composable
 fun eur(cents: Int): String = eur(cents, LocalLang.current)
 
-/** Whole euros, for labels such as the loan price ends. */
-fun euros(amount: Int, lang: Lang): String {
-    val grouped = group(amount.toLong(), if (lang.nordic()) GroupNordic else ',')
-    return "€$grouped"
-}
+/** Whole euros, for labels such as the loan price ends: 150 000 €. */
+@Suppress("UNUSED_PARAMETER")
+fun euros(amount: Int, lang: Lang): String = "${group(amount.toLong(), Nbsp)}$Nbsp€"
 
 @Composable
 fun euros(amount: Int): String = euros(amount, LocalLang.current)
@@ -42,21 +39,29 @@ fun Payment.shownAmount(): String = shownAmount(LocalLang.current)
 
 /**
  * A money string the service already formatted in English, such as €1,028.30 or −€5.60.
- * Finnish and Swedish screens show the same digits with a space and a comma.
+ * The screen shows the same digits in the design's format: 1 028,30 € and −5,60 €.
  */
+@Suppress("UNUSED_PARAMETER")
 fun presentMoney(text: String, lang: Lang): String {
-    if (!lang.nordic()) return text
     val match = ServiceMoney.matchEntire(text.trim()) ?: return text
-    val sign = if (match.groupValues[1].isNotEmpty()) "−" else ""
-    val whole = match.groupValues[2].replace(",", "")
-    val frac = match.groupValues[3]
-    return "$sign€${group(whole.toLong(), GroupNordic)},$frac"
+    return serviceMoney(match)
 }
 
 @Composable
 fun presentMoney(text: String): String = presentMoney(text, LocalLang.current)
 
+/** Rewrites every service-formatted amount inside a sentence, such as a coach answer. */
+fun presentMoneyIn(text: String): String = ServiceMoneyInText.replace(text) { serviceMoney(it) }
+
+private fun serviceMoney(match: MatchResult): String {
+    val sign = if (match.groupValues[1].isNotEmpty()) "−" else ""
+    val whole = match.groupValues[2].replace(",", "")
+    val frac = match.groupValues[3]
+    return "$sign${group(whole.toLong(), Nbsp)},$frac$Nbsp€"
+}
+
 private val ServiceMoney = Regex("""^([−\-])?€(\d{1,3}(?:,\d{3})*|\d+)\.(\d{2})$""")
+private val ServiceMoneyInText = Regex("""([−\-])?€(\d{1,3}(?:,\d{3})+|\d+)\.(\d{2})(?!\d)""")
 
 /** Whole percents stay whole. 1.5 stays 1.5 in English and 1,5 in Finnish and Swedish. */
 fun formatPct(pct: Double, lang: Lang): String {

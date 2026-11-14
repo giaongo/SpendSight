@@ -68,6 +68,12 @@ data class CoachMessage(
     val action: Screen? = null,
     val chart: List<ChartRow>? = null,
     val limit: String? = null,
+    val lead: String? = null,
+    val detail: String? = null,
+    val card: AnswerCardDto? = null,
+    val caption: String? = null,
+    val followUps: List<FollowUpDto> = emptyList(),
+    val homeAsk: HomeAsk? = null,
 )
 
 sealed interface Screen {
@@ -112,7 +118,7 @@ fun Screen.tab(): Tab = when (this) {
 fun Screen.isRoot(): Boolean = this == Screen.Today || this == Screen.Insight || this == Screen.Save || this == Screen.Offers
 
 fun Screen.showsComposer(): Boolean =
-    this == Screen.Today || this == Screen.Insight || this == Screen.Save || this == Screen.Coach
+    this == Screen.Insight || this == Screen.Save || this == Screen.Coach
 
 sealed interface Sheet {
     data object About : Sheet

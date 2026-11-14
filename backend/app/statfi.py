@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import time
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
@@ -49,3 +50,23 @@ def fetch_education_assets() -> dict:
         raise StatisticsApiError("Could not reach Statistics Finland API") from exc
     except json.JSONDecodeError as exc:
         raise StatisticsApiError("Statistics Finland API returned invalid JSON") from exc
+
+
+class StatisticsCache:
+    """Keeps one Statistics Finland response and retries after a failure or the ttl."""
+
+    def __init__(self, fetch=None, ttl_seconds: float = 6 * 60 * 60, clock=None) -> None:
+        self._fetch = fetch or fetch_education_assets
+        self._ttl = ttl_seconds
+        self._clock = clock or time.monotonic
+        self._data = None
+        self._at: float | None = None
+
+    def education_assets(self) -> dict:
+        now = self._clock()
+        if self._data is not None and self._at is not None and now - self._at < self._ttl:
+            return self._data
+        data = self._fetch()
+        self._data = data
+        self._at = now
+        return data

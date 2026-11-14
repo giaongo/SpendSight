@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,6 +40,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -56,7 +58,7 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
     SystemBack(enabled = store.dialog != null || store.sheet != null || store.canBack) {
         store.onBack()
     }
-    val onDark = store.phase == LoadPhase.Ready && (store.current.isRoot() || store.current == Screen.Coach)
+    val onDark = store.phase == LoadPhase.Ready
     SystemBars(onDark)
     val gate = remember { EditorGate() }
     val focusManager = LocalFocusManager.current
@@ -81,8 +83,10 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
         Column(Modifier.fillMaxSize()) {
             val rooted = store.phase == LoadPhase.Ready && store.current.isRoot()
             if (!rooted) {
-                Column(Modifier.statusBarsPadding()) {
-                    if (store.phase == LoadPhase.Ready) SlimBar(store)
+                if (store.phase == LoadPhase.Ready) {
+                    SlimBar(store)
+                } else {
+                    Spacer(Modifier.statusBarsPadding())
                 }
             }
             store.notice?.let { text ->
@@ -130,7 +134,7 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
                 }
             }
             if (store.phase == LoadPhase.Ready && store.current.showsComposer()) {
-                Composer(store, compact = store.current != Screen.Coach)
+                Composer(store)
             }
             if (store.phase == LoadPhase.Ready) TabBar(store)
         }
@@ -155,140 +159,118 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
     }
 }
 
+/** The short green bar on a drill-in screen: Back, the title, and the language menu. */
 @Composable
 private fun SlimBar(store: SpendSightStore) {
-    val coach = store.current == Screen.Coach
-    val fg = if (coach) Color.White else Ink
-    val back = if (coach) Color.White else Green
-    Row(
+    Box(
         Modifier
             .fillMaxWidth()
-            .background(if (coach) Forest else Bg)
-            .height(40.dp)
-            .padding(horizontal = 4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .background(Forest)
+            .statusBarsPadding()
+            .heightIn(min = 52.dp)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        contentAlignment = Alignment.Center,
     ) {
-        Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) {
-            if (store.canBack) {
-                Text(
-                    "‹",
-                    color = back,
-                    fontSize = 26.sp,
-                    modifier = Modifier.clickable(onClick = store::pop),
-                )
-            }
-        }
         Text(
             store.current.heading(),
-            modifier = Modifier.weight(1f),
-            color = fg,
-            fontSize = 15.sp,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 96.dp),
+            color = Color.White,
+            fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
+            maxLines = 1,
+            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
-        LanguageMenu(store, onDark = coach)
-        Spacer(Modifier.width(8.dp))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            if (store.canBack) {
+                Row(
+                    Modifier
+                        .heightIn(min = 44.dp)
+                        .clip(RoundedCornerShape(22.dp))
+                        .clickable(onClick = store::pop)
+                        .padding(horizontal = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Glyph(Icon.Back, Color.White, 22.dp, stroke = 2.4f)
+                    Spacer(Modifier.width(2.dp))
+                    Text(t(R.string.T_back), color = Color.White, fontSize = 17.sp)
+                }
+            }
+            Spacer(Modifier.weight(1f))
+            LanguageMenu(store, onDark = true)
+        }
     }
 }
 
+/** Zone 3: the floating tab bar. */
 @Composable
 private fun TabBar(store: SpendSightStore) {
     val selected = store.current.tab()
     val hide = hideKeyboard()
-    Row(
+    Box(
         Modifier
             .fillMaxWidth()
             .background(Bg)
-            .windowInsetsPadding(WindowInsets(0))
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 8.dp)
-            .clip(RoundedCornerShape(28.dp))
-            .background(Card)
-            .padding(4.dp),
-        verticalAlignment = Alignment.CenterVertically,
+            .padding(start = 20.dp, end = 20.dp, top = 4.dp, bottom = 12.dp),
     ) {
-        Tab.entries.forEach { tab ->
-            val on = tab == selected
-            Column(
-                Modifier
-                    .weight(1f)
-                    .clip(RoundedCornerShape(22.dp))
-                    .background(if (on) Mint else Color.Transparent)
-                    .clickable {
-                        hide()
-                        store.jump(tab.root)
-                    }
-                    .padding(vertical = 6.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                TabGlyph(tab, if (on) Forest else Tertiary)
-                Text(
-                    tab.heading(),
-                    color = if (on) Forest else Tertiary,
-                    fontSize = 11.sp,
-                    fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
-                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                )
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .shadow(14.dp, RoundedCornerShape(30.dp), ambientColor = Color.Black.copy(alpha = 0.12f), spotColor = Color.Black.copy(alpha = 0.12f))
+                .clip(RoundedCornerShape(30.dp))
+                .background(Card.copy(alpha = 0.96f))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Tab.entries.forEach { tab ->
+                val on = tab == selected
+                Column(
+                    Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp)
+                        .clip(RoundedCornerShape(26.dp))
+                        .background(if (on) Green.copy(alpha = 0.12f) else Color.Transparent)
+                        .clickable {
+                            hide()
+                            store.jump(tab.root)
+                        }
+                        .padding(vertical = 6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
+                ) {
+                    TabGlyph(tab, on)
+                    Text(
+                        tab.heading(),
+                        color = if (on) Green else Graphite,
+                        fontSize = 13.sp,
+                        lineHeight = 14.sp,
+                        fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium,
+                        maxLines = 1,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TabGlyph(tab: Tab, color: Color) {
-    androidx.compose.foundation.Canvas(Modifier.size(22.dp)) {
-        val s = size.minDimension / 24f
-        val stroke = androidx.compose.ui.graphics.drawscope.Stroke(
-            width = 1.7f * s,
-            cap = androidx.compose.ui.graphics.StrokeCap.Round,
-            join = androidx.compose.ui.graphics.StrokeJoin.Round,
-        )
-        fun path(block: androidx.compose.ui.graphics.Path.() -> Unit) {
-            drawPath(androidx.compose.ui.graphics.Path().apply(block), color, style = stroke)
-        }
-        fun androidx.compose.ui.graphics.Path.m(x: Float, y: Float) = moveTo(x * s, y * s)
-        fun androidx.compose.ui.graphics.Path.l(x: Float, y: Float) = lineTo(x * s, y * s)
-        fun androidx.compose.ui.graphics.Path.c(x1: Float, y1: Float, x2: Float, y2: Float, x3: Float, y3: Float) =
-            cubicTo(x1 * s, y1 * s, x2 * s, y2 * s, x3 * s, y3 * s)
-        when (tab) {
-            Tab.Home -> path {
-                m(4.5f, 11f); l(12f, 4.2f); l(19.5f, 11f)
-                m(7.2f, 10f); l(7.2f, 19.5f); l(16.8f, 19.5f); l(16.8f, 10f)
-                m(10.2f, 19.5f); l(10.2f, 14.2f); l(13.8f, 14.2f); l(13.8f, 19.5f)
-            }
-            Tab.SpendSight -> {
-                // Three bars, so the tab reads as a spending split rather than another eye.
-                val cap = androidx.compose.ui.graphics.StrokeCap.Round
-                fun column(x: Float, top: Float) {
-                    drawLine(
-                        color,
-                        start = androidx.compose.ui.geometry.Offset(x * s, 19.2f * s),
-                        end = androidx.compose.ui.geometry.Offset(x * s, top * s),
-                        strokeWidth = 2.15f * s,
-                        cap = cap,
-                    )
-                }
-                column(6.4f, 12.4f)
-                column(12f, 5.2f)
-                column(17.6f, 8.8f)
-            }
-            Tab.Savings -> path {
-                m(12f, 20.5f); l(12f, 12f)
-                m(12f, 15.5f)
-                c(8f, 15.5f, 5f, 12f, 6.2f, 8.6f)
-                c(9f, 10f, 11f, 13f, 12f, 15.5f)
-                m(12f, 13f)
-                c(16f, 12.2f, 19.2f, 8f, 17.2f, 5.4f)
-                c(14.6f, 8.2f, 13f, 11f, 12f, 13f)
-            }
-            Tab.Offers -> path {
-                m(6f, 7.5f); l(18f, 7.5f); l(18f, 16.5f); l(6f, 16.5f); close()
-                m(6f, 12f); l(8.2f, 12f)
-                m(10.4f, 12f); l(13.6f, 12f)
-                m(15.8f, 12f); l(18f, 12f)
-            }
-        }
+private fun TabGlyph(tab: Tab, on: Boolean) {
+    val icon = when (tab) {
+        Tab.Home -> Icon.Home
+        Tab.SpendSight -> Icon.Sight
+        Tab.Savings -> Icon.Sprout
+        Tab.Offers -> Icon.Ticket
     }
+    Glyph(
+        icon,
+        if (on) Green else Graphite,
+        24.dp,
+        stroke = if (on) 2.1f else 1.8f,
+        fill = if (on) Green.copy(alpha = 0.18f) else null,
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

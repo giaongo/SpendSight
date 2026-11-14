@@ -28,7 +28,7 @@ import kotlinx.serialization.json.contentOrNull
 /**
  * Service address. Change this when you run the API somewhere else.
  * `python -m app` serves the API on HTTPS port 8000. `/docs` is the reference only.
- * `GET /session` names this customer's Today, Spending, and Save paths in `reads`.
+ * `GET /customers/{CUSTOMER_ID}` names this customer's Today, Spending, and Save paths in `reads`.
  * The phone calls those paths. `/docs` is the reference only.
  * This computer or the iOS simulator: https://127.0.0.1:8000
  * Android emulator: https://10.0.2.2:8000 (127.0.0.1 on the emulator is the emulator)
@@ -36,6 +36,9 @@ import kotlinx.serialization.json.contentOrNull
  * The client trusts the dev certificate only for a local address.
  */
 expect fun defaultBaseUrl(): String
+
+/** The Junction customer the app signs in as. Its `reads` paths come from `GET /customers/{id}`. */
+const val CUSTOMER_ID: String = "CUST00007"
 
 var baseUrl: String = defaultBaseUrl()
 
@@ -88,7 +91,7 @@ class SpendSightApi(
     private val client: HttpClient = createHttpClient(),
 ) {
     suspend fun loadBundle(): WireBundle = coroutineScope {
-        val session = get<CustomerSessionDto>("/session")
+        val session = get<CustomerSessionDto>("/customers/$CUSTOMER_ID")
         val reads = session.reads
         val customerToday = async { get<CustomerTodayDto>(reads.today) }
         val spending = async { get<SpendingDto>(reads.spending) }

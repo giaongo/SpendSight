@@ -12,6 +12,8 @@ private val EssentialNames = setOf(
     "Pharmacy",
 )
 
+fun isEssential(name: String): Boolean = name in EssentialNames
+
 private val SkipNames = setOf("Salary", "Invest Deposit")
 
 fun outflowRows(categories: List<SpendCategoryDto>): List<SpendCategoryDto> =
