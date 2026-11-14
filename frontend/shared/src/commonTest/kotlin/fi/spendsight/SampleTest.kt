@@ -315,6 +315,50 @@ class ApiContractTest {
     }
 
     @Test
+    fun decodesCustomerReadsWhenExtraLinksAreMissing() {
+        val session = ApiJson.decodeFromString<CustomerSessionDto>(
+            """
+            {
+              "customer_id": "CUST00007",
+              "postal_code": "02760",
+              "age": 49,
+              "account_id": "ACC000007",
+              "as_of": "2026-09-29",
+              "balance_cents": 1524024,
+              "balance": "€15,240.24",
+              "transaction_count": 629,
+              "reads": {
+                "today": "/customers/CUST00007/today",
+                "spending": "/customers/CUST00007/spending",
+                "save": "/customers/CUST00007/save"
+              }
+            }
+            """.trimIndent(),
+        )
+        assertEquals("/customers/CUST00007/today", session.reads.today)
+        assertEquals("/customers/CUST00007/spending", session.reads.spending)
+        assertEquals("/customers/CUST00007/save", session.reads.save)
+        assertEquals("", session.reads.months)
+        assertEquals("", session.reads.summary)
+        assertEquals("", session.reads.transactions)
+
+        val local = ApiJson.decodeFromString<CustomerReadsDto>(
+            """
+            {
+              "summary": "/customers/CUST00007",
+              "today": "/customers/CUST00007/today",
+              "spending": "/customers/CUST00007/spending",
+              "save": "/customers/CUST00007/save",
+              "months": "/customers/CUST00007/months",
+              "transactions": "/junction/customers/CUST00007/transactions"
+            }
+            """.trimIndent(),
+        )
+        assertEquals("/customers/CUST00007/months", local.months)
+        assertEquals("/junction/customers/CUST00007/transactions", local.transactions)
+    }
+
+    @Test
     fun decodesTheCustomerRead() {
         val today = ApiJson.decodeFromString<CustomerTodayDto>(
             """
