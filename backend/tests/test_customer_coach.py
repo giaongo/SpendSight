@@ -1,6 +1,6 @@
 import json
 
-from app.verda import chat_url, spending_relevance
+from app.verda import answer_language, chat_url, spending_relevance
 
 
 def test_chat_url_accepts_the_containers_base():
@@ -10,6 +10,22 @@ def test_chat_url_accepts_the_containers_base():
     assert chat_url("https://containers.verda.com/demo/v1") == (
         "https://containers.verda.com/demo/v1/chat/completions"
     )
+
+
+def test_the_reply_language_follows_the_question():
+    assert answer_language("What is my balance?") == "English"
+    assert answer_language("Tell me a joke") == "English"
+    assert answer_language("Mikä on saldoni?") == "Finnish"
+    assert answer_language("Paljonko käytin syyskuussa?") == "Finnish"
+    assert answer_language("Wie hoch ist mein Kontostand?") == "German"
+    assert answer_language("Quel est mon solde ?") == "French"
+    assert answer_language("Hur mycket har jag på kontot?") == "Swedish"
+    assert answer_language("¿Cuál es mi saldo?") == "Spanish"
+    assert answer_language("Qual è il mio saldo?") == "Italian"
+    assert spending_relevance("Mikä on saldoni?") == "spending"
+    assert spending_relevance("Mikä on Suomen pääkaupunki?") == "other"
+    assert spending_relevance("Wie hoch ist mein Kontostand?") == "spending"
+    assert spending_relevance("Hur mycket har jag på kontot?") == "spending"
 
 
 def test_spending_questions_keep_the_customers_figures():
@@ -68,6 +84,7 @@ def test_customer_coach_ask_sends_only_that_customers_facts(client, monkeypatch)
     assert "€1,539.16" in facts and "153916" not in facts
     assert "€4,723.58" not in facts and "_cents" not in facts
     assert body["uses_customer_data"] is True
+    assert "Answer in English" in captured["body"]["messages"][0]["content"]
 
 
 def test_other_questions_are_sent_without_customer_facts(client, monkeypatch):
@@ -107,6 +124,88 @@ def test_other_questions_are_sent_without_customer_facts(client, monkeypatch):
     assert "What is the capital of Finland?" in sent
     assert "153916" not in sent
     assert "facts" not in sent
+    assert "Answer in English" in captured["body"]["messages"][0]["content"]
+
+
+def test_a_finnish_question_asks_for_a_finnish_answer(client, monkeypatch):
+    monkeypatch.setenv("VERDA_API_KEY", "test-key")
+    monkeypatch.setenv("VERDA_BASE_URL", "https://containers.verda.com/demo")
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+                    "choices": [{"message": {"content": "Saldosi on €1 539,16."}}],
+                }
+            ).encode()
+
+    def fake_urlopen(request, timeout=0):
+        captured["body"] = json.loads(request.data.decode())
+        return FakeResponse()
+
+    monkeypatch.setattr("app.verda.urlopen", fake_urlopen)
+    response = client.post(
+        "/customers/CUST00002/coach/ask",
+        json={"text": "Mikä on saldoni?"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["uses_customer_data"] is True
+    assert body["disclaimer"].startswith("Tämä vastaus")
+    assert "Answer in Finnish" in captured["body"]["messages"][0]["content"]
+    assert '"language": "Finnish"' in captured["body"]["messages"][1]["content"]
+
+
+def test_a_german_question_asks_for_a_german_answer(client, monkeypatch):
+    monkeypatch.setenv("VERDA_API_KEY", "test-key")
+    monkeypatch.setenv("VERDA_BASE_URL", "https://containers.verda.com/demo")
+    systems = []
+
+    class FakeResponse:
+        def __init__(self, content: str):
+            self._content = content
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+                    "choices": [{"message": {"content": self._content}}],
+                }
+            ).encode()
+
+    def fake_urlopen(request, timeout=0):
+        body = json.loads(request.data.decode())
+        system = body["messages"][0]["content"]
+        systems.append(system)
+        if "Reply with one word" in system:
+            return FakeResponse("spending")
+        return FakeResponse("Dein Kontostand beträgt €4.723,58.")
+
+    monkeypatch.setattr("app.verda.urlopen", fake_urlopen)
+    response = client.post(
+        "/customers/CUST00001/coach/ask",
+        json={"text": "Wie hoch ist mein Kontostand?"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"] == "Dein Kontostand beträgt €4.723,58."
+    assert body["uses_customer_data"] is True
+    assert body["disclaimer"].startswith("Diese Antwort")
+    assert any("Answer in German" in system for system in systems)
 
 
 def test_customer_coach_ask_needs_the_deployment_settings(client, monkeypatch):
