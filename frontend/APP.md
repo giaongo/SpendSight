@@ -83,7 +83,7 @@ That load calls, in parallel:
 | Today | The session’s `reads.today`: balance, as-of date, latest salary, money in and out for the latest month, transaction count |
 | Spending | The session’s `reads.spending`. Earlier and Later add `?month=YYYY-MM`. A month the customer does not have stays on the previous month and shows the 400 detail |
 | Save | The session’s `reads.save` with `?years=`. The chips are 1, 3, and 5. This is recorded deposits. It does not move money |
-| SpendSight | Chat for the session customer. `POST /customers/{customer_id}/coast/ask` with `{ "text": "..." }`. The bubble is `answer`. The line under the composer is `disclaimer` |
+| SpendSight | Chat for the session customer. `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`. The bubble is `answer`. The line under the composer is `disclaimer` |
 
 The top bar switches the app’s own words in this order: Finnish (`FI`), English (`EN`), Swedish (`SW`). The choice stays on this phone. Those words live in `strings.xml` (`translations/values`, `translations/values-fi-rFI`, and `translations/values-sv-rFI`) and screens read them with `t()`. Known category names, including Housing, are shown in the selected language. A filing request still sends the English name. The fixed notes on Today, Spending, and Save are translated. Any other sentence the service writes stays as sent. Amounts drawn from the service’s cents use English grouping (`€1,028.30`) or Finnish and Swedish grouping (`€1 028,30`). A chip asks in the language that is selected.
 
@@ -110,7 +110,7 @@ Any screen that starts with “Design sample. Today, Spending, and Save are this
 | Home | Sample buffer and October Bonus. The service has no ASP plan for this customer, so the screen does not invent one |
 | Loan sketch | `GET /loan/sketch` |
 
-The chat sends `POST /customers/{customer_id}/coast/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is the one from `GET /session`. The reply is `answer`, `model`, `source`, and `disclaimer`. A chip is a question about that customer's transactions. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question. `POST /coach/ask` is the design-sample coach. The chat does not call it.
+The chat sends `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is the one from `GET /session`. The reply is `answer`, `model`, `source`, and `disclaimer`. A chip is a question about that customer's transactions. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question. `POST /coach/ask` is the design-sample coach. The chat does not call it.
 
 The effort picker sends `PUT /settings/effort` with `{ "effort": "..." }`. Refiling a design-sample payment sends `POST /payments/{id}/filing` with `{ "category": "..." }`. Customer transactions are not refiled.
 

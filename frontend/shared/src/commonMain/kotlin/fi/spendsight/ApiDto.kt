@@ -359,7 +359,7 @@ data class FactDto(
 )
 
 @Serializable
-data class CoastResponseDto(
+data class CustomerCoachResponseDto(
     @SerialName("customer_id") val customerId: String,
     val answer: String,
     val model: String,
@@ -447,7 +447,7 @@ fun screenFor(name: String?): Screen? = when (name) {
     else -> null
 }
 
-fun CoastResponseDto.toMessage(): CoachMessage = CoachMessage(
+fun CustomerCoachResponseDto.toMessage(): CoachMessage = CoachMessage(
     role = "coach",
     paragraphs = listOf(answer),
 )

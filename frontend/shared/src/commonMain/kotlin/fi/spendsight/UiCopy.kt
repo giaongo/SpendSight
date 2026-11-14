@@ -34,11 +34,12 @@ fun accounts(lang: Lang): List<AccountCopy> = listOf(
     ),
 )
 
+/** Shown before the first coach answer. The service writes the disclaimer after that. */
 fun coastOpening(lang: Lang): String = t(lang, R.string.T_ask_about_this_customer_s_transactions_the_service)
 
 val coastOpenings: Set<String> = Lang.entries.map { coastOpening(it) }.toSet()
 
-/** Chip label and the question sent to this customer's coast endpoint. */
+/** Chip label and the question sent to this customer's coach endpoint. */
 fun coachChips(lang: Lang): List<Pair<String, String>> = listOf(
     t(lang, R.string.T_balance) to t(lang, R.string.T_what_is_my_balance),
     t(lang, R.string.T_last_salary) to t(lang, R.string.T_when_was_my_latest_salary_and_how_much_was_it),

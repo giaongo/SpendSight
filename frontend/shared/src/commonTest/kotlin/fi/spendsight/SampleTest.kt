@@ -133,7 +133,7 @@ class ApiContractTest {
 
     @Test
     fun decodesTheCustomerChat() {
-        val reply = ApiJson.decodeFromString<CoastResponseDto>(
+        val reply = ApiJson.decodeFromString<CustomerCoachResponseDto>(
             """
             {
               "customer_id": "CUST00001",

@@ -129,8 +129,8 @@ class SpendSightApi(
         )
     }
 
-    suspend fun ask(customerId: String, text: String): CoastResponseDto =
-        client.post(endpoint("/customers/$customerId/coast/ask")) {
+    suspend fun ask(customerId: String, text: String): CustomerCoachResponseDto =
+        client.post(endpoint("/customers/$customerId/coach/ask")) {
             contentType(ContentType.Application.Json)
             setBody(AskBody(text))
             timeout {
