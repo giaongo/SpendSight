@@ -77,7 +77,8 @@ jobs:
           exit 1
 
   deploy:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    # Push to master, or "Run workflow" on master from the Actions tab.
+    if: github.ref == 'refs/heads/master' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: [backend, frontend, docker]
     runs-on: ubuntu-latest
     environment:
@@ -102,20 +103,13 @@ jobs:
           printf 'Host vm\n  HostName %s\n  User root\n  IdentityFile ~/.ssh/deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n  ConnectTimeout 20\n' \
             "$DEPLOY_HOST" > ~/.ssh/config
 
+      # The deploy key can only run /usr/local/bin/spendsight-deploy (infra/spendsight-deploy.sh):
+      # status | deploy <sha on master> | rollback. If Compose fails it restores the previous commit itself.
       - name: Deploy ${{ github.sha }}
         id: deploy
         run: |
           # shellcheck disable=SC2029  # $SHA is meant to expand on the runner
-          ssh vm "bash -s -- $SHA" <<'EOF'
-          set -euo pipefail
-          cd /opt/spendsight
-          git rev-parse HEAD > /opt/spendsight-previous-commit
-          git fetch --quiet origin master
-          git checkout --quiet --detach "$1"
-          cd infra && docker compose up -d --build --remove-orphans
-          docker image prune -f >/dev/null
-          echo "deployed $(git rev-parse --short HEAD), previous $(cut -c1-7 /opt/spendsight-previous-commit)"
-          EOF
+          ssh vm "deploy $SHA"
 
       - name: Check through Caddy
         id: check
@@ -131,13 +125,7 @@ jobs:
           test "$safe" = 102830
 
       - name: Roll back to the previous commit
-        if: failure() && steps.deploy.outcome != 'skipped'
+        if: failure() && steps.check.outcome == 'failure'
         run: |
-          ssh vm 'bash -s' <<'EOF'
-          set -euo pipefail
-          cd /opt/spendsight
-          prev=$(cat /opt/spendsight-previous-commit)
-          git checkout --quiet --detach "$prev"
-          cd infra && docker compose up -d --build --remove-orphans
-          echo "rolled back to ${prev:0:7}"
-          EOF
+          ssh vm rollback
+          ssh vm status
