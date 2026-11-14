@@ -7,3 +7,6 @@ fun MainViewController() = ComposeUIViewController { App() }
 
 @Composable
 actual fun SystemBack(enabled: Boolean, onBack: () -> Unit) = Unit
+
+@Composable
+actual fun SystemBars(onDark: Boolean) = Unit

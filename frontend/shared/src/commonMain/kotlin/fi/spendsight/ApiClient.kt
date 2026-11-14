@@ -154,6 +154,12 @@ class SpendSightApi(
             parameter("years", years)
         }.body()
 
+    suspend fun coupons(customerId: String): CouponsDto = get("/customers/$customerId/coupons")
+
+    suspend fun campaigns(): CampaignsDto = get("/campaigns")
+
+    suspend fun activateCoupon(path: String): CouponDto = client.post(endpoint(path)).body()
+
     suspend fun loan(priceEur: Int, ratePercent: String): LoanDto =
         client.get(endpoint("/loan/sketch")) {
             parameter("price_eur", priceEur)

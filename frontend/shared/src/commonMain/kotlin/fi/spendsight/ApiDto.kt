@@ -107,6 +107,56 @@ data class CustomerSaveDto(
 )
 
 @Serializable
+data class CouponDto(
+    @SerialName("coupon_id") val couponId: String,
+    val title: String,
+    val description: String = "",
+    val benefit: String = "",
+    val product: String = "",
+    @SerialName("value_cents") val valueCents: Int? = null,
+    val value: String? = null,
+    val percent: Double? = null,
+    @SerialName("min_spend_cents") val minSpendCents: Int? = null,
+    @SerialName("min_spend") val minSpend: String? = null,
+    @SerialName("days_left") val daysLeft: Int = 0,
+    val reason: String = "",
+    val terms: String = "",
+    val activated: Boolean = false,
+    val activate: String = "",
+    @SerialName("campaign_title") val campaignTitle: String? = null,
+    @SerialName("valid_from") val validFrom: String = "",
+    @SerialName("valid_to") val validTo: String = "",
+)
+
+@Serializable
+data class CouponsDto(
+    @SerialName("customer_id") val customerId: String,
+    val note: String = "",
+    val count: Int = 0,
+    @SerialName("activated_count") val activatedCount: Int = 0,
+    val coupons: List<CouponDto> = emptyList(),
+)
+
+@Serializable
+data class CampaignDto(
+    @SerialName("campaign_id") val campaignId: String,
+    val title: String,
+    val description: String = "",
+    @SerialName("days_left") val daysLeft: Int = 0,
+    @SerialName("coupon_count") val couponCount: Int = 0,
+    val terms: String = "",
+    @SerialName("starts_on") val startsOn: String = "",
+    @SerialName("ends_on") val endsOn: String = "",
+)
+
+@Serializable
+data class CampaignsDto(
+    val note: String = "",
+    val count: Int = 0,
+    val campaigns: List<CampaignDto> = emptyList(),
+)
+
+@Serializable
 data class TodayDto(
     @SerialName("customer_name") val customerName: String,
     val today: String,

@@ -56,6 +56,14 @@ class SpendSightStore(
     var purchaseChoice by mutableStateOf("open")
     var language by mutableStateOf(Lang.En)
         private set
+    var draft by mutableStateOf("")
+    var balanceHidden by mutableStateOf(false)
+    var coupons by mutableStateOf<CouponsDto?>(null)
+    var campaigns by mutableStateOf<CampaignsDto?>(null)
+    var offersError by mutableStateOf<String?>(null)
+    var offersLoading by mutableStateOf(false)
+    var activatingId by mutableStateOf<String?>(null)
+    var priorSpending by mutableStateOf<SpendingDto?>(null)
     var cutPercent by mutableStateOf(20)
     var homeEuro by mutableStateOf(220_000)
     var rateTenths by mutableStateOf(40)
@@ -72,6 +80,7 @@ class SpendSightStore(
     private var loadJob: Job? = null
     private var loanJob: Job? = null
     private var loanToken = 0
+    private var priorToken = 0
     private var pendingFiling = false
 
     private val book: LedgerSnapshot get() = checkNotNull(ledger)
@@ -153,6 +162,8 @@ class SpendSightStore(
         val question = text.trim().take(280)
         val customerId = ledger?.session?.customerId
         if (question.isEmpty() || asking || customerId == null) return
+        if (current != Screen.Coach) push(Screen.Coach)
+        draft = ""
         messages.add(CoachMessage(role = "user", text = question))
         asking = true
         scope.launch {
@@ -323,6 +334,7 @@ class SpendSightStore(
         val fresh = api.loadBundle().toSnapshot()
         ledger = if (kept != null) fresh.copy(loan = kept) else fresh
         newestSpendMonth = fresh.spending.month
+        loadPriorSpending()
         if (messages.isEmpty()) {
             messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening(language))))
         }
@@ -333,6 +345,7 @@ class SpendSightStore(
             try {
                 val view = api.spending(book.session.reads.spending, month)
                 ledger = ledger?.copy(spending = view)
+                loadPriorSpending()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -351,6 +364,62 @@ class SpendSightStore(
                 throw e
             } catch (e: Exception) {
                 notice = e.message ?: t(language, R.string.T_the_save_reading_did_not_update)
+            }
+        }
+    }
+
+    fun loadOffers() {
+        val id = ledger?.session?.customerId ?: return
+        if (offersLoading) return
+        offersLoading = true
+        offersError = null
+        scope.launch {
+            try {
+                coupons = api.coupons(id)
+                campaigns = api.campaigns()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                offersError = e.message ?: t(language, R.string.T_offers_failed)
+            } finally {
+                offersLoading = false
+            }
+        }
+    }
+
+    fun activateCoupon(coupon: CouponDto) {
+        if (coupon.activated || coupon.activate.isBlank() || activatingId != null) return
+        activatingId = coupon.couponId
+        scope.launch {
+            try {
+                val updated = api.activateCoupon(coupon.activate)
+                val current = coupons ?: return@launch
+                val rows = current.coupons.map { if (it.couponId == updated.couponId) updated else it }
+                coupons = current.copy(coupons = rows, activatedCount = rows.count { it.activated })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                notice = e.message ?: t(language, R.string.T_offers_failed)
+            } finally {
+                activatingId = null
+            }
+        }
+    }
+
+    fun loadPriorSpending() {
+        val spending = ledger?.spending ?: return
+        val path = ledger?.session?.reads?.spending ?: return
+        val prior = shiftMonth(spending.month, -1)
+        val token = ++priorToken
+        priorSpending = null
+        scope.launch {
+            try {
+                val view = api.spending(path, prior)
+                if (token == priorToken && view.month == prior) priorSpending = view
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                if (token == priorToken) priorSpending = null
             }
         }
     }

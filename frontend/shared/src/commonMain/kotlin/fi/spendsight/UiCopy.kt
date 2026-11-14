@@ -39,6 +39,15 @@ fun coastOpening(lang: Lang): String = t(lang, R.string.T_ask_about_this_custome
 
 val coastOpenings: Set<String> = Lang.entries.map { coastOpening(it) }.toSet()
 
+/** Questions shown above the ask field on Home. Each one is sent as written. */
+fun homeQuestions(lang: Lang): List<String> = listOf(
+    t(lang, R.string.T_where_go),
+    t(lang, R.string.T_kind_of_spender),
+    t(lang, R.string.T_safe_week),
+    t(lang, R.string.T_save_more),
+    t(lang, R.string.T_typical_household),
+)
+
 /** Chip label and the question sent to this customer's coach endpoint. */
 fun coachChips(lang: Lang): List<Pair<String, String>> = listOf(
     t(lang, R.string.T_balance) to t(lang, R.string.T_what_is_my_balance),

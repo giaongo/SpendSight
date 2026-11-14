@@ -74,18 +74,18 @@ That load calls, in parallel:
 | `GET /watch` | Watch |
 | `GET /loan/sketch?price_eur=220000&rate_percent=4.0&years=25&down_percent=10` | Loan sketch |
 
-`/docs` and `/database` are not called. Today, Spending, and Save use the paths in `reads` from `GET /session`, so a different customer on the service is the customer the phone loads. Month and year changes stay on those same paths.
+`/docs` and `/database` are not called. Today, Spending, and Save use the paths in `reads` from `GET /session`, so a different customer on the service is the customer the phone loads. Month and year changes stay on those same paths. Offers are not part of this opening load. The Offers tab calls `GET /customers/{customer_id}/coupons` and `GET /campaigns`. Activate calls the `activate` path on that coupon. SpendSight also reads the previous month afterwards, and ignores that call when the customer has no earlier month.
 
 ## Tabs
 
 | Tab | What it shows |
 | --- | --- |
-| Today | The session’s `reads.today`: balance, as-of date, latest salary, money in and out for the latest month, transaction count |
-| Spending | The session’s `reads.spending`. Earlier and Later add `?month=YYYY-MM`. A month the customer does not have stays on the previous month and shows the 400 detail |
-| Save | The session’s `reads.save` with `?years=`. The chips are 1, 3, and 5. This is recorded deposits. It does not move money |
-| SpendSight | Chat for the session customer. `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`. The bubble is `answer`. The line under the composer is `disclaimer` |
+| Home | The session’s `reads.today`: balance and as-of date. Hide is local. See transactions opens `reads.spending` |
+| SpendSight | The loaded spending month. Essentials and everyday are sums of outflow cents the service already returned. Salary and invest deposits are left out. “Worth a look” compares the previous month when that read succeeds. “What can I safely spend this week?” is a question to the coach. The screen does not invent that figure |
+| Savings | The session’s `reads.save` with `?years=`. The chips are 1, 3, and 5. The hero is `deposited_cents`. Account rows are explanations, not balances |
+| Offers | `GET /customers/{customer_id}/coupons` and `GET /campaigns`. The benefit line is the service’s `benefit`. Activate is `POST` to the coupon’s `activate` path |
 
-The top bar switches the app’s own words in this order: Finnish (`FI`), English (`EN`), Swedish (`SW`). The choice stays on this phone. Those words live in `strings.xml` (`translations/values`, `translations/values-fi-rFI`, and `translations/values-sv-rFI`) and screens read them with `t()`. Known category names, including Housing, are shown in the selected language. A filing request still sends the English name. The fixed notes on Today, Spending, and Save are translated. Any other sentence the service writes stays as sent. Amounts drawn from the service’s cents use English grouping (`€1,028.30`) or Finnish and Swedish grouping (`€1 028,30`). A chip asks in the language that is selected.
+The four roots have no white bar. A drill-in screen has a short bar. Language is a menu on that bar and on each green header, in the order Finnish (`FI`), English (`EN`), Swedish (`SW`). English is the language the app opens in. The choice stays on this phone and is not saved. About this account is in the same menu. Those words live in `strings.xml` (`translations/values`, `translations/values-fi-rFI`, and `translations/values-sv-rFI`) and screens read them with `t()`. Known category names, including Housing, are shown in the selected language. A filing request still sends the English name. The fixed notes on Today, Spending, and Save are translated. Any other sentence the service writes stays as sent. Amounts drawn from the service’s cents use English grouping (`€1,028.30`) or Finnish and Swedish grouping (`€1 028,30`). A chip asks in the language that is selected.
 
 A category that exists on the loaded spending month lists those transactions. The rows show the service’s cents in the selected number format. Those rows have no filing sheet.
 

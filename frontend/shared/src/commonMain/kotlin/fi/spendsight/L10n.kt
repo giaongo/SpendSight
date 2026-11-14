@@ -71,15 +71,16 @@ fun Screen.heading(): String = when (this) {
     Screen.Watch -> t(R.string.T_watch)
     Screen.Impulse -> t(R.string.T_impulse)
     Screen.Runway -> t(R.string.T_days_left)
-    Screen.Coach -> "SpendSight"
+    Screen.Coach, Screen.Insight -> "SpendSight"
+    Screen.Offers -> t(R.string.T_offers)
 }
 
 @Composable
 fun Tab.heading(): String = when (this) {
-    Tab.Today -> t(R.string.T_today)
-    Tab.Spending -> t(R.string.T_spending)
-    Tab.Save -> t(R.string.T_save)
-    Tab.Coach -> "SpendSight"
+    Tab.Home -> t(R.string.T_home)
+    Tab.SpendSight -> "SpendSight"
+    Tab.Savings -> t(R.string.T_savings)
+    Tab.Offers -> t(R.string.T_offers)
 }
 
 @Composable
@@ -164,6 +165,7 @@ fun knownNote(lang: Lang, text: String): String = when (text) {
         t(lang, R.string.T_note_save)
     "This session is the first customer in the database. Pass a customer id to /customers/{customer_id} for anyone else." ->
         t(lang, R.string.T_note_session)
+    "This file has no coupons or campaigns for this customer." -> t(lang, R.string.T_note_offers)
     else -> text
 }
 

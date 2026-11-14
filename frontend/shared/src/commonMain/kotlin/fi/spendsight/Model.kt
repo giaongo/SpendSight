@@ -91,21 +91,28 @@ sealed interface Screen {
     data object Impulse : Screen { override val title = "Impulse" }
     data object Runway : Screen { override val title = "Days left" }
     data object Coach : Screen { override val title = "SpendSight" }
+    data object Insight : Screen { override val title = "SpendSight" }
+    data object Offers : Screen { override val title = "Offers" }
 }
 
 enum class Tab(val label: String, val root: Screen) {
-    Today("Today", Screen.Today),
-    Spending("Spending", Screen.Spending),
-    Save("Save", Screen.Save),
-    Coach("SpendSight", Screen.Coach),
+    Home("Home", Screen.Today),
+    SpendSight("SpendSight", Screen.Insight),
+    Savings("Savings", Screen.Save),
+    Offers("Offers", Screen.Offers),
 }
 
 fun Screen.tab(): Tab = when (this) {
-    is Screen.Spending, is Screen.Category, Screen.Charts, Screen.Baskets -> Tab.Spending
-    Screen.Save, Screen.Home, Screen.Loan, Screen.Bonus, Screen.Subs, Screen.Watch -> Tab.Save
-    Screen.Coach, Screen.Cut, Screen.Purchase, Screen.Spender, Screen.Impulse, Screen.Runway -> Tab.Coach
-    else -> Tab.Today
+    Screen.Insight, Screen.Coach, Screen.Cut, Screen.Purchase, Screen.Spender, Screen.Impulse, Screen.Runway -> Tab.SpendSight
+    Screen.Save, Screen.Home, Screen.Loan, Screen.Bonus, Screen.Subs, Screen.Watch -> Tab.Savings
+    Screen.Offers -> Tab.Offers
+    else -> Tab.Home
 }
+
+fun Screen.isRoot(): Boolean = this == Screen.Today || this == Screen.Insight || this == Screen.Save || this == Screen.Offers
+
+fun Screen.showsComposer(): Boolean =
+    this == Screen.Today || this == Screen.Insight || this == Screen.Save || this == Screen.Coach
 
 sealed interface Sheet {
     data object About : Sheet
