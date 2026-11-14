@@ -20,9 +20,9 @@ from urllib.request import Request, urlopen
 from langdetect import DetectorFactory, LangDetectException, detect
 
 from app.customer_data import CustomerBook
+from app.money import eur
 
 DetectorFactory.seed = 0
-from app.money import eur
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 QUESTION_LIMIT = 280
