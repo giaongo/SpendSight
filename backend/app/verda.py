@@ -17,7 +17,11 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from langdetect import DetectorFactory, LangDetectException, detect
+
 from app.customer_data import CustomerBook
+
+DetectorFactory.seed = 0
 from app.money import eur
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
@@ -74,7 +78,7 @@ S-Pankki is the Finnish bank of S Group, owned by its co-op members.
 
 Voice:
 - Calm, plain, and kind, like a helpful person at a Finnish bank counter. Matter-of-fact, never salesy.
-- Speak to the customer as "you". Answer in English, in at most three short sentences.
+- Speak to the customer as "you", or "sinä" when the answer is in Finnish. Use at most three short sentences.
 - No praise, no blame, no guilt, and no urgency. Never say a purchase was bad or a habit is wrong.
 - No exclamation marks, emoji, slang, links, markdown, or marketing words such as "amazing" or "smart".
 
@@ -145,18 +149,34 @@ SPENDING_DISCLAIMER = (
 )
 OTHER_DISCLAIMER = "This answer is not based on the customer's transactions. It can be wrong."
 
-_PERSONAL = re.compile(r"\b(i|i'm|i've|i’ve|my|mine|our)\b", re.IGNORECASE)
+_PERSONAL = re.compile(
+    r"\b(i|i'm|i've|i’ve|my|mine|our|minun|minulla|minua|mun|tilini|palkkani|"
+    r"saldoni|menoni|tuloni|käytin|kulutin|maksoin|ostin|säästin|talletin|"
+    r"ich|mein|meine|mir|jag|mitt|mina|mon|ma|mes|je|mi|mis|mio|mia|miei)\b",
+    re.IGNORECASE,
+)
 _MONEY = re.compile(
     r"\b(balance|salary|salaries|spend|spending|spent|transaction|transactions|"
     r"payment|payments|paid|account|save|saving|saved|savings|deposit|deposits|"
     r"mortgage|bill|bills|rent|income|wage|paycheck|bonus|grocery|groceries|"
     r"coffee|restaurant|dining|taxi|subscription|budget|afford|euro|euros|"
-    r"money|cost|costs|withdraw|withdrawal|transfer|loan)\b",
+    r"money|cost|costs|withdraw|withdrawal|transfer|loan|"
+    r"saldo|saldoni|palkka|palkkani|tili|tilini|tilillä|rahaa|rahat|menot|tulot|"
+    r"kulut|kulutin|käytin|säästö|säästin|laina|vuokra|maksu|maksoin|ostos|ostin|"
+    r"talletus|talletin|tilisiirto|lasku|laskut|budjetti|"
+    r"kontostand|gehalt|ausgaben|konto|kontot|geld|lön|pengar|"
+    r"solde|compte|salaire|dépenses|cuenta|salario|gasto|conto|stipendio)\b",
     re.IGNORECASE,
 )
 _GENERAL = re.compile(
     r"^(what is|what's|who is|who's|where is|where are|when is|explain|define|"
-    r"how do|how does|tell me|write |translate|capital of|weather)\b",
+    r"how do|how does|tell me|write |translate|capital of|weather|"
+    r"mikä on|mitä on|kuka on|missä |selitä|kerro |miten )\b",
+    re.IGNORECASE,
+)
+_ENGLISH_WORDS = re.compile(
+    r"\b(the|what|how|my|is|are|was|balance|salary|spend|spending|when|where|"
+    r"please|tell|capital|joke|much|account|left|september)\b",
     re.IGNORECASE,
 )
 
@@ -209,6 +229,193 @@ def chat_url(base: str) -> str:
     return base + "/v1/chat/completions"
 
 
+# Names the model understands. Codes are the ones langdetect returns.
+_LANGUAGE_NAMES = {
+    "af": "Afrikaans",
+    "ar": "Arabic",
+    "bg": "Bulgarian",
+    "bn": "Bengali",
+    "ca": "Catalan",
+    "cs": "Czech",
+    "cy": "Welsh",
+    "da": "Danish",
+    "de": "German",
+    "el": "Greek",
+    "en": "English",
+    "es": "Spanish",
+    "et": "Estonian",
+    "fa": "Persian",
+    "fi": "Finnish",
+    "fr": "French",
+    "gu": "Gujarati",
+    "he": "Hebrew",
+    "hi": "Hindi",
+    "hr": "Croatian",
+    "hu": "Hungarian",
+    "id": "Indonesian",
+    "it": "Italian",
+    "ja": "Japanese",
+    "kn": "Kannada",
+    "ko": "Korean",
+    "lt": "Lithuanian",
+    "lv": "Latvian",
+    "mk": "Macedonian",
+    "ml": "Malayalam",
+    "mr": "Marathi",
+    "ne": "Nepali",
+    "nl": "Dutch",
+    "no": "Norwegian",
+    "pa": "Punjabi",
+    "pl": "Polish",
+    "pt": "Portuguese",
+    "ro": "Romanian",
+    "ru": "Russian",
+    "sk": "Slovak",
+    "sl": "Slovenian",
+    "so": "Somali",
+    "sq": "Albanian",
+    "sv": "Swedish",
+    "sw": "Swahili",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "th": "Thai",
+    "tl": "Tagalog",
+    "tr": "Turkish",
+    "uk": "Ukrainian",
+    "ur": "Urdu",
+    "vi": "Vietnamese",
+    "zh-cn": "Chinese",
+    "zh-tw": "Chinese",
+}
+
+_CYRILLIC = re.compile(r"[А-Яа-яЁёІіЇїЄєҐґ]")
+_UKRAINIAN_LETTERS = re.compile(r"[ІіЇїЄєҐґ]")
+_RUSSIAN_LETTERS = re.compile(r"[ЁёЫыЭэЪъ]")
+_HANGUL = re.compile(r"[가-힣]")
+_KANA = re.compile(r"[ぁ-んァ-ン]")
+_CJK = re.compile(r"[一-鿿]")
+_ARABIC = re.compile(r"[\u0600-\u06FF]")
+_THAI = re.compile(r"[\u0E00-\u0E7F]")
+_GREEK = re.compile(r"[Α-ω]")
+_HEBREW = re.compile(r"[\u0590-\u05FF]")
+_DEVANAGARI = re.compile(r"[\u0900-\u097F]")
+
+_DISCLAIMERS = {
+    "English": (
+        SPENDING_DISCLAIMER,
+        OTHER_DISCLAIMER,
+    ),
+    "Finnish": (
+        "Tämä vastaus käyttää tämän asiakkaan tapahtumia. Se voi olla väärin. Se ei siirrä rahaa.",
+        "Tämä vastaus ei perustu asiakkaan tapahtumiin. Se voi olla väärin.",
+    ),
+    "Swedish": (
+        "Det här svaret använder den här kundens transaktioner. Det kan vara fel. Det flyttar inga pengar.",
+        "Det här svaret bygger inte på kundens transaktioner. Det kan vara fel.",
+    ),
+    "German": (
+        "Diese Antwort verwendet die Transaktionen dieses Kunden. Sie kann falsch sein. Es wird kein Geld bewegt.",
+        "Diese Antwort beruht nicht auf den Transaktionen des Kunden. Sie kann falsch sein.",
+    ),
+    "French": (
+        "Cette réponse utilise les opérations de ce client. Elle peut être fausse. Elle ne déplace pas d'argent.",
+        "Cette réponse ne repose pas sur les opérations du client. Elle peut être fausse.",
+    ),
+    "Spanish": (
+        "Esta respuesta usa las transacciones de este cliente. Puede ser incorrecta. No mueve dinero.",
+        "Esta respuesta no se basa en las transacciones del cliente. Puede ser incorrecta.",
+    ),
+    "Italian": (
+        "Questa risposta usa le transazioni di questo cliente. Può essere sbagliata. Non sposta denaro.",
+        "Questa risposta non si basa sulle transazioni del cliente. Può essere sbagliata.",
+    ),
+}
+
+
+def _detected_code(text: str) -> str:
+    try:
+        return detect(text)
+    except LangDetectException:
+        return ""
+
+
+def answer_language(question: str) -> str:
+    """Name of the language to answer in. Empty means match the question as written."""
+    text = question.strip()
+    if not text:
+        return ""
+    if _UKRAINIAN_LETTERS.search(text):
+        return "Ukrainian"
+    if _RUSSIAN_LETTERS.search(text) or (_CYRILLIC.search(text) and _detected_code(text) in {"ru", "uk", "bg", "mk"}):
+        if _UKRAINIAN_LETTERS.search(text):
+            return "Ukrainian"
+        return "Russian" if _RUSSIAN_LETTERS.search(text) or _detected_code(text) != "bg" else "Bulgarian"
+    if _HANGUL.search(text):
+        return "Korean"
+    if _KANA.search(text):
+        return "Japanese"
+    if _CJK.search(text):
+        return "Chinese"
+    if _ARABIC.search(text):
+        return "Arabic"
+    if _THAI.search(text):
+        return "Thai"
+    if _GREEK.search(text):
+        return "Greek"
+    if _HEBREW.search(text):
+        return "Hebrew"
+    if _DEVANAGARI.search(text):
+        return "Hindi"
+    # Short English is often misread as another language. Trust English words, then the detector.
+    if _ENGLISH_WORDS.search(text):
+        return "English"
+    return _LANGUAGE_NAMES.get(_detected_code(text), "")
+
+
+def disclaimer_for(uses_data: bool, language: str) -> str:
+    spending, other = _DISCLAIMERS.get(language, (SPENDING_DISCLAIMER, OTHER_DISCLAIMER))
+    return spending if uses_data else other
+
+
+# A short instruction in the target language. The small model follows this more reliably than English.
+_NATIVE_INSTRUCTION = {
+    "Finnish": "Vastaa suomeksi.",
+    "Swedish": "Svara på svenska.",
+    "German": "Antworte auf Deutsch.",
+    "French": "Réponds en français.",
+    "Spanish": "Responde en español.",
+    "Italian": "Rispondi in italiano.",
+    "Portuguese": "Responda em português.",
+    "Dutch": "Antwoord in het Nederlands.",
+    "Danish": "Svar på dansk.",
+    "Norwegian": "Svar på norsk.",
+    "Polish": "Odpowiedz po polsku.",
+    "Russian": "Ответь по-русски.",
+    "Ukrainian": "Відповідай українською.",
+    "Chinese": "用中文回答。",
+    "Japanese": "日本語で答えてください。",
+    "Korean": "한국어로 대답하세요.",
+    "Arabic": "أجب بالعربية.",
+    "Vietnamese": "Trả lời bằng tiếng Việt.",
+    "Turkish": "Türkçe cevap ver.",
+}
+
+
+def language_instruction(language: str) -> str:
+    if not language:
+        return "Answer in the same language as the question. Do not translate it into another language."
+    if language == "English":
+        return "Answer in English. Every sentence must be English."
+    native = _NATIVE_INSTRUCTION.get(language, "")
+    lines = [
+        f"Answer in {language}. Every sentence must be {language}.",
+        "Do not answer in English.",
+    ]
+    if native:
+        lines.append(native)
+    return " ".join(lines)
+
+
 def spending_relevance(question: str) -> str | None:
     """Return ``spending``, ``other``, or None when the wording is ambiguous."""
     text = question.strip()
@@ -219,26 +426,38 @@ def spending_relevance(question: str) -> str | None:
         return "spending"
     if general and not personal:
         return "other"
-    if not money:
+    if money:
+        return None
+    # English and Finnish questions with no money words are not about this account.
+    # Any other language still goes to the model, so a German or Swedish balance
+    # question is not mistaken for small talk.
+    if answer_language(text) in {"English", "Finnish"}:
         return "other"
     return None
 
 
 def _messages(book: CustomerBook, question: str, relevance: str) -> tuple[list[dict], bool]:
     asked = safe_question(question)
+    language = answer_language(question)
+    instruction = language_instruction(language)
     if relevance == "spending":
-        payload = {"question": asked, "facts": euro_facts(book.ai_facts())}
+        payload = {
+            "question": asked,
+            "language": language or "same as the question",
+            "facts": euro_facts(book.ai_facts()),
+        }
         return (
             [
-                {"role": "system", "content": SPENDING_PROMPT},
+                {"role": "system", "content": f"{SPENDING_PROMPT}\n\n{instruction}"},
                 {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
             ],
             True,
         )
+    payload = {"question": asked, "language": language or "same as the question"}
     return (
         [
-            {"role": "system", "content": OTHER_PROMPT},
-            {"role": "user", "content": json.dumps({"question": asked}, ensure_ascii=False)},
+            {"role": "system", "content": f"{OTHER_PROMPT}\n\n{instruction}"},
+            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
         ],
         False,
     )
@@ -314,5 +533,5 @@ def ask_customer(book: CustomerBook, question: str) -> dict:
         "model": used_model,
         "source": "verda",
         "uses_customer_data": uses_data,
-        "disclaimer": SPENDING_DISCLAIMER if uses_data else OTHER_DISCLAIMER,
+        "disclaimer": disclaimer_for(uses_data, answer_language(question)),
     }

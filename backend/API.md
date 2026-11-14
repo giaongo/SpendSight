@@ -79,6 +79,8 @@ Unknown customer ids return 404. A `month` the customer does not have returns 40
 
 `POST /customers/{customer_id}/coach/ask` with `{ "text": "How much did I spend last month?" }`.
 
+The answer uses the same language as the question. The service detects that language, for example English, Finnish, Swedish, or German, and the reply is in that language.
+
 A question about that customer's spending, balance, salary, bills, savings, or mortgage is answered from their transactions. The service computes the figures and sends them with the question. The model may phrase the answer. It does not choose the cents.
 
 Any other question is answered on its own. Their transactions are not included. `uses_customer_data` is true only for the spending case.
