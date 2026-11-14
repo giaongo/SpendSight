@@ -9,13 +9,72 @@ import kotlin.test.assertTrue
 
 class ApiContractTest {
     @Test
+    fun switchesBetweenEnglishFinnishAndSwedish() {
+        assertEquals("Today", t(Lang.En, R.string.T_today))
+        assertEquals("Tänään", t(Lang.Fi, R.string.T_today))
+        assertEquals("Idag", t(Lang.Sv, R.string.T_today))
+        assertEquals(listOf("FI", "EN", "SW"), Lang.entries.map { it.short })
+        assertEquals("EN", Lang.En.short)
+        assertEquals("FI", Lang.Fi.short)
+        assertEquals("SW", Lang.Sv.short)
+        assertEquals("Svenska", Lang.Sv.endonym)
+        assertTrue(coastOpening(Lang.Fi).contains("asiakkaan"))
+        assertTrue(coastOpening(Lang.En).contains("customer's"))
+        assertTrue(coastOpening(Lang.Sv).contains("kundens"))
+        assertFalse(coastOpening(Lang.En).contains('\\'))
+        assertTrue(coastOpening(Lang.En) in coastOpenings)
+        assertTrue(coastOpening(Lang.Sv) in coastOpenings)
+        assertEquals("Coffee & drinks", t(Lang.En, R.string.T_coffee_drinks))
+        assertEquals("Kahvi ja juomat", t(Lang.Fi, R.string.T_coffee_drinks))
+        assertEquals("Kaffe och dryck", t(Lang.Sv, R.string.T_coffee_drinks))
+        assertEquals("Housing", categoryLabel(Lang.En, "Housing"))
+        assertEquals("Asuminen", categoryLabel(Lang.Fi, "Housing"))
+        assertEquals("Boende", categoryLabel(Lang.Sv, "Housing"))
+        assertEquals("Yleiskulut", categoryLabel(Lang.Fi, "Utilities"))
+        assertEquals("Hushållsräkningar", categoryLabel(Lang.Sv, "Utilities"))
+        assertEquals("Asumismaksu", typeLabel(Lang.Fi, "housing_payment"))
+        assertEquals("Bostadsbetalning", typeLabel(Lang.Sv, "housing_payment"))
+        assertEquals("Mystery", categoryLabel(Lang.Sv, "Mystery"))
+        assertEquals(
+            "Saldo on viimeisimmän tapahtuman jälkeen.",
+            knownNote(Lang.Fi, "The balance is after their latest transaction."),
+        )
+        assertEquals("Verda said this.", knownNote(Lang.Sv, "Verda said this."))
+        assertEquals("From 1 to 2. 3 transactions.", t(Lang.En, R.string.T_from_to_transactions, "1", "2", "3"))
+        assertEquals("Ajalta 1–2. 3 tapahtumaa.", t(Lang.Fi, R.string.T_from_to_transactions, "1", "2", "3"))
+        assertEquals("Från 1 till 2. 3 transaktioner.", t(Lang.Sv, R.string.T_from_to_transactions, "1", "2", "3"))
+        assertTrue(t(Lang.En, R.string.T_bonus_follows_the_s_group_steps_one_percentage_cov).contains("1%"))
+        assertTrue(t(Lang.Fi, R.string.T_bonus_follows_the_s_group_steps_one_percentage_cov).contains("1 %"))
+        assertTrue(t(Lang.Sv, R.string.T_bonus_follows_the_s_group_steps_one_percentage_cov).contains("1 %"))
+        assertEquals("b a", formatString("%2\$s %1\$s", arrayOf("a", "b")))
+        assertEquals("5%", formatString("5%%", emptyArray()))
+    }
+
+    @Test
     fun formatsCentsTheWayTheServiceDoes() {
-        assertEquals("€1,028.30", eur(102_830))
-        assertEquals("€1,045.12", eur(104_512))
-        assertEquals("−€5.60", eur(-560))
-        assertEquals("1", formatPct(1.0))
-        assertEquals("1.5", formatPct(1.5))
-        assertEquals("3.5", formatPct(3.5))
+        assertEquals("€1,028.30", eur(102_830, Lang.En))
+        assertEquals("€1,045.12", eur(104_512, Lang.En))
+        assertEquals("−€5.60", eur(-560, Lang.En))
+        assertEquals("€1\u00A0028,30", eur(102_830, Lang.Fi))
+        assertEquals("€1\u00A0045,12", eur(104_512, Lang.Fi))
+        assertEquals("−€5,60", eur(-560, Lang.Fi))
+        assertEquals("€1\u00A0028,30", eur(102_830, Lang.Sv))
+        assertEquals("€1\u00A0045,12", eur(104_512, Lang.Sv))
+        assertEquals("−€5,60", eur(-560, Lang.Sv))
+        assertEquals("€150,000", euros(150_000, Lang.En))
+        assertEquals("€150\u00A0000", euros(150_000, Lang.Fi))
+        assertEquals("€150\u00A0000", euros(150_000, Lang.Sv))
+        assertEquals("€4\u00A0723,58", presentMoney("€4,723.58", Lang.Fi))
+        assertEquals("−€24,14", presentMoney("−€24.14", Lang.Fi))
+        assertEquals("€4\u00A0723,58", presentMoney("€4,723.58", Lang.Sv))
+        assertEquals("−€24,14", presentMoney("−€24.14", Lang.Sv))
+        assertEquals("€4,723.58", presentMoney("€4,723.58", Lang.En))
+        assertEquals("1", formatPct(1.0, Lang.En))
+        assertEquals("1.5", formatPct(1.5, Lang.En))
+        assertEquals("1,5", formatPct(1.5, Lang.Fi))
+        assertEquals("3,5", formatPct(3.5, Lang.Fi))
+        assertEquals("1,5", formatPct(1.5, Lang.Sv))
+        assertEquals("3,5", formatPct(3.5, Lang.Sv))
     }
 
     @Test
@@ -123,7 +182,9 @@ class ApiContractTest {
         assertEquals(Basket.Everyday, row.basket)
         assertEquals("13 Nov", row.whenLabel)
         assertTrue(row.inSlip)
-        assertEquals("€5.60", row.shownAmount())
+        assertEquals("€5.60", row.shownAmount(Lang.En))
+        assertEquals("€5,60", row.shownAmount(Lang.Fi))
+        assertEquals("€5,60", row.shownAmount(Lang.Sv))
 
         val loan = ApiJson.decodeFromString<LoanDto>(
             """

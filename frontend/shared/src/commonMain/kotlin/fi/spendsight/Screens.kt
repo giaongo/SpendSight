@@ -77,25 +77,26 @@ fun ScreenBody(store: SpendSightStore, modifier: Modifier = Modifier) {
 @Composable
 private fun TodayScreen(store: SpendSightStore) {
     val today = store.customer
-    Eyebrow("${today.customerId} · ${today.postalCode} · age ${today.age}")
-    Hero(today.balance)
-    Lede(today.note)
+    Eyebrow("${today.customerId} · ${today.postalCode} · ${t(R.string.T_age)} ${today.age}")
+    Hero(eur(today.balanceCents))
+    Lede(knownNote(today.note))
     CardBox {
-        HoldRow("As of", today.accountId, today.asOf)
-        HoldRow("Latest salary", today.latestSalaryDate ?: "No salary in the file", today.latestSalaryCents?.let { eur(it) } ?: "—")
-        HoldRow("Money in, ${today.month}", "Not part of spending", eur(today.monthInCents))
-        HoldRow("Money out, ${today.month}", "Left the account", eur(today.monthOutCents))
-        SumRow("Transactions on file", today.transactionCount.toString())
+        HoldRow(t(R.string.T_as_of), today.accountId, today.asOf)
+        HoldRow(t(R.string.T_latest_salary), today.latestSalaryDate ?: t(R.string.T_no_salary_in_the_file), today.latestSalaryCents?.let { eur(it) } ?: "—")
+        HoldRow(t(R.string.T_money_in, today.month), t(R.string.T_not_part_of_spending), eur(today.monthInCents))
+        HoldRow(t(R.string.T_money_out, today.month), t(R.string.T_left_the_account), eur(today.monthOutCents))
+        SumRow(t(R.string.T_transactions_on_file), today.transactionCount.toString())
     }
-    Note("From ${today.firstDate} to ${today.asOf}. ${today.transactionCount} transactions.")
+    Note(t(R.string.T_from_to_transactions, today.firstDate, today.asOf, today.transactionCount))
     if (today.mortgageCustomerId == null) {
-        Note("No mortgage id on this customer.")
+        Note(t(R.string.T_no_mortgage_id_on_this_customer))
     } else {
-        Note("Mortgage ${today.mortgageCustomerId}. Decision: ${today.mortgageDecision ?: "none"}.")
+        val decision = today.mortgageDecision?.let { decisionLabel(it) } ?: t(R.string.T_none)
+        Note(t(R.string.T_mortgage_decision, today.mortgageCustomerId, decision))
     }
-    TextLink("Open ${today.month}") { store.push(Screen.Spending) }
-    TextLink("Open saving") { store.push(Screen.Save) }
-    TextLink("Ask the coach") { store.push(Screen.Coach) }
+    TextLink("${t(R.string.T_open)} ${today.month}") { store.push(Screen.Spending) }
+    TextLink(t(R.string.T_open_saving)) { store.push(Screen.Save) }
+    TextLink(t(R.string.T_ask)) { store.push(Screen.Coach) }
 }
 
 @Composable
@@ -104,22 +105,22 @@ private fun SpendingScreen(store: SpendSightStore) {
     val newest = store.newestSpendMonth
     Eyebrow(spending.customerId)
     Hero(eur(spending.totalOutCents))
-    Lede(spending.note)
+    Lede(knownNote(spending.note))
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-        TextLink("Earlier") { store.loadSpending(shiftMonth(spending.month, -1)) }
+        TextLink(t(R.string.T_earlier)) { store.loadSpending(shiftMonth(spending.month, -1)) }
         Text(spending.month, color = Ink, fontWeight = FontWeight.SemiBold)
         if (newest == null || spending.month < newest) {
-            TextLink("Later") { store.loadSpending(shiftMonth(spending.month, 1)) }
+            TextLink(t(R.string.T_later)) { store.loadSpending(shiftMonth(spending.month, 1)) }
         } else {
-            Note("Latest")
+            Note(t(R.string.T_latest))
         }
     }
     CardBox {
-        HoldRow("Money in", "Salary and other credits", eur(spending.totalInCents))
-        SumRow("${spending.lineCount} lines", eur(spending.totalOutCents))
+        HoldRow(t(R.string.T_money_in_2), t(R.string.T_salary_and_other_credits), eur(spending.totalInCents))
+        SumRow("${spending.lineCount} ${t(R.string.T_lines)}", eur(spending.totalOutCents))
     }
     spending.categories.forEach { cat ->
-        ChevronRow(cat.name, "${cat.count} · ${cat.amount}") { store.push(Screen.Category(cat.name)) }
+        ChevronRow(categoryLabel(cat.name), "${cat.count} · ${eur(cat.amountCents)}") { store.push(Screen.Category(cat.name)) }
     }
 }
 
@@ -135,17 +136,17 @@ private fun CategoryScreen(store: SpendSightStore, name: String) {
     val yes = rows.filter { it.earnsBonus }.sumOf { it.amountCents }
     val no = total - yes
     val bonusLine = when {
-        yes > 0 && no > 0 -> "${eur(yes)} earns Bonus. ${eur(no)} does not."
-        yes > 0 -> "All of this earns Bonus."
-        else -> "None of this earns Bonus."
+        yes > 0 && no > 0 -> t(R.string.T_earns_bonus_does_not, eur(yes), eur(no))
+        yes > 0 -> t(R.string.T_all_of_this_earns_bonus)
+        else -> t(R.string.T_none_of_this_earns_bonus)
     }
     val basket = rows.firstOrNull()?.basket ?: Basket.Everyday
-    Eyebrow("${basket.title} · ${if (store.month == Month.Oct) "October" else "1–13 Nov"}")
+    Eyebrow("${basket.heading()} · ${store.month.heading()}")
     Hero(eur(total))
     Lede(bonusLine)
     MonthPicker(store)
     if (rows.isEmpty()) {
-        Note("No payments in this category.")
+        Note(t(R.string.T_no_payments_in_this_category))
     } else {
         rows.forEach { row ->
             Row(
@@ -171,17 +172,17 @@ private fun CustomerCategory(store: SpendSightStore, name: String) {
     val total = rows.sumOf { it.amountCents }
     Eyebrow("${spending.month} · ${spending.customerId}")
     Hero(eur(total))
-    Lede("${rows.size} lines in $name. Amounts are the ones the service sent.")
+    Lede(t(R.string.T_lines_in_amounts_are_the_ones_the_service_sent, rows.size, categoryLabel(name)))
     if (rows.isEmpty()) {
-        Note("No lines in this category for ${spending.month}.")
+        Note(t(R.string.T_no_lines_in_this_category_for, spending.month))
     } else {
         rows.forEach { row ->
             Row(Modifier.fillMaxWidth().padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(row.merchantId ?: row.transactionType, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
-                    Text("${row.txDate} · ${row.transactionType}", color = Secondary, fontSize = 13.sp)
+                    Text(row.merchantId ?: typeLabel(row.transactionType), color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 16.sp)
+                    Text("${row.txDate} · ${typeLabel(row.transactionType)}", color = Secondary, fontSize = 13.sp)
                 }
-                Text(row.amount, color = Ink, fontWeight = FontWeight.SemiBold)
+                Text(eur(row.amountCents), color = Ink, fontWeight = FontWeight.SemiBold)
             }
         }
     }
@@ -190,7 +191,7 @@ private fun CustomerCategory(store: SpendSightStore, name: String) {
 @Composable
 private fun BasketsScreen(store: SpendSightStore) {
     SampleBanner()
-    Lede("Every payment sits in one basket. The first two have to be paid. The third is where a choice still exists.")
+    Lede(t(R.string.T_every_payment_sits_in_one_basket_the_first_two_hav))
     MonthPicker(store)
     val parts = Basket.entries.map { basketColor(it) to store.basketSum(store.month, it) }
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -200,24 +201,24 @@ private fun BasketsScreen(store: SpendSightStore) {
     }
     Basket.entries.forEach { basket ->
         CardBox {
-            Eyebrow(basket.title)
+            Eyebrow(basket.heading())
             Hero(eur(store.basketSum(store.month, basket)), 32)
-            Lede(basket.line)
+            Lede(basket.detail())
             if (basket == Basket.Everyday) {
                 Spacer(Modifier.height(8.dp))
                 StackBar(listOf(Green to store.catSum(store.month, "Groceries"), Slip to store.slip(store.month)))
                 Spacer(Modifier.height(6.dp))
-                Note("Groceries ${eur(store.catSum(store.month, "Groceries"))} · slips through ${eur(store.slip(store.month))}")
+                Note("${categoryLabel("Groceries")} ${eur(store.catSum(store.month, "Groceries"))} · ${t(R.string.T_slips_through)} ${eur(store.slip(store.month))}")
             }
             if (basket == Basket.Regular && store.month == Month.Nov) {
                 Spacer(Modifier.height(8.dp))
-                Note("Bills due before payday are on This week. Later holds are one total there, not separate lines here.")
+                Note(t(R.string.T_bills_due_before_payday_are_on_this_week_later_hol))
             }
             store.categories().filter { it.basket == basket }.forEach { cat ->
-                ChevronRow(cat.name) { store.push(Screen.Category(cat.name)) }
+                ChevronRow(categoryLabel(cat.name)) { store.push(Screen.Category(cat.name)) }
             }
             if (store.categories().none { it.basket == basket }) {
-                Note("Nothing in this basket for this month. October’s “must, when it happens” was ${eur(store.basketSum(Month.Oct, Basket.Irregular))}.")
+                Note(t(R.string.T_nothing_in_this_basket_for_this_month_october_s_mu, eur(store.basketSum(Month.Oct, Basket.Irregular))))
             }
         }
     }
@@ -244,16 +245,16 @@ private fun ChartsScreen(store: SpendSightStore) {
     val dining = rows.find { it.label == "Dining out" }
     val taxis = rows.find { it.label == "Taxis" }
     SampleBanner()
-    Eyebrow("1–13 November against October")
-    Hero("Your own pace.", 34)
-    Lede("Grey is October stretched to 13 days. Green is what has actually left. Both bars are the service’s figures.")
+    Eyebrow(t(R.string.T_n_1_13_november_against_october))
+    Hero(t(R.string.T_your_own_pace), 34)
+    Lede(t(R.string.T_grey_is_october_stretched_to_13_days_green_is_what))
     ChartBlock(rows)
-    Note("Grey is October’s pace. Green is 1–13 November.")
+    Note(t(R.string.T_grey_is_october_s_pace_green_is_1_13_november))
     if (dining != null && taxis != null) {
-        Lede("Dining is ${eur(dining.novemberCents)} against a pace of ${eur(dining.octoberCents)}. Taxis are ${eur(taxis.novemberCents)} against ${eur(taxis.octoberCents)}.")
+        Lede(t(R.string.T_dining_is_against_a_pace_of_taxis_are_against, eur(dining.novemberCents), eur(dining.octoberCents), eur(taxis.novemberCents), eur(taxis.octoberCents)))
     }
     Note(charts.note)
-    TextLink("Ask for a different chart") { store.push(Screen.Coach) }
+    TextLink(t(R.string.T_ask_for_a_different_chart)) { store.push(Screen.Coach) }
 }
 
 @Composable
@@ -262,9 +263,9 @@ private fun SpenderScreen(store: SpendSightStore) {
     val impulse = store.ledger?.impulse ?: return
     val peak = impulse.peak
     SampleBanner()
-    Eyebrow("From October, the last full month")
-    Hero("A regular payer.")
-    Lede("Most of the month leaves on a schedule. What slips through goes out in small payments, often at the same places.")
+    Eyebrow(t(R.string.T_from_october_the_last_full_month))
+    Hero(t(R.string.T_a_regular_payer))
+    Lede(t(R.string.T_most_of_the_month_leaves_on_a_schedule_what_slips))
     CardBox {
         StackBar(
             listOf(
@@ -275,18 +276,18 @@ private fun SpenderScreen(store: SpendSightStore) {
         )
         BasketLegend(store, Month.Oct)
     }
-    Lede("${eur(spender.mustEveryMonthCents)} left on a schedule: rent, bills, and the season ticket.")
-    Lede("${eur(spender.mustWhenItHappensCents)} had to be paid when it happened.")
-    Lede("${eur(spender.everydayCents)} was everyday. Groceries were ${eur(store.catSum(Month.Oct, "Groceries"))}. The slip was ${eur(spender.slipCents)}.")
+    Lede(t(R.string.T_left_on_a_schedule_rent_bills_and_the_season_ticke, eur(spender.mustEveryMonthCents)))
+    Lede(t(R.string.T_had_to_be_paid_when_it_happened, eur(spender.mustWhenItHappensCents)))
+    Lede(t(R.string.T_was_everyday_groceries_were_the_slip_was, eur(spender.everydayCents), eur(store.catSum(Month.Oct, "Groceries")), eur(spender.slipCents)))
     CardBox {
-        Eyebrow("Where the small ones go")
+        Eyebrow(t(R.string.T_where_the_small_ones_go))
         Spacer(Modifier.height(6.dp))
-        Lede("Coffee was ${impulse.coffeeVisits} visits. Wolt was ${impulse.woltOrders} orders. October rolls those up by place, so it has no weekday. In November the busiest dated day is ${peak.whenLabel}: ${peak.places.joinToString(", ")}, ${eur(peak.amountCents)}.", strong = true)
+        Lede(t(R.string.T_coffee_was_visits_wolt_was_orders_october_rolls_th, impulse.coffeeVisits, impulse.woltOrders, peak.whenLabel, peak.places.joinToString(", "), eur(peak.amountCents)), strong = true)
     }
-    Note(counted("October", "Three baskets", spender.lines, "lines") + ". Groceries and dining are rolled up by place.")
-    TextLink("What is safe this week") { store.push(Screen.Week) }
-    TextLink("When the impulse payments land") { store.push(Screen.Impulse) }
-    TextLink("If dining out drops by a fifth") { store.push(Screen.Cut) }
+    Note(counted(t(R.string.T_october), t(R.string.T_three_baskets), spender.lines, t(R.string.T_lines)) + t(R.string.T_groceries_and_dining_are_rolled_up_by_place))
+    TextLink(t(R.string.T_what_is_safe_this_week)) { store.push(Screen.Week) }
+    TextLink(t(R.string.T_when_the_impulse_payments_land)) { store.push(Screen.Impulse) }
+    TextLink(t(R.string.T_if_dining_out_drops_by_a_fifth)) { store.push(Screen.Cut) }
 }
 
 @Composable
@@ -295,29 +296,29 @@ private fun WeekScreen(store: SpendSightStore) {
     val effort = store.effortRow
     val summary = store.ledger?.summary ?: return
     SampleBanner()
-    Eyebrow("Until payday")
-    Hero(week.safeToSpend)
-    Lede("Balance, minus bills due before payday, minus a buffer. The service returns this figure. Groceries still to buy are a plan, so they are not in it.")
+    Eyebrow(t(R.string.T_until_payday))
+    Hero(presentMoney(week.safeToSpend))
+    Lede(t(R.string.T_balance_minus_bills_due_before_payday_minus_a_buff))
     CardBox {
         week.bills.forEach { HoldRow(it.name, it.detail, "−${eur(it.amountCents)}") }
-        HoldRow("Buffer", "Kept back from this week", "−${eur(week.bufferCents)}")
-        SumRow("Safe to spend", week.safeToSpend)
+        HoldRow(t(R.string.T_buffer), t(R.string.T_kept_back_from_this_week), "−${eur(week.bufferCents)}")
+        SumRow(t(R.string.T_safe_to_spend), presentMoney(week.safeToSpend))
     }
-    Note(counted("This week", week.bills.joinToString(" and ") { it.name }, week.bills.size, "bills") + ", plus the buffer. ${week.note}")
-    Section("A separate line for what slips")
+    Note(counted(t(R.string.T_this_week), week.bills.joinToString(t(R.string.T_and)) { it.name }, week.bills.size, t(R.string.T_bills_2)) + t(R.string.T_plus_the_buffer) + week.note)
+    Section(t(R.string.T_a_separate_line_for_what_slips))
     EffortPicker(store)
     CardBox {
-        HoldRow("${effort.name} · coffee, taxis, meals", "A separate line", effort.slip)
-        Note("Passing this line sends one note. It does not block the card, and it does not change the ${week.safeToSpend} above. The matching save is ${effort.save}.")
+        HoldRow("${effort.name} · ${t(R.string.T_coffee_taxis_meals)}", t(R.string.T_a_separate_line), eur(effort.slipCents))
+        Note(t(R.string.T_passing_this_line_sends_one_note_it_does_not_block, presentMoney(week.safeToSpend), eur(effort.saveCents)))
     }
-    Section("After payday")
+    Section(t(R.string.T_after_payday))
     CardBox {
-        HoldRow("Every hold", "The service returns the total, not each later bill.", "−${eur(summary.holdsCents)}")
-        SumRow("Left after salary and every hold", eur(summary.leftAfterSalaryCents))
+        HoldRow(t(R.string.T_every_hold), t(R.string.T_the_service_returns_the_total_not_each_later_bill), "−${eur(summary.holdsCents)}")
+        SumRow(t(R.string.T_left_after_salary_and_every_hold), eur(summary.leftAfterSalaryCents))
     }
-    Note("That last figure is the design sample: balance plus salary, minus every hold. It is not this week’s safe-to-spend number, and it is not the customer on Today.")
-    TextLink("How many days the pace lasts") { store.push(Screen.Runway) }
-    TextLink("What is safe to save") { store.push(Screen.Save) }
+    Note(t(R.string.T_that_last_figure_is_the_design_sample_balance_plus))
+    TextLink(t(R.string.T_how_many_days_the_pace_lasts)) { store.push(Screen.Runway) }
+    TextLink(t(R.string.T_what_is_safe_to_save)) { store.push(Screen.Save) }
 }
 
 @Composable
@@ -325,54 +326,54 @@ private fun CutScreen(store: SpendSightStore) {
     val dining = store.ledger?.dining ?: return
     val saved = diningWhatIf(dining.diningCents, dining.fifthCents, store.cutPercent)
     SampleBanner()
-    Eyebrow("If October’s dining out is lower")
+    Eyebrow(t(R.string.T_if_october_s_dining_out_is_lower))
     Hero(eur(saved))
-    Lede(if (store.cutPercent == 20) "kept in a month. This is the service’s one-fifth figure." else "kept in a month, as a what-if on the dining total. Drag to choose the share.")
+    Lede(if (store.cutPercent == 20) t(R.string.T_kept_in_a_month_this_is_the_service_s_one_fifth_fi) else t(R.string.T_kept_in_a_month_as_a_what_if_on_the_dining_total_d))
     Slider(
         value = store.cutPercent / 50f,
         onValueChange = { store.cutPercent = (it * 50f).toInt().coerceIn(0, 50) },
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Note("0%")
-        Text("${store.cutPercent}%", color = Ink, fontWeight = FontWeight.SemiBold)
-        Note("50%")
+        Note(pct(0))
+        Text(pct(store.cutPercent), color = Ink, fontWeight = FontWeight.SemiBold)
+        Note(pct(50))
     }
-    Lede("${eur(saved)} a month · ${eur(saved * 12)} a year")
+    Lede(t(R.string.T_a_month_a_year, eur(saved), eur(saved * 12)))
     Lede(
         if (saved <= dining.woltCents) {
-            "This can come from Wolt, which was ${eur(dining.woltCents)}. Rosso stays, and Rosso earns Bonus."
+            t(R.string.T_this_can_come_from_wolt_which_was_rosso_stays_and, eur(dining.woltCents))
         } else {
-            "This is more than Wolt, which was ${eur(dining.woltCents)}. Part of it would be Rosso, and Rosso is the dining that earns Bonus."
+            t(R.string.T_this_is_more_than_wolt_which_was_part_of_it_would, eur(dining.woltCents))
         },
     )
     CardBox {
-        HoldRow("Once a week, not twice", "From ${dining.orders} October payments", eur(dining.onceCents))
-        HoldRow("Two meals a week less", "From the same ${dining.orders} payments.", eur(dining.twiceCents))
+        HoldRow(t(R.string.T_once_a_week_not_twice), t(R.string.T_from_october_payments, dining.orders), eur(dining.onceCents))
+        HoldRow(t(R.string.T_two_meals_a_week_less), t(R.string.T_from_the_same_payments, dining.orders), eur(dining.twiceCents))
     }
     CardBox {
-        HoldRow("Wolt", "Does not earn Bonus", eur(dining.woltCents))
-        HoldRow("Rosso", "Earns Bonus", eur(dining.rossoCents))
+        HoldRow("Wolt", t(R.string.T_does_not_earn_bonus), eur(dining.woltCents))
+        HoldRow("Rosso", t(R.string.T_earns_bonus), eur(dining.rossoCents))
     }
-    TextLink("What Rosso does for the step") { store.push(Screen.Bonus) }
+    TextLink(t(R.string.T_what_rosso_does_for_the_step)) { store.push(Screen.Bonus) }
 }
 
 @Composable
 private fun SaveScreen(store: SpendSightStore) {
     val save = store.customerSave
     Eyebrow(save.customerId)
-    Hero(save.deposited)
-    Lede(save.note)
-    Segmented(listOf(1, 3, 5).map { n -> "$n ${if (n == 1) "year" else "years"}" to (save.years == n) }) { index ->
+    Hero(eur(save.depositedCents))
+    Lede(knownNote(save.note))
+    Segmented(listOf(1, 3, 5).map { n -> "$n ${if (n == 1) t(R.string.T_year) else t(R.string.T_years)}" to (save.years == n) }) { index ->
         store.loadCustomerSave(listOf(1, 3, 5)[index])
     }
     CardBox {
-        HoldRow("Window", "${save.windowStart} – ${save.windowEnd}", "${save.deposits} deposits")
-        HoldRow("Latest deposit", save.latestDepositDate ?: "None in this window", save.latestDepositCents?.let { eur(it) } ?: "—")
-        HoldRow("Balance", save.accountId, eur(save.balanceCents))
-        SumRow("Deposited", save.deposited)
+        HoldRow(t(R.string.T_window), "${save.windowStart} – ${save.windowEnd}", "${save.deposits} ${t(R.string.T_deposits)}")
+        HoldRow(t(R.string.T_latest_deposit), save.latestDepositDate ?: t(R.string.T_none_in_this_window), save.latestDepositCents?.let { eur(it) } ?: "—")
+        HoldRow(t(R.string.T_balance), save.accountId, eur(save.balanceCents))
+        SumRow(t(R.string.T_deposited), eur(save.depositedCents))
     }
-    Section("Where a euro can sit")
-    accountCopy.forEach { account ->
+    Section(t(R.string.T_where_a_euro_can_sit))
+    accounts(store.language).forEach { account ->
         ChevronRow(account.title, account.subtitle) { store.sheet = Sheet.Account(account.id) }
     }
 }
@@ -382,26 +383,26 @@ private fun HomeScreen(store: SpendSightStore) {
     val bonus = store.ledger?.bonus ?: return
     val buffer = store.ledger?.week?.bufferCents
     SampleBanner()
-    Eyebrow("No home plan on the service")
-    Hero("Not in this reading", 34)
-    Lede("The service does not return ASP savings, the goal, or how many months are counted for this customer. This screen does not invent them.")
+    Eyebrow(t(R.string.T_no_home_plan_on_the_service))
+    Hero(t(R.string.T_not_in_this_reading), 34)
+    Lede(t(R.string.T_the_service_does_not_return_asp_savings_the_goal_o))
     Note(store.settings.note)
     CardBox {
         Row {
             Column(Modifier.weight(1f)) {
-                Note("Buffer in the design sample")
+                Note(t(R.string.T_buffer_in_the_design_sample))
                 Text(if (buffer == null) "—" else eur(buffer), color = Ink, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             }
             Column(Modifier.weight(1f)) {
-                Note("October Bonus")
+                Note(t(R.string.T_october_bonus))
                 Text(eur(bonus.octoberBonusCents), color = Ink, fontWeight = FontWeight.Bold, fontSize = 22.sp)
             }
         }
         Spacer(Modifier.height(8.dp))
-        Note("October’s Bonus is already on S-Tili. Sending the next one to Säästäjä is a preview on this phone. It does not move money.")
+        Note(t(R.string.T_october_s_bonus_is_already_on_s_tili_sending_the_n))
     }
-    PrimaryButton("Sketch a loan") { store.push(Screen.Loan) }
-    TextLink("Why the save stays inside the ASP range") { store.push(Screen.Save) }
+    PrimaryButton(t(R.string.T_sketch_a_loan)) { store.push(Screen.Loan) }
+    TextLink(t(R.string.T_why_the_save_stays_inside_the_asp_range)) { store.push(Screen.Save) }
 }
 
 @Composable
@@ -411,10 +412,10 @@ private fun LoanScreen(store: SpendSightStore) {
     val rate = store.loanRateTenths
     val matches = store.loanMatches()
     SampleBanner()
-    Eyebrow(if (matches) "Arithmetic, not an offer" else "Updating the sketch")
-    Hero(if (matches) loan.monthly else "…", 44)
-    Lede(if (matches) loan.note else "Waiting for the service to count this price and rate.")
-    Section("Home price")
+    Eyebrow(if (matches) t(R.string.T_arithmetic_not_an_offer) else t(R.string.T_updating_the_sketch))
+    Hero(if (matches) eur(loan.monthlyCents) else "…", 44)
+    Lede(if (matches) loan.note else t(R.string.T_waiting_for_the_service_to_count_this_price_and_ra))
+    Section(t(R.string.T_home_price))
     Lede(eur(price * 100), strong = true)
     Slider(
         value = (price - 150_000) / 250_000f,
@@ -424,11 +425,11 @@ private fun LoanScreen(store: SpendSightStore) {
         },
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Note("€150,000")
-        Note("€400,000")
+        Note(euros(150_000))
+        Note(euros(400_000))
     }
-    Section("Rate, if it stayed this number")
-    Lede("${rate / 10}.${rate % 10}% · 25 years", strong = true)
+    Section(t(R.string.T_rate_if_it_stayed_this_number))
+    Lede("${rateLabel(rate)} · ${t(R.string.T_n_25_years)}", strong = true)
     Slider(
         value = (rate - 20) / 40f,
         onValueChange = {
@@ -437,38 +438,39 @@ private fun LoanScreen(store: SpendSightStore) {
         },
     )
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Note("2%")
-        Note("6%")
+        Note(pct(2))
+        Note(pct(6))
     }
     if (matches) {
-        Note("At 6%, the same loan is ${loan.stress6pct} a month.")
+        Note(t(R.string.T_at_6_the_same_loan_is_a_month, eur(loan.stress6pctCents)))
         CardBox {
-            Lede("The 10% down payment on this price is ${eur(loan.downCents)}. The sketch uses that, not today’s balance. ${loan.note}", strong = true)
+            Lede(t(R.string.T_the_10_down_payment_on_this_price_is_the_sketch_us, eur(loan.downCents), loan.note), strong = true)
         }
     }
-    Note("Nothing here is an application. The chat does not answer how to pay a loan off.")
+    Note(t(R.string.T_nothing_here_is_an_application_the_chat_does_not_a))
 }
 
 @Composable
 private fun PurchaseScreen(store: SpendSightStore) {
     val buy = store.ledger?.purchase ?: return
     val effort = store.effortRow
-    val safe = store.ledger?.week?.safeToSpend ?: ""
+    val safeText = store.ledger?.week?.safeToSpend
+    val safe = if (safeText == null) "" else presentMoney(safeText)
     val note = when (store.purchaseChoice) {
-        "wait" -> "You chose to wait. The jacket is still ${eur(buy.priceCents)}. You can change this. This preview does not pay Sokos."
-        "take" -> "You chose to take it from the slip line. It is ${eur(buy.overSlipCents)} over ${effort.slip}. This preview does not pay Sokos."
-        "skip" -> "You left it. The slip line stays ${effort.slip}."
-        else -> "This pause is for the one payment in front of you. It does not pay Sokos."
+        "wait" -> t(R.string.T_you_chose_to_wait_the_jacket_is_still_you_can_chan, eur(buy.priceCents))
+        "take" -> t(R.string.T_you_chose_to_take_it_from_the_slip_line_it_is_over, eur(buy.overSlipCents), eur(effort.slipCents))
+        "skip" -> t(R.string.T_you_left_it_the_slip_line_stays, eur(effort.slipCents))
+        else -> t(R.string.T_this_pause_is_for_the_one_payment_in_front_of_you)
     }
     SampleBanner()
-    Eyebrow("Sokos · not paid")
+    Eyebrow(t(R.string.T_sokos_not_paid))
     Hero(eur(buy.priceCents))
-    Lede("Safe to spend on the design sample is $safe, so the jacket fits inside it with ${eur(buy.leftInWeekCents)} left. The slip line is ${effort.slip}, and the jacket is ${eur(buy.overSlipCents)} over that line. Paying this as new money takes S-group purchases to ${eur(buy.sgroupWithJacketCents)}. Bonus rises by ${eur(buy.gainCents)}. You would be ${eur(buy.lossCents)} poorer.")
+    Lede(t(R.string.T_safe_to_spend_on_the_design_sample_is_so_the_jacke, safe, eur(buy.leftInWeekCents), eur(effort.slipCents), eur(buy.overSlipCents), eur(buy.sgroupWithJacketCents), eur(buy.gainCents), eur(buy.lossCents)))
     Note(note)
-    PrimaryButton("Wait until payday", store.purchaseChoice == "wait") { store.purchaseChoice = "wait" }
-    ChoiceButton("Take it from the slip line", store.purchaseChoice == "take") { store.purchaseChoice = "take" }
-    ChoiceButton("Not this one", store.purchaseChoice == "skip") { store.purchaseChoice = "skip" }
-    TextLink("The shop that does raise Bonus") { store.push(Screen.Bonus) }
+    PrimaryButton(t(R.string.T_wait_until_payday), store.purchaseChoice == "wait") { store.purchaseChoice = "wait" }
+    ChoiceButton(t(R.string.T_take_it_from_the_slip_line), store.purchaseChoice == "take") { store.purchaseChoice = "take" }
+    ChoiceButton(t(R.string.T_not_this_one), store.purchaseChoice == "skip") { store.purchaseChoice = "skip" }
+    TextLink(t(R.string.T_the_shop_that_does_raise_bonus)) { store.push(Screen.Bonus) }
 }
 
 @Composable
@@ -481,62 +483,62 @@ private fun BonusScreen(store: SpendSightStore) {
     val mark = if (store.bonusPreview) nextAt else hereCents
     val heroCents = if (store.bonusPreview && nextBonus != null) nextBonus else bonus.novemberBonusCents
     SampleBanner()
-    Eyebrow("November")
+    Eyebrow(t(R.string.T_november))
     Hero(eur(heroCents))
     Lede(
         if (store.bonusPreview && gap != null && bonus.nextRatePct != null) {
-            "Bonus if the next ${eur(gap)} stays at S-group. Step ${formatPct(bonus.nextRatePct)}%."
+            t(R.string.T_bonus_if_the_next_stays_at_s_group_step, eur(gap), formatPct(bonus.nextRatePct))
         } else {
-            "Bonus so far. Step ${formatPct(bonus.novemberRatePct)}% on ${eur(bonus.novemberSgroupCents)} at S-group."
+            t(R.string.T_bonus_so_far_step_on_at_s_group, formatPct(bonus.novemberRatePct), eur(bonus.novemberSgroupCents))
         },
     )
     if (gap != null && nextBonus != null && nextAt != null) {
         CardBox {
-            Eyebrow("Use the green card for ${eur(gap)} more")
+            Eyebrow(t(R.string.T_use_the_green_card_for_more, eur(gap)))
             Spacer(Modifier.height(4.dp))
-            Lede("With the grocery shop and the café visits, S-group purchases reach ${eur(bonus.weekAtCents)}. Bonus becomes ${eur(nextBonus)}. The step covers the whole amount, including what you already bought.", strong = true)
+            Lede(t(R.string.T_with_the_grocery_shop_and_the_caf_visits_s_group_p, eur(bonus.weekAtCents), eur(nextBonus)), strong = true)
         }
-        ChoiceButton("Preview that ${eur(gap)} on the green card", store.bonusPreview) {
+        ChoiceButton(t(R.string.T_preview_that_on_the_green_card, eur(gap)), store.bonusPreview) {
             store.bonusPreview = !store.bonusPreview
         }
         if (bonus.visaOnGapCents != null) {
-            Note("Pay the ${eur(gap)} with S-Etukortti Visa and the payment benefit adds ${eur(bonus.visaOnGapCents)} on top. ${bonus.note}")
+            Note(t(R.string.T_pay_the_with_s_etukortti_visa_and_the_payment_bene, eur(gap), eur(bonus.visaOnGapCents), bonus.note))
         }
         if (bonus.gainCents != null && bonus.lossCents != null) {
-            Note("If that ${eur(gap)} is extra shopping, you pay ${eur(gap)} and Bonus rises by ${eur(bonus.gainCents)}. You would be ${eur(bonus.lossCents)} poorer. The coach keeps the shop you already need, and moves the place.")
+            Note(t(R.string.T_if_that_is_extra_shopping_you_pay_and_bonus_rises, eur(gap), eur(bonus.gainCents), eur(bonus.lossCents)))
         }
     }
     CardBox {
         bonus.steps.asReversed().forEach { step ->
             val here = step.atCents == mark
             val note = when {
-                here && store.bonusPreview -> "If the next ${eur(gap ?: 0)} is at S-group"
-                step.atCents == hereCents -> "You are here · ${eur(bonus.novemberSgroupCents)}"
-                step.atCents == nextAt && gap != null -> "${eur(gap)} to this step"
+                here && store.bonusPreview -> t(R.string.T_if_the_next_is_at_s_group, eur(gap ?: 0))
+                step.atCents == hereCents -> t(R.string.T_you_are_here, eur(bonus.novemberSgroupCents))
+                step.atCents == nextAt && gap != null -> t(R.string.T_to_this_step, eur(gap))
                 else -> ""
             }
             Row(Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(if (here) Green else Fill))
-                Text("${formatPct(step.pct)}%", Modifier.padding(horizontal = 10.dp).width(48.dp), color = Ink, fontWeight = FontWeight.Bold)
+                Text(pct(step.pct), Modifier.padding(horizontal = 10.dp).width(48.dp), color = Ink, fontWeight = FontWeight.Bold)
                 Text(note, Modifier.weight(1f), color = Secondary, fontSize = 12.sp)
                 Text(eur(step.atCents), color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             }
         }
     }
     CardBox {
-        Eyebrow("If the grocery plan and the café visits stay there")
+        Eyebrow(t(R.string.T_if_the_grocery_plan_and_the_caf_visits_stay_there))
         Spacer(Modifier.height(6.dp))
-        Lede("Together with today’s ${eur(bonus.novemberSgroupCents)}, November reaches ${eur(bonus.monthAtCents)}. Bonus at that point is ${eur(bonus.monthBonusCents)}.", strong = true)
-        Lede("The groceries alone would land at ${eur(bonus.foodOnlyCents)}, Bonus ${eur(bonus.foodOnlyBonusCents)}.")
+        Lede(t(R.string.T_together_with_today_s_november_reaches_bonus_at_th, eur(bonus.novemberSgroupCents), eur(bonus.monthAtCents), eur(bonus.monthBonusCents)), strong = true)
+        Lede(t(R.string.T_the_groceries_alone_would_land_at_bonus, eur(bonus.foodOnlyCents), eur(bonus.foodOnlyBonusCents)))
     }
     CardBox {
-        Eyebrow("October already closed")
+        Eyebrow(t(R.string.T_october_already_closed))
         Spacer(Modifier.height(6.dp))
-        Lede("S-group purchases were ${eur(bonus.octoberSgroupCents)}, step ${formatPct(bonus.octoberRatePct)}%, Bonus ${eur(bonus.octoberBonusCents)}.", strong = true)
+        Lede(t(R.string.T_s_group_purchases_were_step_bonus, eur(bonus.octoberSgroupCents), formatPct(bonus.octoberRatePct), eur(bonus.octoberBonusCents)), strong = true)
     }
     ChevronRow(
-        if (store.saver) "Next Bonus goes to Säästäjä" else "Send the next Bonus to Säästäjä",
-        if (store.saver) "You can keep it on S-Tili instead" else "October’s ${eur(bonus.octoberBonusCents)} is already on S-Tili",
+        if (store.saver) t(R.string.T_next_bonus_goes_to_s_st_j) else t(R.string.T_send_the_next_bonus_to_s_st_j),
+        if (store.saver) t(R.string.T_you_can_keep_it_on_s_tili_instead) else t(R.string.T_october_s_is_already_on_s_tili, eur(bonus.octoberBonusCents)),
         store::toggleSaver,
     )
 }
@@ -546,43 +548,43 @@ private fun SubsScreen(store: SpendSightStore) {
     val subs = store.ledger?.subs ?: return
     val marked = subs.items.filter { store.subs[it.id] == "cancel" }
     SampleBanner()
-    Eyebrow("If the repeating ones stop")
+    Eyebrow(t(R.string.T_if_the_repeating_ones_stop))
     Hero(eur(subs.monthCents))
-    Lede("a month, ${eur(subs.yearCents)} across a year. These are the subscriptions the service returned. A mark on this phone is not a cancellation.")
+    Lede(t(R.string.T_a_month_across_a_year_these_are_the_subscriptions, eur(subs.yearCents)))
     CardBox {
         subs.items.forEach { item ->
             HoldRow(item.name, item.use, eur(item.amountCents))
         }
     }
     Note(
-        (if (marked.isEmpty()) "" else "You already marked ${marked.joinToString(" and ") { it.name }} as cancelled. The hold stays until the bank confirms it. ") +
-            "A reminder is not a cancellation.",
+        (if (marked.isEmpty()) "" else t(R.string.T_you_already_marked_as_cancelled_the_hold_stays_unt, marked.joinToString(t(R.string.T_and)) { it.name })) +
+            t(R.string.T_a_reminder_is_not_a_cancellation),
     )
-    Section("Your choice on each one")
+    Section(t(R.string.T_your_choice_on_each_one))
     subs.items.forEach { item ->
         SubCard(store, item.id, "${item.name} · ${eur(item.amountCents)}", item.use)
     }
-    Note("Money moves only when you, or the club, stop the charge. The service has no cancel route.")
+    Note(t(R.string.T_money_moves_only_when_you_or_the_club_stop_the_cha))
 }
 
 @Composable
 private fun SubCard(store: SpendSightStore, id: String, title: String, detail: String) {
     val choice = store.subs[id] ?: "open"
     val line = when (choice) {
-        "keep" -> "You are keeping it."
-        "ask" -> "The coach will ask again before the next charge."
-        "cancel" -> "Marked as cancelled. The next charge is still in the holds until the bank confirms it. You can undo this."
-        else -> "No choice yet."
+        "keep" -> t(R.string.T_you_are_keeping_it)
+        "ask" -> t(R.string.T_the_chat_will_ask_again_before_the_next_charge)
+        "cancel" -> t(R.string.T_marked_as_cancelled_the_next_charge_is_still_in_th)
+        else -> t(R.string.T_no_choice_yet)
     }
     CardBox {
         Eyebrow(title)
         Spacer(Modifier.height(6.dp))
         Lede(detail, strong = true)
         Note(line)
-        ChoiceButton("Keep it", choice == "keep") { store.subs[id] = "keep" }
-        ChoiceButton("Ask me next month", choice == "ask") { store.subs[id] = "ask" }
+        ChoiceButton(t(R.string.T_keep_it), choice == "keep") { store.subs[id] = "keep" }
+        ChoiceButton(t(R.string.T_ask_me_next_month), choice == "ask") { store.subs[id] = "ask" }
         ChoiceButton(
-            if (choice == "cancel") "Undo, I still have this" else "I have cancelled it",
+            if (choice == "cancel") t(R.string.T_undo_i_still_have_this) else t(R.string.T_i_have_cancelled_it),
             choice == "cancel",
         ) { store.subs[id] = if (choice == "cancel") "open" else "cancel" }
     }
@@ -592,33 +594,33 @@ private fun SubCard(store: SpendSightStore, id: String, title: String, detail: S
 private fun WatchScreen(store: SpendSightStore) {
     val watch = store.ledger?.watch ?: return
     SampleBanner()
-    Eyebrow("Look twice")
-    Lede("Two things the list of payments does not settle on its own.")
+    Eyebrow(t(R.string.T_look_twice))
+    Lede(t(R.string.T_two_things_the_list_of_payments_does_not_settle_on))
     watch.items.forEach { item ->
         val mark = store.watch[item.id] ?: "open"
         CardBox {
             Eyebrow("${item.name} · ${eur(item.amountCents)}")
             Spacer(Modifier.height(6.dp))
-            Lede(watchLine(item, mark), strong = true)
+            Lede(watchLine(store.language, item, mark), strong = true)
             if (item.id == "refund") {
-                ChoiceButton("Still waiting", mark == "wait") { store.watch[item.id] = "wait" }
-                ChoiceButton("It landed", mark == "landed") { store.watch[item.id] = "landed" }
+                ChoiceButton(t(R.string.T_still_waiting), mark == "wait") { store.watch[item.id] = "wait" }
+                ChoiceButton(t(R.string.T_it_landed), mark == "landed") { store.watch[item.id] = "landed" }
             } else {
-                ChoiceButton("That’s mine", mark == "mine") { store.watch[item.id] = "mine" }
-                ChoiceButton("That isn’t mine", mark == "not") { store.watch[item.id] = "not" }
+                ChoiceButton(t(R.string.T_that_s_mine), mark == "mine") { store.watch[item.id] = "mine" }
+                ChoiceButton(t(R.string.T_that_isn_t_mine), mark == "not") { store.watch[item.id] = "not" }
             }
         }
     }
     Note(watch.note)
 }
 
-private fun watchLine(item: WatchItemDto, mark: String): String {
+private fun watchLine(lang: Lang, item: WatchItemDto, mark: String): String {
     val choice = when {
-        item.id == "refund" && mark == "landed" -> "You marked it as landed. Today’s balance does not change."
-        item.id == "refund" -> "It is not on S-Tili yet."
-        mark == "mine" -> "You recognised it. It stays out of the spending total."
-        mark == "not" -> "Marked as not yours. Here it only marks the row."
-        else -> "It stays out of the spending total until you recognise it."
+        item.id == "refund" && mark == "landed" -> t(lang, R.string.T_you_marked_it_as_landed_today_s_balance_does_not_c)
+        item.id == "refund" -> t(lang, R.string.T_it_is_not_on_s_tili_yet)
+        mark == "mine" -> t(lang, R.string.T_you_recognised_it_it_stays_out_of_the_spending_tot)
+        mark == "not" -> t(lang, R.string.T_marked_as_not_yours_here_it_only_marks_the_row)
+        else -> t(lang, R.string.T_it_stays_out_of_the_spending_total_until_you_recog)
     }
     return "${item.whenLabel}. ${item.detail} $choice"
 }
@@ -628,40 +630,41 @@ private fun ImpulseScreen(store: SpendSightStore) {
     val impulse = store.ledger?.impulse ?: return
     val peak = impulse.peak
     SampleBanner()
-    Eyebrow("${peak.whenLabel} · the busiest dated day")
-    Hero("${peak.count} payments")
-    Lede("${peak.places.joinToString(", ")}. ${eur(peak.amountCents)}. These are coffee, dining, taxis, and shopping. Groceries and rent are not in this reading. October’s ${impulse.coffeeVisits} coffee visits and ${impulse.woltOrders} Wolt orders are rolled up by place, so I will not name a weekday for them.")
-    Note(counted("1–13 Nov", "Dining, coffee, taxis, and shopping", impulse.count) + ". No payment in this ledger has a time of day.")
+    Eyebrow("${peak.whenLabel} · ${t(R.string.T_the_busiest_dated_day)}")
+    Hero("${peak.count} ${if (peak.count == 1) t(R.string.T_payment) else t(R.string.T_payments)}")
+    Lede(t(R.string.T_these_are_coffee_dining_taxis_and_shopping_groceri, peak.places.joinToString(", "), eur(peak.amountCents), impulse.coffeeVisits, impulse.woltOrders))
+    Note(counted(t(R.string.T_n_1_13_nov), t(R.string.T_dining_coffee_taxis_and_shopping), impulse.count) + t(R.string.T_no_payment_in_this_ledger_has_a_time_of_day))
     CardBox {
         impulse.days.forEach { day ->
-            HoldRow(day.whenLabel, "${day.count} ${if (day.count == 1) "payment" else "payments"} · ${day.places.joinToString(", ")}", eur(day.amountCents))
+            HoldRow(day.whenLabel, "${day.count} ${if (day.count == 1) t(R.string.T_payment) else t(R.string.T_payments)} · ${day.places.joinToString(", ")}", eur(day.amountCents))
         }
     }
-    TextLink("Pause one purchase") { store.push(Screen.Purchase) }
-    TextLink("The October portrait") { store.push(Screen.Spender) }
+    TextLink(t(R.string.T_pause_one_purchase)) { store.push(Screen.Purchase) }
+    TextLink(t(R.string.T_the_october_portrait)) { store.push(Screen.Spender) }
 }
 
 @Composable
 private fun RunwayScreen(store: SpendSightStore) {
     val runway = store.ledger?.runway ?: return
-    val safe = store.ledger?.week?.safeToSpend
+    val safeText = store.ledger?.week?.safeToSpend
+    val safe = if (safeText == null) null else presentMoney(safeText)
     SampleBanner()
-    Eyebrow("At November’s pace, rent left out")
-    Hero("${runway.leftDays} days")
-    Lede("${runway.leftDays} days at ${eur(runway.perDayCents)} a day. It is not a promise. Bills after payday are not subtracted here.")
+    Eyebrow(t(R.string.T_at_november_s_pace_rent_left_out))
+    Hero("${runway.leftDays} ${t(R.string.T_days)}")
+    Lede(t(R.string.T_days_at_a_day_it_is_not_a_promise_bills_after_payd, runway.leftDays, eur(runway.perDayCents)))
     CardBox {
-        HoldRow("November so far", "1–${runway.days} Nov, ${runway.count} payments other than rent", eur(runway.variableCents))
-        HoldRow("Rent, left out", "It does not repeat inside this month.", eur(runway.rentCents))
-        HoldRow("A day", "${eur(runway.variableCents)} across ${runway.days} days, rounded", eur(runway.perDayCents))
-        SumRow("S-Tili ÷ a day", "${runway.leftDays} days")
+        HoldRow(t(R.string.T_november_so_far), t(R.string.T_n_1_nov_payments_other_than_rent, runway.days, runway.count), eur(runway.variableCents))
+        HoldRow(t(R.string.T_rent_left_out), t(R.string.T_it_does_not_repeat_inside_this_month), eur(runway.rentCents))
+        HoldRow(t(R.string.T_a_day), t(R.string.T_across_days_rounded, eur(runway.variableCents), runway.days), eur(runway.perDayCents))
+        SumRow(t(R.string.T_s_tili_a_day), "${runway.leftDays} ${t(R.string.T_days)}")
     }
-    Note(counted("1–${runway.days} Nov", "All payments except rent", runway.count) + ". Safe to spend on the design sample is ${safe ?: "—"}. It does not divide by the daily pace.")
-    TextLink("See safe to spend") { store.push(Screen.Week) }
+    Note(counted(t(R.string.T_n_1_nov, runway.days), t(R.string.T_all_payments_except_rent), runway.count) + t(R.string.T_safe_to_spend_on_the_design_sample_is_it_does_not, safe ?: "—"))
+    TextLink(t(R.string.T_see_safe_to_spend)) { store.push(Screen.Week) }
 }
 
 @Composable
 private fun SampleBanner() {
-    Note("Design sample. Today, Spending, and Save are this customer’s transactions. This screen is not.")
+    Note(t(R.string.T_design_sample_today_spending_and_save_are_this_cus))
 }
 
 @Composable
@@ -682,7 +685,7 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
             }
         }
         if (store.asking) {
-            item { Note("Writing the answer…") }
+            item { Note(t(R.string.T_writing_the_answer)) }
         }
         item { Spacer(Modifier.height(12.dp)) }
     }
@@ -703,12 +706,12 @@ private fun Bubble(message: CoachMessage, onAction: (Screen?) -> Unit) {
             val color = if (mine) Color.White else Ink
             val muted = if (mine) Color(0xFFD5E4DB) else Secondary
             if (message.refused) {
-                Text(message.limit ?: "Outside what I answer", color = Slip, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                Text(message.limit ?: t(R.string.T_outside_what_i_answer), color = Slip, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             }
             message.fact?.let { fact ->
                 Column {
                     Text(fact.kicker, color = muted, fontSize = 12.sp)
-                    Text(fact.figure, color = color, fontSize = 28.sp, fontWeight = FontWeight.Bold)
+                    Text(presentMoney(fact.figure), color = color, fontSize = 28.sp, fontWeight = FontWeight.Bold)
                     Text(fact.because, color = color, fontSize = 15.sp, lineHeight = 20.sp)
                 }
             }
@@ -733,20 +736,20 @@ fun Composer(store: SpendSightStore) {
     var text by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
-            store.disclaimer.ifBlank { coachOpening },
+            store.disclaimer.ifBlank { coastOpening(store.language) },
             color = Tertiary,
             fontSize = 12.sp,
             lineHeight = 16.sp,
         )
         Text(
-            "Your data",
+            t(R.string.T_your_data),
             color = Green,
             fontSize = 12.sp,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(bottom = 8.dp),
         )
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            coachChips.forEach { (label, ask) ->
+            coachChips(store.language).forEach { (label, ask) ->
                 Text(
                     label,
                     color = Deep,
@@ -772,7 +775,7 @@ fun Composer(store: SpendSightStore) {
                 textStyle = TextStyle(color = Ink, fontSize = 16.sp),
                 decorationBox = { inner ->
                     Box {
-                        if (text.isEmpty()) Text("Ask about your money", color = Tertiary, fontSize = 16.sp)
+                        if (text.isEmpty()) Text(t(R.string.T_ask_about_your_money), color = Tertiary, fontSize = 16.sp)
                         inner()
                     }
                 },
