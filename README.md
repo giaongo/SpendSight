@@ -106,7 +106,8 @@ flowchart LR
 
     DB --> API
     LEDGER --> API
-    API -. optional wording .-> AI[Verda model]
+    API -->|sanitized question| Verda["Verda serverless<br/>(Qwen 2.5 1.5B)"]
+    Verda -->|model output| API
     DESIGN[Static HTML reference] -. layout and behavior .-> S
 ```
 

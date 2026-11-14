@@ -25,6 +25,16 @@ flowchart TB
 > [!IMPORTANT]
 > The Junction customer dataset and Aino Korhonen's fixed design sample are unrelated. Aino's coach and tools never reinterpret Junction customer figures as hers, and customer screens must never display sample figures as customer data.
 
+## AI model and deployment
+
+The customer coach uses the **Qwen 2.5 1.5B Instruct** model deployed on the Verda serverless inference platform. This lightweight model provides cost-effective financial-domain responses without exposing customer data to external APIs.
+
+**Model:** `Qwen/Qwen2.5-1.5B-Instruct`  
+**Deployment:** Verda serverless  
+**Inference boundary:** Sensitive identifiers are redacted before the question is sent; the backend receives only model output for review and filtering before responding to the client.
+
+See [app/verda.py](app/verda.py) for the sanitization and safety rules.
+
 ## Source layout
 
 ```text
