@@ -4,6 +4,16 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
+data class CustomerReadsDto(
+    val today: String,
+    val spending: String,
+    val save: String,
+    val months: String,
+    val summary: String,
+    val transactions: String,
+)
+
+@Serializable
 data class CustomerSessionDto(
     @SerialName("customer_id") val customerId: String,
     @SerialName("postal_code") val postalCode: String,
@@ -15,6 +25,7 @@ data class CustomerSessionDto(
     @SerialName("balance_cents") val balanceCents: Int,
     val balance: String,
     @SerialName("transaction_count") val transactionCount: Int,
+    val reads: CustomerReadsDto,
     val note: String,
 )
 

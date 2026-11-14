@@ -27,7 +27,8 @@ import kotlinx.serialization.json.contentOrNull
 /**
  * Service address. Change this when you run the API somewhere else.
  * `python -m app` serves the API on HTTPS port 8000. `/docs` is the reference only.
- * The data calls are `/today`, `/spending`, `/save`, and the other routes in that reference.
+ * `GET /session` names this customer's Today, Spending, and Save paths in `reads`.
+ * The phone calls those paths. `/docs` is the reference only.
  * This computer or the iOS simulator: https://127.0.0.1:8000
  * Android emulator: https://10.0.2.2:8000 (127.0.0.1 on the emulator is the emulator)
  * The client trusts the dev certificate only for a local address.
@@ -85,10 +86,11 @@ class SpendSightApi(
     private val client: HttpClient = createHttpClient(),
 ) {
     suspend fun loadBundle(): WireBundle = coroutineScope {
-        val session = async { get<CustomerSessionDto>("/session") }
-        val customerToday = async { get<CustomerTodayDto>("/today") }
-        val spending = async { get<SpendingDto>("/spending") }
-        val customerSave = async { save(5) }
+        val session = get<CustomerSessionDto>("/session")
+        val reads = session.reads
+        val customerToday = async { get<CustomerTodayDto>(reads.today) }
+        val spending = async { get<SpendingDto>(reads.spending) }
+        val customerSave = async { save(reads.save, 5) }
         val effort = async { get<EffortSettingsDto>("/settings/effort") }
         val payments = async { get<PaymentsDto>("/payments") }
         val summary = async { get<SummaryDto>("/ledger/summary") }
@@ -104,7 +106,7 @@ class SpendSightApi(
         val watch = async { get<WatchDto>("/watch") }
         val loan = async { loan(220_000, "4.0") }
         WireBundle(
-            session = session.await(),
+            session = session,
             customerToday = customerToday.await(),
             spending = spending.await(),
             customerSave = customerSave.await(),
@@ -132,13 +134,13 @@ class SpendSightApi(
     suspend fun refile(id: Int, category: String): PaymentDto =
         post("/payments/$id/filing", FilingBody(category))
 
-    suspend fun spending(month: String?): SpendingDto =
-        client.get(endpoint("/spending")) {
+    suspend fun spending(path: String, month: String?): SpendingDto =
+        client.get(endpoint(path)) {
             if (month != null) parameter("month", month)
         }.body()
 
-    suspend fun save(years: Int): CustomerSaveDto =
-        client.get(endpoint("/save")) {
+    suspend fun save(path: String, years: Int): CustomerSaveDto =
+        client.get(endpoint(path)) {
             parameter("years", years)
         }.body()
 

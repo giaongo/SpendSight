@@ -41,10 +41,10 @@ That load calls, in parallel:
 
 | Call | What the phone keeps |
 | --- | --- |
-| `GET /session` | Customer id, postal code, age, account, balance, and the coach’s opening note |
-| `GET /today` | Today |
-| `GET /spending` | Latest month on Spending |
-| `GET /save?years=5` | Save, five-year window |
+| `GET /session` | Customer id, postal code, age, account, balance, the coach’s opening note, and the `reads` paths for this customer |
+| `reads.today` | Today. The session names this path, for example `/customers/CUST00001/today` |
+| `reads.spending` | Latest month on Spending |
+| `reads.save?years=5` | Save, five-year window |
 | `GET /settings/effort` | Design-sample effort rows |
 | `GET /payments` | Design-sample payments |
 | `GET /ledger/summary` | Design-sample holds and what is left after salary |
@@ -60,15 +60,15 @@ That load calls, in parallel:
 | `GET /watch` | Watch |
 | `GET /loan/sketch?price_eur=220000&rate_percent=4.0&years=25&down_percent=10` | Loan sketch |
 
-`/docs`, `/database`, and `/customers/{customer_id}` are not called. Today, Spending, and Save are the first customer, the same one those routes return with no id.
+`/docs` and `/database` are not called. Today, Spending, and Save use the paths in `reads` from `GET /session`, so a different customer on the service is the customer the phone loads. Month and year changes stay on those same paths.
 
 ## Tabs
 
 | Tab | What it shows |
 | --- | --- |
-| Today | `GET /today`: balance, as-of date, latest salary, money in and out for the latest month, transaction count |
-| Spending | `GET /spending`. Earlier and Later call `GET /spending?month=YYYY-MM`. A month the customer does not have stays on the previous month and shows the 400 detail |
-| Save | `GET /save?years=`. The chips are 1, 3, and 5. This is recorded deposits. It does not move money |
+| Today | The session’s `reads.today`: balance, as-of date, latest salary, money in and out for the latest month, transaction count |
+| Spending | The session’s `reads.spending`. Earlier and Later add `?month=YYYY-MM`. A month the customer does not have stays on the previous month and shows the 400 detail |
+| Save | The session’s `reads.save` with `?years=`. The chips are 1, 3, and 5. This is recorded deposits. It does not move money |
 | SpendSight | Coach. The opening bubble is the `note` from `GET /session` |
 
 A category that exists on the loaded spending month lists those transactions. The amounts are the strings the service sent. Those rows have no filing sheet.

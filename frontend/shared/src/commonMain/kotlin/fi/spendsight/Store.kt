@@ -60,7 +60,7 @@ class SpendSightStore(
     val subs = mutableStateMapOf("gym" to "open", "netflix" to "open", "spotify" to "open")
     val watch = mutableStateMapOf("bolt" to "open", "refund" to "open")
     val messages = mutableStateListOf<CoachMessage>()
-    var stack by mutableStateOf(listOf<Screen>(Screen.Coach))
+    var stack by mutableStateOf(listOf<Screen>(Screen.Today))
     var sheet by mutableStateOf<Sheet?>(null)
     var dialog by mutableStateOf<Dialog?>(null)
 
@@ -329,7 +329,7 @@ class SpendSightStore(
     fun loadSpending(month: String) {
         scope.launch {
             try {
-                val view = api.spending(month)
+                val view = api.spending(book.session.reads.spending, month)
                 ledger = ledger?.copy(spending = view)
             } catch (e: CancellationException) {
                 throw e
@@ -343,7 +343,7 @@ class SpendSightStore(
         this.years = years
         scope.launch {
             try {
-                val view = api.save(years)
+                val view = api.save(book.session.reads.save, years)
                 ledger = ledger?.copy(customerSave = view)
             } catch (e: CancellationException) {
                 throw e
