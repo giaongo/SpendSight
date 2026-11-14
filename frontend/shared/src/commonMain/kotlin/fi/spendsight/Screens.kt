@@ -682,7 +682,7 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
             }
         }
         if (store.asking) {
-            item { Note("Reading the ledger…") }
+            item { Note("Writing the answer…") }
         }
         item { Spacer(Modifier.height(12.dp)) }
     }
@@ -733,7 +733,7 @@ fun Composer(store: SpendSightStore) {
     var text by remember { mutableStateOf("") }
     Column(Modifier.fillMaxWidth().background(Bg).padding(horizontal = 16.dp, vertical = 8.dp)) {
         Text(
-            store.disclaimer.ifBlank { store.ledger?.session?.note ?: "" },
+            store.disclaimer.ifBlank { coastOpening },
             color = Tertiary,
             fontSize = 12.sp,
             lineHeight = 16.sp,

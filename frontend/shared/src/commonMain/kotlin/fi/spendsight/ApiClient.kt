@@ -5,6 +5,7 @@ import io.ktor.client.HttpClientConfig
 import io.ktor.client.call.body
 import io.ktor.client.plugins.HttpResponseValidator
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.timeout
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
@@ -127,7 +128,15 @@ class SpendSightApi(
         )
     }
 
-    suspend fun ask(text: String): CoachResponseDto = post("/coach/ask", AskBody(text))
+    suspend fun ask(customerId: String, text: String): CoastResponseDto =
+        client.post(endpoint("/customers/$customerId/coast/ask")) {
+            contentType(ContentType.Application.Json)
+            setBody(AskBody(text))
+            timeout {
+                requestTimeoutMillis = 70_000
+                socketTimeoutMillis = 70_000
+            }
+        }.body()
 
     suspend fun putEffort(id: String): EffortSettingsDto = put("/settings/effort", EffortBody(id))
 

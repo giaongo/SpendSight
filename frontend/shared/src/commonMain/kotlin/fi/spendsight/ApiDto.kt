@@ -359,6 +359,15 @@ data class FactDto(
 )
 
 @Serializable
+data class CoastResponseDto(
+    @SerialName("customer_id") val customerId: String,
+    val answer: String,
+    val model: String,
+    val source: String,
+    val disclaimer: String,
+)
+
+@Serializable
 data class CoachResponseDto(
     val refused: Boolean,
     val disclaimer: String,
@@ -437,6 +446,11 @@ fun screenFor(name: String?): Screen? = when (name) {
     "runway" -> Screen.Runway
     else -> null
 }
+
+fun CoastResponseDto.toMessage(): CoachMessage = CoachMessage(
+    role = "coach",
+    paragraphs = listOf(answer),
+)
 
 fun CoachResponseDto.toMessage(charts: List<ChartRow>?): CoachMessage {
     val target = screenFor(screen)

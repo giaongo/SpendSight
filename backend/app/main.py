@@ -12,8 +12,16 @@ from fastapi.responses import RedirectResponse
 
 from app.junction_db import IndexNotReady, JunctionLibrary, query_transactions
 from app.ledger import SLIP_CATEGORIES, loan_sketch
-from app.schemas import AskRequest, CoachResponse, EffortRequest, FilingPreviewRequest, FilingRequest
+from app.schemas import (
+    AskRequest,
+    CoastResponse,
+    CoachResponse,
+    EffortRequest,
+    FilingPreviewRequest,
+    FilingRequest,
+)
 from app.store import Session
+from app.verda import VerdaConfigError, VerdaError, ask_customer
 
 
 def _clamp(limit: int) -> int:
@@ -155,6 +163,21 @@ def customer_save(customer_id: str, request: Request, years: int = 5) -> dict:
 def customer_months(customer_id: str, request: Request) -> dict:
     """Every month this customer has, with money in and money out."""
     return _book(request, customer_id).months_view()
+
+
+@router.post(
+    "/customers/{customer_id}/coast/ask",
+    tags=["Customers"],
+    response_model=CoastResponse,
+)
+def customer_coast_ask(customer_id: str, body: AskRequest, request: Request) -> dict:
+    """Answer one question with Verda, using only this customer's transactions."""
+    try:
+        return ask_customer(_book(request, customer_id), body.text)
+    except VerdaConfigError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except VerdaError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/settings/effort")

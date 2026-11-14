@@ -73,6 +73,28 @@ class ApiContractTest {
     }
 
     @Test
+    fun decodesTheCustomerChat() {
+        val reply = ApiJson.decodeFromString<CoastResponseDto>(
+            """
+            {
+              "customer_id": "CUST00001",
+              "answer": "The balance is €4,723.58.",
+              "model": "Qwen/Qwen2.5-1.5B-Instruct",
+              "source": "verda",
+              "disclaimer": "This answer is generated from that customer's transactions. It can be wrong. It does not move money."
+            }
+            """.trimIndent(),
+        )
+        val message = reply.toMessage()
+        assertEquals("CUST00001", reply.customerId)
+        assertEquals("Qwen/Qwen2.5-1.5B-Instruct", reply.model)
+        assertEquals("The balance is €4,723.58.", message.paragraphs.single())
+        assertNull(message.source)
+        assertFalse(message.refused)
+        assertNull(message.fact)
+    }
+
+    @Test
     fun decodesPaymentWeekAndLoanShapes() {
         val payment = ApiJson.decodeFromString<PaymentDto>(
             """

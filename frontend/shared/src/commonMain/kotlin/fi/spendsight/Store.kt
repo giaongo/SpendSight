@@ -149,15 +149,15 @@ class SpendSightStore(
 
     fun ask(text: String) {
         val question = text.trim().take(280)
-        if (question.isEmpty() || asking) return
+        val customerId = ledger?.session?.customerId
+        if (question.isEmpty() || asking || customerId == null) return
         messages.add(CoachMessage(role = "user", text = question))
         asking = true
         scope.launch {
             try {
-                val reply = api.ask(question)
+                val reply = api.ask(customerId, question)
                 disclaimer = reply.disclaimer
-                val charts = ledger?.charts?.rows?.map { it.toRow() }
-                messages.add(reply.toMessage(charts))
+                messages.add(reply.toMessage())
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -225,19 +225,10 @@ class SpendSightStore(
     }
 
     fun deleteThread() {
-        scope.launch {
-            try {
-                api.deleteThread()
-                messages.clear()
-                val note = ledger?.session?.note
-                if (note != null) messages.add(CoachMessage(role = "coach", paragraphs = listOf(note)))
-                sheet = null
-            } catch (e: CancellationException) {
-                throw e
-            } catch (e: Exception) {
-                notice = e.message ?: "The thread was not deleted."
-            }
-        }
+        messages.clear()
+        disclaimer = ""
+        messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening)))
+        sheet = null
     }
 
     fun jump(screen: Screen) {
@@ -322,7 +313,7 @@ class SpendSightStore(
         ledger = if (kept != null) fresh.copy(loan = kept) else fresh
         newestSpendMonth = fresh.spending.month
         if (messages.isEmpty()) {
-            messages.add(CoachMessage(role = "coach", paragraphs = listOf(fresh.session.note)))
+            messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening)))
         }
     }
 

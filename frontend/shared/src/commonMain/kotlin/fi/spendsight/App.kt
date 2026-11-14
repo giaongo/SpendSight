@@ -225,9 +225,9 @@ private fun SheetHost(store: SpendSightStore, sheet: Sheet) {
                     Text("Your data", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Lede("SpendSight reads your payments for October and 1–13 November, the holds, and the save setting you pick, and only so it can answer you. It does not read other customers. The reading stays inside the bank.")
                     Lede("Answers can be wrong. Each figure names the category, the period, and how many payments it used. Check anything that would move money. This is an automated assistant, not a person at S-Pankki.")
-                    Lede("Your questions are not used to train an external model. The service keeps this thread until you delete it. Deleting clears the thread. It does not change the payments.")
+                    Lede("A question is sent with this customer's figures so the answer can be written. The service does not store the question. Clearing the chat removes it from this screen. It does not change the payments.")
                     TextLink("Delete this thread") { store.deleteThread() }
-                    Lede("If you refile a payment, the next list uses your filing. A move between accounts is prepared only after you confirm. Booking a person uses the existing S-Pankki and Prisma customer service. This screen does not book a time, and it does not send the chat.")
+                    Lede("If you refile a payment, the next list uses your filing. A move between accounts is prepared only after you confirm. Booking a person uses the existing S-Pankki and Prisma customer service. This screen does not book a time.")
                     TextLink("Book a person") { store.sheet = Sheet.Book }
                 }
                 Sheet.Book -> {

@@ -34,16 +34,18 @@ val accountCopy = listOf(
     ),
 )
 
-/** Questions the coach chips send. The service writes the answer. */
+/** Shown before the first coast answer. The service writes the disclaimer after that. */
+const val coastOpening =
+    "Ask about this customer's transactions. The service writes the answer. It can be wrong, and it does not move money."
+
+/** Questions the chat chips send to this customer's coast endpoint. The service writes the answer. */
 val coachChips = listOf(
-    "What kind of spender" to "What kind of spender am I?",
-    "Safe this week" to "What is safe for me to spend this week?",
-    "Dining minus 20%" to "How much could I save if I reduced dining out by 20%?",
-    "Once a week" to "What if I dine out once a week instead of twice?",
-    "Impulse" to "When do I tend to impulse spend?",
-    "Days left" to "How many days until my money runs out at my current pace?",
-    "Cancel 3 subs" to "What happens if I cancel my top 3 least-used subscriptions?",
-    "People like me" to "What do people in the same class save?",
+    "Balance" to "What is my balance?",
+    "Last salary" to "When was my latest salary, and how much was it?",
+    "Last month" to "How much left my account last month?",
+    "Biggest category" to "What did I spend the most on?",
+    "Recent months" to "How did money in and money out change over the recent months?",
+    "Mortgage" to "Is there a mortgage decision on this customer?",
 )
 
 /** Categories the filing route accepts. Unknown names are rejected. */

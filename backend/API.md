@@ -55,6 +55,22 @@ Transactions are indexed in `backend/.cache/junction.sqlite`. A later start open
 
 Unknown customer ids return 404. A `month` the customer does not have returns 400. `years` other than 1, 3, or 5 returns 400.
 
+### Ask about one customer
+
+`POST /customers/{customer_id}/coast/ask` with `{ "text": "How much did I spend last month?" }`.
+
+The service loads that customer's transactions, computes the figures, and sends those figures plus the question to the Verda vLLM deployment (`POST <VERDA_BASE_URL>/v1/chat/completions`). The model may phrase the answer. It does not choose the cents. The question is not stored.
+
+The call needs `backend/.env`:
+
+| Name | What to put |
+| --- | --- |
+| `VERDA_API_KEY` | Inference API key from Verda → Credentials → Inference API Keys |
+| `VERDA_BASE_URL` | Containers API URL, `https://containers.verda.com/<deployment-name>` |
+| `VERDA_MODEL` | Model id from `GET <base>/v1/models`. The tutorial model is `Qwen/Qwen2.5-1.5B-Instruct` |
+
+A missing key or base URL returns 503. A deployment error returns 502. The response is `customer_id`, `answer`, `model`, `source` (`verda`), and `disclaimer`.
+
 CUST00001 is age 63, postal code 00990, account `ACC000001`, 581 transactions, balance €4,723.58 on 2026-09-30. CUST00002 is account `ACC000002`, balance €1,539.16 on the same date, with no investment deposits.
 
 ## Mortgages

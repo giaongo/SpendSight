@@ -8,6 +8,8 @@ The service is documented in [`backend/API.md`](../backend/API.md). The interact
 
 Start the service first, from `backend/`, as `backend/API.md` describes. It listens on `https://127.0.0.1:8000` with the certificate in `backend/.cache/certs/`.
 
+`/run-backend` starts that service. The steps are in [`.agents/skills/run-backend/SKILL.md`](../.agents/skills/run-backend/SKILL.md).
+
 `/run-android` installs the debug app and opens it. The steps are in [`.agents/skills/run-android/SKILL.md`](../.agents/skills/run-android/SKILL.md). From `frontend/`, the same install is:
 
 ```bash
@@ -69,7 +71,7 @@ That load calls, in parallel:
 | Today | The session’s `reads.today`: balance, as-of date, latest salary, money in and out for the latest month, transaction count |
 | Spending | The session’s `reads.spending`. Earlier and Later add `?month=YYYY-MM`. A month the customer does not have stays on the previous month and shows the 400 detail |
 | Save | The session’s `reads.save` with `?years=`. The chips are 1, 3, and 5. This is recorded deposits. It does not move money |
-| SpendSight | Coach. The opening bubble is the `note` from `GET /session` |
+| SpendSight | Chat for the session customer. `POST /customers/{customer_id}/coast/ask` with `{ "text": "..." }`. The bubble is `answer`. The line under the composer is `disclaimer` |
 
 A category that exists on the loaded spending month lists those transactions. The amounts are the strings the service sent. Those rows have no filing sheet.
 
@@ -94,7 +96,7 @@ Any screen that starts with “Design sample. Today, Spending, and Save are this
 | Home | Sample buffer and October Bonus. The service has no ASP plan for this customer, so the screen does not invent one |
 | Loan sketch | `GET /loan/sketch` |
 
-The coach sends `POST /coach/ask` with `{ "text": "..." }`, at most 280 characters. The card is the design sample. A chip is one of those questions. Privacy → “Delete this thread” sends `DELETE /thread` and restores the opening note.
+The chat sends `POST /customers/{customer_id}/coast/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is the one from `GET /session`. The reply is `answer`, `model`, `source`, and `disclaimer`. A chip is a question about that customer's transactions. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question. `POST /coach/ask` is the design-sample coach. The chat does not call it.
 
 The effort picker sends `PUT /settings/effort` with `{ "effort": "..." }`. Refiling a design-sample payment sends `POST /payments/{id}/filing` with `{ "category": "..." }`. Customer transactions are not refiled.
 

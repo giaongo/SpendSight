@@ -102,6 +102,39 @@ class CustomerBook:
             "reads": self.links(),
         }
 
+    def ai_facts(self) -> dict:
+        """Figures the model may use. Computed here, from this customer only."""
+        spending = self.spending_view(None)
+        today = self.today_view()
+        months = self.months_view()["months"]
+        return {
+            "customer_id": self.customer_id,
+            "postal_code": self.postal_code,
+            "age": self.age,
+            "account_id": self.account_id,
+            "as_of": self.last_date,
+            "balance_cents": self.balance_cents,
+            "balance": today["balance"],
+            "latest_salary_cents": today["latest_salary_cents"],
+            "latest_salary_date": today["latest_salary_date"],
+            "latest_month": self.latest_month,
+            "latest_month_in_cents": spending["total_in_cents"],
+            "latest_month_out_cents": spending["total_out_cents"],
+            "latest_month_categories": [
+                {"name": row["name"], "count": row["count"], "amount_cents": row["amount_cents"]}
+                for row in spending["categories"]
+            ],
+            "latest_month_transactions": spending["transactions"],
+            "recent_months": months[-6:],
+            "all_categories": [
+                {"name": row["name"], "count": row["count"], "amount_cents": row["amount_cents"]}
+                for row in _categories(self.rows)
+            ],
+            "mortgage_customer_id": self.identity()["mortgage_customer_id"],
+            "mortgage_decision": self.identity()["mortgage_decision"],
+            "transaction_count": len(self.rows),
+        }
+
     def months_view(self) -> dict:
         months = []
         for month, rows in self.months.items():

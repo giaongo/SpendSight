@@ -37,6 +37,14 @@ class FactModel(BaseModel):
     because: str
 
 
+class CoastResponse(BaseModel):
+    customer_id: str
+    answer: str
+    model: str
+    source: str
+    disclaimer: str
+
+
 class CoachResponse(BaseModel):
     refused: bool
     disclaimer: str
