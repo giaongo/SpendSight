@@ -1,0 +1,61 @@
+# SpendSight on the VM (OPS-03).
+#
+#   cd /opt/spendsight/infra
+#   cp .env.example .env          # once; set SPENDSIGHT_HOST
+#   docker compose up -d --build
+#
+# api   – the OPS-02 image, plain HTTP on :8000, reachable only inside this network.
+# caddy – public 80/443, gets the Let's Encrypt certificate itself, proxies to api:8000.
+# Secrets (model token etc.) live in /data/.env on the instance, never in Git.
+
+name: spendsight
+
+services:
+  # /data/cache is created root-owned by the OPS-01 bootstrap; the api runs as UID 1000.
+  # This one-shot fixes ownership so the api can (re)build the index. Safe to run every time.
+  cache-perms:
+    image: busybox:1.37
+    command: ["chown", "1000:1000", "/data/cache"]
+    volumes:
+      - ${DATA_DIR:-/data}/cache:/data/cache
+    restart: "no"
+
+  api:
+    build:
+      context: ../backend
+    image: spendsight-api:latest
+    restart: unless-stopped
+    depends_on:
+      cache-perms:
+        condition: service_completed_successfully
+    env_file:
+      - path: ${DATA_DIR:-/data}/.env
+        required: false
+    environment:
+      JUNCTION_DIR: /data/junction
+      SPENDSIGHT_CACHE_DIR: /data/cache
+    volumes:
+      - ${DATA_DIR:-/data}/junction:/data/junction:ro
+      - ${DATA_DIR:-/data}/cache:/data/cache
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2.10.0-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      SPENDSIGHT_HOST: ${SPENDSIGHT_HOST:?set SPENDSIGHT_HOST in infra/.env, e.g. api.203-0-113-7.sslip.io}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # certificates and ACME account; keep across restarts
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

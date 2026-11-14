@@ -1,0 +1,12 @@
+# SpendSight edge (OPS-03).
+# SPENDSIGHT_HOST is api.<domain>, or an sslip.io name on the instance IP
+# (e.g. api.203-0-113-7.sslip.io). Caddy gets and renews the Let's Encrypt
+# certificate for it and redirects HTTP to HTTPS.
+#
+# No access log on purpose: keep request details off the box.
+
+{$SPENDSIGHT_HOST} {
+	encode zstd gzip
+
+	reverse_proxy api:8000
+}
