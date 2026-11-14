@@ -34,11 +34,11 @@ val accountCopy = listOf(
     ),
 )
 
-/** Shown before the first coast answer. The service writes the disclaimer after that. */
-const val coastOpening =
+/** Shown before the first coach answer. The service writes the disclaimer after that. */
+const val coachOpening =
     "Ask about this customer's transactions. The service writes the answer. It can be wrong, and it does not move money."
 
-/** Questions the chat chips send to this customer's coast endpoint. The service writes the answer. */
+/** Questions the chat chips send to this customer's coach endpoint. The service writes the answer. */
 val coachChips = listOf(
     "Balance" to "What is my balance?",
     "Last salary" to "When was my latest salary, and how much was it?",
