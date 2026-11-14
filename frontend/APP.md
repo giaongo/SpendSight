@@ -81,7 +81,7 @@ That load calls, in parallel:
 | `GET /watch` | Watch |
 | `GET /loan/sketch?price_eur=220000&rate_percent=4.0&years=25&down_percent=10` | Loan sketch |
 
-`/docs` and `/database` are not called. Today, Spending, and Save use the paths in `reads` from `GET /session`, so a different customer on the service is the customer the phone loads. Month and year changes stay on those same paths. Offers are not part of this opening load. The Offers tab calls `GET /customers/{customer_id}/coupons` and `GET /campaigns`. Activate calls the `activate` path on that coupon. SpendSight also reads the previous month afterwards, and ignores that call when the customer has no earlier month.
+Today, Spending, and Save use the paths in `reads` from `GET /customers/CUST00007`, so a different customer on the service is the customer the phone loads. Month and year changes stay on those same paths. Offers are not part of this opening load. The Offers tab calls `GET /customers/{customer_id}/coupons` and `GET /campaigns`. Activate calls the `activate` path on that coupon. SpendSight also reads the previous month afterwards, and ignores that call when the customer has no earlier month.
 
 ## Tabs
 
@@ -117,7 +117,7 @@ Any screen that starts with “Design sample. Today, Spending, and Save are this
 | Home | Sample buffer and October Bonus. The service has no ASP plan for this customer, so the screen does not invent one |
 | Loan sketch | `GET /loan/sketch` |
 
-The chat sends `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is `CUSTOMER_ID` (CUST00007). The reply is `answer`, `lead`, `detail`, `card`, `caption`, `follow_ups`, `model`, `source`, and `disclaimer`. The five questions above the field each draw their own card from that payload. Any other reply that includes a card uses one shared card. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question. `POST /coach/ask` is the design-sample coach. The chat does not call it.
+The chat sends `POST /customers/{customer_id}/coach/ask` with `{ "text": "..." }`, at most 280 characters. The customer id is `CUSTOMER_ID` (CUST00007). The reply is `answer`, `lead`, `detail`, `card`, `caption`, `follow_ups`, `model`, `source`, and `disclaimer`. The five questions above the field each draw their own card from that payload. Any other reply that includes a card uses one shared card. The call can take up to a minute. Privacy → “Delete this thread” clears the screen. The service does not store the question.
 
 The effort picker sends `PUT /settings/effort` with `{ "effort": "..." }`. Refiling a design-sample payment sends `POST /payments/{id}/filing` with `{ "category": "..." }`. Customer transactions are not refiled.
 

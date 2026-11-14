@@ -4,8 +4,8 @@
 #   infra/smoke.sh                                   # default URL below
 #   infra/smoke.sh https://api.<ip-dashes>.sslip.io
 #
-# Read-only: it never calls POST routes, so the in-memory demo session
-# (Aino's thread and audit) is left as the judges will see it.
+# Read-only: it never calls POST or PUT routes, so the in-memory design-sample
+# ledger (effort setting, refiled payments) is left as the judges will see it.
 set -uo pipefail
 
 URL=${1:-${DEPLOY_URL:-https://api.95-133-254-29.sslip.io}}
@@ -46,15 +46,15 @@ echo "-- design sample (BACKLOG oracle table)"
 expect "safe_to_spend_cents"  /ledger/summary 'd["safe_to_spend_cents"]'    102830
 
 echo "-- Junction data"
-expect "default customer"     /today          'd["customer_id"]'            CUST00001
-expect "CUST00001 balance"    /today          'd["balance_cents"]'          472358
+expect "CUST00001 balance"    /customers/CUST00001/today 'd["balance_cents"]' 472358
 expect "CUST00002 balance"    /customers/CUST00002 'd["balance_cents"]'     153916
-expect "transactions indexed" /database       'd["transactions"]'           3626755
+expect "transactions indexed" /health         'd["transactions_rows"]'      3626755
 code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "$URL/customers/CUST99999")
 if [ "$code" = 404 ]; then pass "unknown customer -> 404"; else bad "unknown customer: got $code"; fi
 
 echo "-- screens the app opens with"
-for path in /session /spending /save /payments /charts /bonus /tools/week /thread; do
+for path in /customers/CUST00007 /customers/CUST00007/today /customers/CUST00007/spending \
+            /customers/CUST00007/save /campaigns /settings/effort /payments /charts /bonus /tools/week; do
   if get "$path" >/dev/null; then pass "GET $path"; else bad "GET $path"; fi
 done
 

@@ -40,17 +40,19 @@ The app calls `https://10.0.2.2:8000` from the Android emulator and `https://127
 
 The backend serves **two separate data worlds**. Keep them apart.
 
-1. **Design sample (Aino Korhonen).** `app/ledger.py` holds a hard-coded sample ledger: October rolled up by place, November payments 1–13, holds, balance, salary, Bonus steps, and loan arithmetic. "Today" in the demo is 13 Nov. `app/coach.py` runs `POST /coach/ask`: it classifies the question, refuses (with no ledger amounts) or runs exactly one named tool, and fills a fixed card (`refused`, `disclaimer`, `source`, `fact{kicker,figure,because}`, `next`, `screen`). `app/store.py` `Session` is the one signed-in demo session, holding the ledger, the thread, the audit (intent, tool, time, account; never the question text), and the effort setting. The `/tools/*`, `/payments`, `/ledger/summary`, `/charts`, `/bonus`, `/purchase`, `/watch`, `/settings/effort`, and `/loan/sketch` routes all read this sample.
-2. **Junction dataset (real CSVs).** `app/junction_db.py` `JunctionLibrary` loads `Junction-2026-S-pankki/` at startup (override with `JUNCTION_DIR`). That folder is gitignored. The 3.6M-row transaction CSV is indexed once into `backend/.cache/junction.sqlite` and reopened when the index is newer than the CSV. A Git LFS pointer file is rejected. `app/customer_data.py` `CustomerBook` serves `/customers/{id}/today|spending|save|months`. `/today`, `/spending`, and `/save` with no id use CUST00001.
+1. **Design sample (Aino Korhonen).** `app/ledger.py` holds a hard-coded sample ledger: October rolled up by place, November payments 1–13, holds, balance, salary, Bonus steps, and loan arithmetic. "Today" in the demo is 13 Nov. One `Ledger` lives in memory on `app.state.ledger` and holds the effort setting and any refiled payments. The `/tools/*`, `/payments`, `/ledger/summary`, `/charts`, `/bonus`, `/purchase`, `/watch`, `/settings/effort`, and `/loan/sketch` routes all read this sample.
+2. **Junction dataset (real CSVs).** `app/junction_db.py` `JunctionLibrary` loads `Junction-2026-S-pankki/` at startup (override with `JUNCTION_DIR`). That folder is gitignored. The 3.6M-row transaction CSV is indexed once into `backend/.cache/junction.sqlite` and reopened when the index is newer than the CSV. A Git LFS pointer file is rejected. `app/customer_data.py` `CustomerBook` serves `/customers/{id}` and `/customers/{id}/today|spending|save`. `POST /customers/{id}/coach/ask` (`app/verda.py`) answers from that customer's transactions, and `app/offers.py` serves the sample coupons and campaigns.
 
-The coach never reads the Junction data, and Aino's figures are never computed from it.
+Aino's figures are never computed from the Junction data, and the Junction screens never show Aino's figures.
+
+Every route is called by the app, except `/health` and `/healthz`.
 
 Other backend conventions:
 - Money is integer cents in `*_cents` fields. Display strings use `€` and a unicode minus (`app/money.py`). `js_round` copies JavaScript rounding so figures match the design.
 - A customer id in a request body is ignored. The session decides who the customer is.
 - `app/main.py` `create_app()` builds the app. Tests use it through the `client` fixture in `tests/conftest.py`. By default they read the small fixture in `tests/fixtures/junction/` (three whole customers, rebuilt with `tests/fixtures/make_fixtures.py`) with a throwaway index; `SPENDSIGHT_TEST_FULL_DATA=1 .venv/bin/pytest` uses the real dataset and also runs the `full_data` tests (dataset-wide totals).
 
-Frontend flow: `ApiClient.kt` (Ktor; OkHttp on Android, Darwin on iOS) → `ApiDto.kt` (serializable DTOs that mirror the service responses) → `Store.kt` `SpendSightStore` (state, loading, actions) → `App.kt` / `Screens.kt` (Compose UI, four tabs: Today, Spending, Save, SpendSight). `Theme.kt` and `UiCopy.kt` hold the design tokens and fixed copy. The opening load makes about 18 calls in parallel, and one failure fails the whole load (see `frontend/APP.md`). Today, Spending, and Save follow the `reads` paths returned by `GET /session`. Design-sample screens show a "Design sample" banner.
+Frontend flow: `ApiClient.kt` (Ktor; OkHttp on Android, Darwin on iOS) → `ApiDto.kt` (serializable DTOs that mirror the service responses) → `Store.kt` `SpendSightStore` (state, loading, actions) → `App.kt` / `Screens.kt` (Compose UI, four tabs: Today, Spending, Save, SpendSight). `Theme.kt` and `UiCopy.kt` hold the design tokens and fixed copy. The opening load makes about 18 calls in parallel, and one failure fails the whole load (see `frontend/APP.md`). Today, Spending, and Save follow the `reads` paths returned by `GET /customers/{CUSTOMER_ID}`. Design-sample screens show a "Design sample" banner.
 
 ## Reference docs
 

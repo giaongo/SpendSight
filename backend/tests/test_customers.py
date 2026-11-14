@@ -2,19 +2,11 @@ import pytest
 
 
 @pytest.mark.full_data
-def test_database_overview_matches_the_index(client):
-    body = client.get("/database").json()
+def test_health_counts_the_whole_dataset(client):
+    body = client.get("/health").json()
+    assert body["ok"] is True
     assert body["customers"] == 5_100
-    assert body["mortgage_applications"] == 200
-    assert body["transactions"] == 3_626_755
-    assert body["first_date"] == "2024-10-01"
-    assert body["last_date"] == "2026-09-30"
-    assert body["default_customer_id"] == "CUST00001"
-    types = {row["transaction_type"]: row["count"] for row in body["transaction_types"]}
-    assert types["purchase"] == 3_000_711
-    assert types["salary"] == 121_725
-    categories = {row["category"]: row["n"] for row in body["categories"]}
-    assert categories["Groceries"] == 868_519
+    assert body["transactions_rows"] == 3_626_755
 
 
 def test_any_customer_can_be_read(client):
@@ -22,7 +14,11 @@ def test_any_customer_can_be_read(client):
     assert summary["customer_id"] == "CUST00002"
     assert summary["account_id"] == "ACC000002"
     assert summary["balance_cents"] == 153_916
-    assert summary["reads"]["today"] == "/customers/CUST00002/today"
+    assert summary["reads"] == {
+        "today": "/customers/CUST00002/today",
+        "spending": "/customers/CUST00002/spending",
+        "save": "/customers/CUST00002/save",
+    }
 
     today = client.get("/customers/CUST00002/today").json()
     assert today["as_of"] == "2026-09-30"
@@ -38,15 +34,13 @@ def test_any_customer_can_be_read(client):
     assert save["deposits"] == 0
     assert save["deposited_cents"] == 0
 
-    months = client.get("/customers/CUST00002/months").json()
-    assert months["months"][0]["month"] == "2024-10"
-    assert months["months"][-1]["month"] == "2026-09"
-    assert len(months["months"]) == 24
-
     assert client.get("/customers/CUST99999").status_code == 404
     assert client.get("/customers/CUST00002/spending", params={"month": "1999-01"}).status_code == 400
 
 
-def test_the_default_reads_stay_on_the_first_customer(client):
-    assert client.get("/today").json()["customer_id"] == "CUST00001"
-    assert client.get("/customers/CUST00001/today").json()["balance_cents"] == 472_358
+
+def test_a_mortgage_link_comes_from_the_csv_folder(client):
+    borrower = client.get("/customers/CUST04457").json()
+    assert borrower["mortgage_customer_id"] == "C0004"
+    assert borrower["mortgage_decision"] == "approved"
+    assert client.get("/customers/CUST00001").json()["mortgage_customer_id"] is None

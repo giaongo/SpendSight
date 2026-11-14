@@ -1,6 +1,6 @@
-"""Figures for the first customer in the Junction database.
+"""Figures for one customer in the Junction database.
 
-Built once, while the library is created. The rows are that customer's
+Built the first time that customer is read. The rows are that customer's
 own transactions. They are not the design sample.
 """
 
@@ -12,10 +12,9 @@ from app.money import eur
 
 
 class CustomerBook:
-    def __init__(self, customer: dict, mortgage: dict | None, rows: list[dict], *, primary: bool = False) -> None:
+    def __init__(self, customer: dict, mortgage: dict | None, rows: list[dict]) -> None:
         if not rows:
             raise LookupError(customer["customer_id"])
-        self.primary = primary
         self.customer_id = customer["customer_id"]
         self.postal_code = customer["postal_code"]
         self.age = customer["age"]
@@ -44,30 +43,12 @@ class CustomerBook:
             "mortgage_decision": None if mortgage is None else mortgage["final_decision"],
         }
 
-    def session_view(self) -> dict:
-        return {
-            **self.identity(),
-            "as_of": self.last_date,
-            "balance_cents": self.balance_cents,
-            "balance": eur(self.balance_cents),
-            "transaction_count": len(self.rows),
-            "coach": "POST /coach/ask",
-            "reads": self.links(),
-            "note": (
-                "This session is the first customer in the database. "
-                "Pass a customer id to /customers/{customer_id} for anyone else."
-            ),
-        }
-
     def links(self) -> dict:
         customer_id = self.customer_id
         return {
-            "summary": f"/customers/{customer_id}",
             "today": f"/customers/{customer_id}/today",
             "spending": f"/customers/{customer_id}/spending",
             "save": f"/customers/{customer_id}/save",
-            "months": f"/customers/{customer_id}/months",
-            "transactions": f"/junction/customers/{customer_id}/transactions",
         }
 
     def today_view(self) -> dict:
