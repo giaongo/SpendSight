@@ -1,6 +1,6 @@
 import json
 
-from app.verda import chat_url
+from app.verda import chat_url, spending_relevance
 
 
 def test_chat_url_accepts_the_containers_base():
@@ -10,6 +10,14 @@ def test_chat_url_accepts_the_containers_base():
     assert chat_url("https://containers.verda.com/demo/v1") == (
         "https://containers.verda.com/demo/v1/chat/completions"
     )
+
+
+def test_spending_questions_keep_the_customers_figures():
+    assert spending_relevance("How much left my account in September?") == "spending"
+    assert spending_relevance("What is my balance?") == "spending"
+    assert spending_relevance("What is the capital of Finland?") == "other"
+    assert spending_relevance("Tell me a joke") == "other"
+    assert spending_relevance("What is a mortgage?") == "other"
 
 
 def test_coast_ask_sends_only_that_customers_facts(client, monkeypatch):
@@ -57,6 +65,46 @@ def test_coast_ask_sends_only_that_customers_facts(client, monkeypatch):
     assert "How much left my account in September?" in sent
     assert "153916" in sent
     assert "472358" not in sent
+    assert body["uses_customer_data"] is True
+
+
+def test_other_questions_are_sent_without_customer_facts(client, monkeypatch):
+    monkeypatch.setenv("VERDA_API_KEY", "test-key")
+    monkeypatch.setenv("VERDA_BASE_URL", "https://containers.verda.com/demo")
+    captured = {}
+
+    class FakeResponse:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return False
+
+        def read(self):
+            return json.dumps(
+                {
+                    "model": "Qwen/Qwen2.5-1.5B-Instruct",
+                    "choices": [{"message": {"content": "Helsinki."}}],
+                }
+            ).encode()
+
+    def fake_urlopen(request, timeout=0):
+        captured["body"] = json.loads(request.data.decode())
+        return FakeResponse()
+
+    monkeypatch.setattr("app.verda.urlopen", fake_urlopen)
+    response = client.post(
+        "/customers/CUST00002/coast/ask",
+        json={"text": "What is the capital of Finland?"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"] == "Helsinki."
+    assert body["uses_customer_data"] is False
+    sent = json.dumps(captured["body"])
+    assert "What is the capital of Finland?" in sent
+    assert "153916" not in sent
+    assert "facts" not in sent
 
 
 def test_coast_ask_needs_the_deployment_settings(client, monkeypatch):

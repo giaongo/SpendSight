@@ -59,7 +59,11 @@ Unknown customer ids return 404. A `month` the customer does not have returns 40
 
 `POST /customers/{customer_id}/coast/ask` with `{ "text": "How much did I spend last month?" }`.
 
-The service loads that customer's transactions, computes the figures, and sends those figures plus the question to the Verda vLLM deployment (`POST <VERDA_BASE_URL>/v1/chat/completions`). The model may phrase the answer. It does not choose the cents. The question is not stored.
+A question about that customer's spending, balance, salary, bills, savings, or mortgage is answered from their transactions. The service computes the figures and sends them with the question. The model may phrase the answer. It does not choose the cents.
+
+Any other question is answered on its own. Their transactions are not included. `uses_customer_data` is true only for the spending case.
+
+The call is `POST <VERDA_BASE_URL>/v1/chat/completions`. The question is not stored.
 
 The call needs `backend/.env`:
 
@@ -69,7 +73,7 @@ The call needs `backend/.env`:
 | `VERDA_BASE_URL` | Containers API URL, `https://containers.verda.com/<deployment-name>` |
 | `VERDA_MODEL` | Model id from `GET <base>/v1/models`. The tutorial model is `Qwen/Qwen2.5-1.5B-Instruct` |
 
-A missing key or base URL returns 503. A deployment error returns 502. The response is `customer_id`, `answer`, `model`, `source` (`verda`), and `disclaimer`.
+A missing key or base URL returns 503. A deployment error returns 502. The response is `customer_id`, `answer`, `model`, `source` (`verda`), `uses_customer_data`, and `disclaimer`.
 
 CUST00001 is age 63, postal code 00990, account `ACC000001`, 581 transactions, balance €4,723.58 on 2026-09-30. CUST00002 is account `ACC000002`, balance €1,539.16 on the same date, with no investment deposits.
 

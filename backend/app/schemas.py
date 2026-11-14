@@ -42,6 +42,7 @@ class CoastResponse(BaseModel):
     answer: str
     model: str
     source: str
+    uses_customer_data: bool
     disclaimer: str
 
 
