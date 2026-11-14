@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 13+ themed icon: a one-colour line version of the foreground. The launcher tints it,
+     so only the alpha matters. Same 1024-unit coordinates and mapping as ic_launcher_foreground. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.0703125"
+        android:scaleY="0.0703125"
+        android:translateX="18"
+        android:translateY="18">
+
+        <!-- Chat bubble outline -->
+        <path
+            android:pathData="M512,196C700,196 836,316 836,476C836,636 700,756 512,756C470,756 430,750 393,739L262,818C248,826 232,813 237,798L272,690C220,638 188,562 188,476C188,316 324,196 512,196Z"
+            android:strokeColor="#FF000000"
+            android:strokeWidth="36"
+            android:strokeLineJoin="round" />
+
+        <!-- Bars and trend line inside the lens -->
+        <group android:name="lens">
+            <clip-path android:pathData="M320,470A150,150 0,1 1,620,470A150,150 0,1 1,320,470Z" />
+            <path android:fillColor="#FF000000" android:fillAlpha="0.55"
+                android:pathData="M390,500H410A12,12 0,0 1,422,512V628A12,12 0,0 1,410,640H390A12,12 0,0 1,378,628V512A12,12 0,0 1,390,500Z" />
+            <path android:fillColor="#FF000000"
+                android:pathData="M460,440H480A12,12 0,0 1,492,452V628A12,12 0,0 1,480,640H460A12,12 0,0 1,448,628V452A12,12 0,0 1,460,440Z" />
+            <path android:fillColor="#FF000000"
+                android:pathData="M530,388H550A12,12 0,0 1,562,400V628A12,12 0,0 1,550,640H530A12,12 0,0 1,518,628V400A12,12 0,0 1,530,388Z" />
+            <path
+                android:pathData="M372,470L440,420L500,438L580,352"
+                android:strokeColor="#FF000000"
+                android:strokeWidth="16"
+                android:strokeLineCap="round"
+                android:strokeLineJoin="round" />
+        </group>
+
+        <!-- Lens ring and handle -->
+        <path
+            android:pathData="M320,470A150,150 0,1 1,620,470A150,150 0,1 1,320,470Z"
+            android:strokeColor="#FF000000"
+            android:strokeWidth="34" />
+        <path
+            android:pathData="M580,580L676,676"
+            android:strokeColor="#FF000000"
+            android:strokeWidth="56"
+            android:strokeLineCap="round" />
+    </group>
+</vector>
