@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">SpendSight app icon</title>
+  <desc id="description">An eye-shaped money insight mark with a rising line, on a green background.</desc>
+  <rect width="1024" height="1024" fill="#00AA46"/>
+  <path d="M628 1024c8-199 81-356 220-470 55-45 114-78 176-100v570H628Z" fill="#008F3C"/>
+  <path d="M180 512c84-162 204-242 332-242s248 80 332 242c-84 162-204 242-332 242S264 674 180 512Z" fill="#FFFFFF"/>
+  <circle cx="512" cy="512" r="150" fill="#002616"/>
+  <path d="m410 574 80-80 58 58 78-110" fill="none" stroke="#DFF1E5" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

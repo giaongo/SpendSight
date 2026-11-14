@@ -4,6 +4,10 @@ Kotlin Multiplatform client in `frontend/`. The screens and the HTTP client live
 
 The service is documented in [`backend/API.md`](../backend/API.md). The interactive reference is [https://127.0.0.1:8000/docs](https://127.0.0.1:8000/docs). That page is the reference. The app does not open it.
 
+## Launcher icon
+
+[`branding/spendsight-app-icon.svg`](branding/spendsight-app-icon.svg) is the editable launcher-icon source. Android uses matching adaptive vector resources, including an Android 13 themed icon. iOS uses the opaque PNG sizes in `Assets.xcassets/AppIcon.appiconset`, generated from that SVG because iOS launcher assets do not accept SVG files.
+
 ## Run
 
 Start the service first, from `backend/`, as `backend/API.md` describes. It listens on `https://127.0.0.1:8000` with the certificate in `backend/.cache/certs/`.
