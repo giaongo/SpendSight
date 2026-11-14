@@ -1,0 +1,26 @@
+﻿mortgage_customer_id,timestamp,event_type,property_id,property_type,property_price_estimate,loan_amount,equity_amount,collateral_type,collateral_value,collateral_status,decision,rejection_reason,expense_type,expense_amount,note
+C0004,26MAY26:00:00:00,application_created,,,,,,,,,,,,,The customer started a mortgage application.
+C0004,27MAY26:19:36:59,customer_contact,,,,,,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,28MAY26:06:46:40,property_added,P0004_01,terraced_house,387500,,,,,,,,,,"The customer added a property to the mortgage application and reviewed how it fits the financing plan. The estimated property price is EUR 387,500."
+C0004,30MAY26:04:15:32,property_price_updated,P0004_01,terraced_house,395000,,,,,,,,,,"The property price estimate was updated and the financing need was reassessed. The updated property price estimate is EUR 395,000."
+C0004,31MAY26:17:40:15,customer_contact,P0004_01,,395000,,,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,02JUN26:14:20:34,customer_contact,,,,,,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,04JUN26:05:22:07,property_added,P0004_02,detached_house,589000,,,,,,,,,,"The customer added a property to the mortgage application and reviewed how it fits the financing plan. The estimated property price is EUR 589,000."
+C0004,04JUN26:14:51:40,property_price_updated,P0004_02,detached_house,599500,,,,,,,,,,"The property price estimate was updated and the financing need was reassessed. The updated property price estimate is EUR 599,500."
+C0004,06JUN26:19:05:38,customer_contact,P0004_02,,599500,,,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,07JUN26:07:28:37,customer_contact,,,,,,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,09JUN26:06:04:29,property_added,P0004_03,terraced_house,203000,,,,,,,,,,"The customer added a property to the mortgage application and reviewed how it fits the financing plan. The estimated property price is EUR 203,000."
+C0004,09JUN26:15:54:22,customer_contact,P0004_03,,203000,,,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,10JUN26:23:59:28,loan_calculation,P0004_03,terraced_house,203000,170500,32500,,,,,,,,"A mortgage calculation was prepared and affordability was reviewed. Requested loan amount: EUR 170,500. Equity amount: EUR 32,500."
+C0004,13JUN26:16:55:11,income_information_received,P0004_03,,203000,,,,,,,,,,The requested income information was received and reviewed for the mortgage application.
+C0004,14JUN26:09:37:31,expense_recorded,P0004_03,,203000,,,,,,,,transfer_tax,6500,"An expense related to the mortgage assessment was recorded: transfer tax. Amount: EUR 6,500."
+C0004,17JUN26:01:30:52,expense_recorded,P0004_03,,203000,,,,,,,,existing_loan,900,An expense related to the mortgage assessment was recorded: existing loan. Amount: EUR 900.
+C0004,17JUN26:20:05:10,expense_recorded,P0004_03,,203000,,,,,,,,transfer_tax,8000,"An expense related to the mortgage assessment was recorded: transfer tax. Amount: EUR 8,000."
+C0004,20JUN26:01:38:45,collateral_added,P0004_03,terraced_house,203000,,,apartment,,pending,,,,,Collateral was added to the mortgage application.
+C0004,22JUN26:10:24:46,collateral_valuation,P0004_03,,203000,,,apartment,132500,approved,,,,,"The collateral value was assessed for the mortgage application. Collateral value: EUR 132,500."
+C0004,25JUN26:00:53:50,additional_collateral_requested,P0004_03,,203000,170500,32500,other_apartment,,pending,,,,,Additional collateral was requested or discussed as part of the mortgage assessment.
+C0004,25JUN26:10:27:50,collateral_valuation,P0004_03,,203000,,,other_apartment,234000,approved,,,,,"The collateral value was assessed for the mortgage application. Collateral value: EUR 234,000."
+C0004,27JUN26:21:37:30,document_received,P0004_03,,203000,,,,,,,,,,A requested document was received and added to the mortgage application.
+C0004,30JUN26:09:03:45,customer_contact,P0004_03,,203000,170500,32500,,,,,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."
+C0004,01JUL26:09:34:17,loan_decision,P0004_03,terraced_house,203000,170500,32500,apartment,132500,approved,approved,,,,The mortgage application was approved and the positive decision was communicated to the customer.
+C0004,02JUL26:10:32:59,customer_contact,P0004_03,,203000,170500,32500,,,,approved,,,,"The customer contacted the bank to discuss the mortgage, financing needs, affordability, loan terms, or the property under consideration."

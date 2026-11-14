@@ -1,0 +1,143 @@
+# OPS-08 (CI) and OPS-09 (CD).
+#
+# Every push and pull request: backend lint + tests on the fixture data, frontend
+# tests + Android build, and the Docker image build with a smoke run.
+# On master, after all of that passes: deploy to the VM through the
+# "production" environment (pause deploys there during judging).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      COACH_MODEL_URL: ""   # fixed coach wording only; figures never come from a model
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.28"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --frozen --extra dev --python 3.12
+      - name: Lint
+        run: uv run --frozen ruff check .
+      - name: Test (fixture data, includes test_oracle.py)
+        run: uv run --frozen pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Shared tests
+        run: ./gradlew --no-daemon :shared:allTests
+      - name: Android debug build
+        run: ./gradlew --no-daemon :androidApp:assembleDebug
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t spendsight-api:ci backend
+      - name: Smoke run on the fixture data
+        run: |
+          cache=$(mktemp -d) && chmod 777 "$cache"
+          docker run -d --name api -p 8000:8000 \
+            -v "$PWD/backend/tests/fixtures/junction:/data/junction:ro" \
+            -v "$cache:/data/cache" \
+            spendsight-api:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8000/healthz; then echo; exit 0; fi
+            sleep 2
+          done
+          docker logs api
+          exit 1
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: [backend, frontend, docker]
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.DEPLOY_URL }}
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_URL: ${{ vars.DEPLOY_URL }}
+      SHA: ${{ github.sha }}
+    steps:
+      - name: SSH setup
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf 'Host vm\n  HostName %s\n  User root\n  IdentityFile ~/.ssh/deploy\n  IdentitiesOnly yes\n  StrictHostKeyChecking yes\n  ConnectTimeout 20\n' \
+            "$DEPLOY_HOST" > ~/.ssh/config
+
+      - name: Deploy ${{ github.sha }}
+        id: deploy
+        run: |
+          # shellcheck disable=SC2029  # $SHA is meant to expand on the runner
+          ssh vm "bash -s -- $SHA" <<'EOF'
+          set -euo pipefail
+          cd /opt/spendsight
+          git rev-parse HEAD > /opt/spendsight-previous-commit
+          git fetch --quiet origin master
+          git checkout --quiet --detach "$1"
+          cd infra && docker compose up -d --build --remove-orphans
+          docker image prune -f >/dev/null
+          echo "deployed $(git rev-parse --short HEAD), previous $(cut -c1-7 /opt/spendsight-previous-commit)"
+          EOF
+
+      - name: Check through Caddy
+        id: check
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS "$DEPLOY_URL/healthz" | grep -q '"ok":true'; then break; fi
+            [ "$i" = 40 ] && { echo "healthz never came up"; exit 1; }
+            sleep 5
+          done
+          # One oracle figure from the design sample (BACKLOG oracle table).
+          safe=$(curl -fsS "$DEPLOY_URL/ledger/summary" | python3 -c 'import json,sys; print(json.load(sys.stdin)["safe_to_spend_cents"])')
+          echo "safe_to_spend_cents=$safe"
+          test "$safe" = 102830
+
+      - name: Roll back to the previous commit
+        if: failure() && steps.deploy.outcome != 'skipped'
+        run: |
+          ssh vm 'bash -s' <<'EOF'
+          set -euo pipefail
+          cd /opt/spendsight
+          prev=$(cat /opt/spendsight-previous-commit)
+          git checkout --quiet --detach "$prev"
+          cd infra && docker compose up -d --build --remove-orphans
+          echo "rolled back to ${prev:0:7}"
+          EOF

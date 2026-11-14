@@ -1,0 +1,2 @@
+﻿mortgage_customer_id,customer_id,final_decision,rejection_reason,final_property_price_eur,final_requested_loan_eur,final_equity_amount_eur,final_collateral_value_eur,required_monthly_income_eur,lfinal_loan_to_value
+C0004,CUST04457,approved,,203000,170500,32500,132500,3138.668255808,0.83990147783251
