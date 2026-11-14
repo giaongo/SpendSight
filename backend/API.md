@@ -27,11 +27,27 @@ Loaded at startup from `Junction-2026-S-Pankki/`:
 | `mtg_tx_customer_link_and_final_mtg_infio.csv` | 200 mortgage applications and the final decision |
 | `mtg_negotiation_history.csv` | Negotiation events for those applications |
 
-Transactions are indexed in `backend/.cache/junction.sqlite`. A later start opens that file when it is newer than the CSV. Amounts in responses are integer cents. A display string such as `€4,723.58` uses a unicode minus for negative values.
+Transactions are indexed in `backend/.cache/junction.sqlite` (set `SPENDSIGHT_CACHE_DIR` to put it elsewhere, for example `/data/cache` on the server). A later start opens that file when it is newer than the CSV. Amounts in responses are integer cents. A display string such as `€4,723.58` uses a unicode minus for negative values.
 
 `/today`, `/spending`, and `/save` use the first customer, **CUST00001**. Every other customer is under `/customers/{customer_id}`.
 
 `POST /coach/ask` is a separate call. It answers from the design sample, not from these transactions.
+
+## Container
+
+`backend/Dockerfile` builds the deployed image: `python:3.12-slim`, `uv sync --frozen`, a non-root user (UID 1000), and uvicorn on `0.0.0.0:8000` over plain HTTP with one worker, because the demo session lives in memory. TLS is Caddy's job in production; `python -m app` keeps the self-signed HTTPS mode for local runs.
+
+```bash
+docker build -t spendsight-api backend
+docker run --rm -p 8000:8000 \
+  -v "$PWD/Junction-2026-S-pankki:/data/junction:ro" \
+  -v "$PWD/backend/.cache:/data/cache" \
+  spendsight-api
+```
+
+The image sets `JUNCTION_DIR=/data/junction` and `SPENDSIGHT_CACHE_DIR=/data/cache`. The cache mount must be writable by UID 1000. `.dockerignore` keeps `.venv`, `.cache`, `.env`, and the CSVs out of the image.
+
+`GET /healthz` returns `200 {"ok": true, "index": {"status": "ready", ...}}` once the transaction index is open, and `503` otherwise. The container `HEALTHCHECK` uses it.
 
 ## Database
 

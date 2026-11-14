@@ -39,6 +39,9 @@ def junction_dir() -> Path:
 
 
 def cache_dir() -> Path:
+    override = os.environ.get("SPENDSIGHT_CACHE_DIR")
+    if override:
+        return Path(override)
     return Path(__file__).resolve().parents[1] / ".cache"
 
 
@@ -288,6 +291,19 @@ def index_status() -> dict:
             "categories": _category_totals(path),
         }
     return {"status": "idle", "rows": None, "error": None, "path": None, "categories": None}
+
+
+def index_ready() -> dict:
+    """Cheap readiness check for /healthz. Does not open the index."""
+    path = transaction_db_path()
+    with _LOCK:
+        state = dict(_STATE)
+    ready = state["status"] == "ready" and path.is_file()
+    return {
+        "status": "ready" if ready else state["status"],
+        "rows": state["rows"] if ready else None,
+        "error": state["error"],
+    }
 
 
 def _category_totals(path: Path) -> list[dict]:
