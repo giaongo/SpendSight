@@ -60,18 +60,21 @@ fun CoachAnswer(message: CoachMessage, onAsk: (String) -> Unit, onOpen: (Screen)
 private fun WhereAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
     val card = message.card
     val headline = card?.headline
-    if (headline != null) {
-        Lead(t(R.string.T_went_out, eur(headline.amountCents), monthLabel(card.context)))
-    } else {
+    if (card == null || headline == null) {
         Prose(message)
+        return
     }
-    val detail = message.detail ?: card?.verdictDetail
-    if (!detail.isNullOrBlank()) Detail(detail)
-    if (card == null) return
     val (essentials, unexpected, everyday) = buckets(card.items)
     val rows = everydayRows(card.items)
+    val total = essentials + unexpected + everyday
+    Lead(t(R.string.T_went_out, eur(headline.amountCents), monthLabel(card.context)))
+    val summary = buildList {
+        if (total > 0) add(t(R.string.T_essentials_share, pct(essentials * 100 / total)))
+        rows.firstOrNull()?.let { add(t(R.string.T_biggest_everyday, categoryLabel(it.label))) }
+    }.joinToString(" ")
+    if (summary.isNotEmpty()) Detail(summary)
     CardBox {
-        Text(card.title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        Text(t(R.string.T_where_go), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         val chip = monthLabel(card.context)
         if (chip.isNotEmpty()) {
             Text(
@@ -86,7 +89,6 @@ private fun WhereAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
                     .padding(horizontal = 10.dp, vertical = 4.dp),
             )
         }
-        val total = essentials + unexpected + everyday
         if (total > 0) {
             Row(
                 Modifier.padding(top = 14.dp).fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)),
@@ -115,9 +117,8 @@ private fun WhereAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
                 ChevronRow(categoryLabel(item.label), eur(item.amountCents)) { onOpen(Screen.Category(item.key)) }
             }
         }
-        val footer = card.verdictDetail
-        if (!footer.isNullOrBlank()) {
-            Text(footer, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 8.dp))
+        usualGap(card)?.let {
+            Text(it, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 8.dp))
         }
     }
 }
@@ -152,28 +153,33 @@ private fun SpenderAnswer(message: CoachMessage, onAsk: (String) -> Unit) {
             }
         }
         Text(t(R.string.T_your_strength), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 16.dp))
-        Text(
-            t(R.string.T_essentials_paid, profile.monthsWithEssentials, profile.months),
-            color = Secondary,
-            fontSize = 14.sp,
-            lineHeight = 20.sp,
-            modifier = Modifier.padding(top = 4.dp),
-        )
+        val strength = if (profile.months > 0 && profile.monthsWithEssentials == profile.months) {
+            t(R.string.T_essentials_every_month)
+        } else {
+            t(R.string.T_essentials_paid, profile.monthsWithEssentials, profile.months)
+        }
+        Text(strength, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp))
         Text(t(R.string.T_try_this), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(top = 14.dp))
-        Text(saveMore, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+        Text(t(R.string.T_skip_a_few), color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
         PrimaryButton(t(R.string.T_try_eating_less)) { onAsk(saveMore) }
     }
 }
 
 @Composable
 private fun WeekAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
-    Prose(message)
     val card = message.card
     val headline = card?.headline
-    if (card == null || headline == null) return
+    if (card == null || headline == null) {
+        Prose(message)
+        return
+    }
+    val month = monthLabel(card.context)
+    Lead(t(R.string.T_went_out, eur(headline.amountCents), month))
+    usualGap(card)?.let { Detail(it) }
     var open by remember(message) { mutableStateOf(false) }
+    val calm = card.verdict?.startsWith("Less") == true || card.verdict?.startsWith("The same") == true
     CardBox {
-        Text(card.title, color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Text(t(R.string.T_money_out, month), color = Ink, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
         Text(
             eur(headline.amountCents),
             color = Ink,
@@ -182,20 +188,13 @@ private fun WeekAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
             style = Tabular,
             modifier = Modifier.padding(top = 8.dp),
         )
-        Text(headline.label, color = Secondary, fontSize = 14.sp, modifier = Modifier.padding(top = 2.dp))
-        val calm = card.verdict?.startsWith("Less") == true || card.verdict?.startsWith("The same") == true
-        if (!card.verdict.isNullOrBlank()) {
+        if (calm) {
             Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                if (calm) {
-                    Glyph(Icon.Sight, Forest, 18.dp)
-                    Spacer(Modifier.width(6.dp))
-                    Text(t(R.string.T_on_track), color = Forest, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                    Text(" · ", color = Secondary, fontSize = 15.sp)
-                }
-                Text(card.verdict, color = Ink, fontSize = 15.sp)
+                Glyph(Icon.Sight, Forest, 18.dp)
+                Spacer(Modifier.width(6.dp))
+                Text(t(R.string.T_on_track), color = Forest, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
         }
-        card.verdictDetail?.let { Text(it, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 4.dp)) }
         Text(t(R.string.T_week_not_limit), color = Secondary, fontSize = 14.sp, lineHeight = 20.sp, modifier = Modifier.padding(top = 8.dp))
         Text(t(R.string.T_how_worked), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 14.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -226,7 +225,6 @@ private fun SaveAnswer(message: CoachMessage) {
         else -> t(R.string.T_eat_less_many, skip, eur(option.monthCents))
     }
     Lead(lead)
-    message.detail?.let { Detail(it) }
     CardBox {
         Text(categoryLabel(cut.category), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
         Text(
@@ -292,21 +290,27 @@ private fun SaveAnswer(message: CoachMessage) {
 
 @Composable
 private fun HouseholdAnswer(message: CoachMessage) {
-    Prose(message)
     val card = message.card
-    if (card != null || message.lead?.contains("Statistics") == true) {
-        Text(t(R.string.T_deposits_not_spend), color = Secondary, fontSize = 14.sp, lineHeight = 20.sp)
+    if (card == null) {
+        Prose(message)
+        if (message.lead?.contains("Statistics") == true) {
+            Text(t(R.string.T_deposits_not_spend), color = Secondary, fontSize = 14.sp, lineHeight = 20.sp)
+        }
+        return
     }
-    if (card == null) return
     val choices = card.options?.choices.orEmpty()
     var selected by remember(card) { mutableStateOf(card.options?.selected) }
     val choice = choices.find { it.key == selected }
     val items = choice?.items ?: card.items
-    val verdict = choice?.verdict ?: card.verdict
-    val verdictDetail = choice?.verdictDetail ?: card.verdictDetail
+    val you = items.firstOrNull { it.key == "you" }?.amountCents ?: card.headline?.amountCents
+    val median = choice?.reference?.amountCents ?: card.reference?.amountCents
+    if (you != null) Lead(t(R.string.T_balance_is, eur(you))) else Prose(message)
+    peerGap(you, median)?.let { Detail(it) }
+    Text(t(R.string.T_deposits_not_spend), color = Secondary, fontSize = 14.sp, lineHeight = 20.sp)
+    val verdict = shortPeerVerdict(choice?.verdict ?: card.verdict)
     CardBox {
-        Text(card.title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
-        card.context?.let { Text(it, color = Secondary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
+        Text(t(R.string.T_you_and_age), color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        choice?.label?.let { Text(it, color = Secondary, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp)) }
         if (!verdict.isNullOrBlank()) {
             Text(
                 verdict,
@@ -320,19 +324,10 @@ private fun HouseholdAnswer(message: CoachMessage) {
                     .padding(horizontal = 12.dp, vertical = 8.dp),
             )
         }
-        verdictDetail?.let { Text(it, color = Secondary, fontSize = 14.sp, modifier = Modifier.padding(top = 8.dp)) }
         items.forEach { item ->
-            CompareBar(item.label, item.amountCents, item.barPct ?: 0, item.highlight)
+            CompareBar(peerBarLabel(item), item.amountCents, item.barPct ?: 0, item.highlight)
         }
         if (choices.size > 1) {
-            Text(
-                card.options?.label ?: "",
-                color = Secondary,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(top = 12.dp),
-            )
-            card.options?.note?.let { Text(it, color = Tertiary, fontSize = 12.sp, modifier = Modifier.padding(top = 2.dp)) }
             AgeRow(choices, selected) { selected = it }
         }
         HowLine(card.how)
@@ -527,6 +522,49 @@ private fun monthLabel(context: String?): String {
     )
     val rest = head.removePrefix(name).trim()
     return if (rest.isEmpty()) label else "$label $rest"
+}
+
+@Composable
+private fun usualGap(card: AnswerCardDto): String? {
+    val now = card.headline?.amountCents ?: return null
+    val usual = card.reference?.amountCents ?: return null
+    val gap = now - usual
+    return when {
+        gap > 0 -> t(R.string.T_more_than_usual, eur(gap), eur(usual))
+        gap < 0 -> t(R.string.T_less_than_usual, eur(-gap), eur(usual))
+        else -> t(R.string.T_same_as_usual, eur(usual))
+    }
+}
+
+@Composable
+private fun peerGap(you: Int?, median: Int?): String? {
+    if (you == null || median == null) return null
+    val gap = you - median
+    return when {
+        gap > 0 -> t(R.string.T_more_than_typical, eur(gap), eur(median))
+        gap < 0 -> t(R.string.T_less_than_typical, eur(-gap), eur(median))
+        else -> t(R.string.T_same_as_typical, eur(median))
+    }
+}
+
+@Composable
+private fun shortPeerVerdict(verdict: String?): String? = when {
+    verdict == null -> null
+    verdict.startsWith("Higher") -> t(R.string.T_higher_than_most)
+    verdict.startsWith("Lower") -> t(R.string.T_lower_than_most)
+    verdict.startsWith("Above") -> t(R.string.T_above_middle)
+    verdict.startsWith("Below") -> t(R.string.T_below_middle)
+    verdict.startsWith("The same") -> t(R.string.T_about_the_same)
+    else -> null
+}
+
+@Composable
+private fun peerBarLabel(item: CardItemDto): String = when (item.key) {
+    "you" -> t(R.string.T_you_short)
+    "median" -> t(R.string.T_typical_deposits)
+    "p75" -> "75%"
+    "p25" -> "25%"
+    else -> categoryLabel(item.label)
 }
 
 private fun buckets(items: List<CardItemDto>): Triple<Int, Int, Int> {
