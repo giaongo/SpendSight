@@ -12,6 +12,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 
 from app.junction_db import IndexNotReady, JunctionLibrary, index_ready, query_transactions
 from app.ledger import SLIP_CATEGORIES, loan_sketch
+from app.offers import CouponNotActive, CouponNotFound, CouponNotOffered, OfferBook
 from app.schemas import (
     AskRequest,
     CustomerCoachResponse,
@@ -45,6 +46,9 @@ not from these transactions.
 
 Interactive reference: `/docs`. Written reference: `backend/API.md`.
 `/statistics/education-assets` queries the public Statistics Finland PxWeb API.
+
+`/customers/{customer_id}/coupons` and `/campaigns` are sample S-Pankki offers,
+not real ones. S-Pankki is the only issuer.
 """
 
 
@@ -53,6 +57,7 @@ def create_app() -> FastAPI:
     app = FastAPI(title="SpendSight", version="0.1.0", description=API_DESCRIPTION)
     app.state.session = Session()
     app.state.junction = JunctionLibrary()
+    app.state.offers = OfferBook()
     app.include_router(router)
     return app
 
@@ -183,6 +188,36 @@ def customer_save(customer_id: str, request: Request, years: int = 5) -> dict:
 def customer_months(customer_id: str, request: Request) -> dict:
     """Every month this customer has, with money in and money out."""
     return _book(request, customer_id).months_view()
+
+
+def _offers(request: Request) -> OfferBook:
+    return request.app.state.offers
+
+
+@router.get("/campaigns", tags=["Offers"])
+def campaigns(request: Request) -> dict:
+    """S-Pankki campaigns running today. Sample data, not real offers."""
+    return _offers(request).campaigns_view()
+
+
+@router.get("/customers/{customer_id}/coupons", tags=["Offers"])
+def customer_coupons(customer_id: str, request: Request) -> dict:
+    """S-Pankki coupons valid today that this customer qualifies for, with activation state."""
+    return _offers(request).coupons_view(_book(request, customer_id))
+
+
+@router.post("/customers/{customer_id}/coupons/{coupon_id}/activate", tags=["Offers"])
+def activate_coupon(customer_id: str, coupon_id: str, request: Request) -> dict:
+    """Activate one coupon for this customer. Activating again returns the same coupon."""
+    book = _book(request, customer_id)
+    try:
+        return _offers(request).activate(book, coupon_id)
+    except CouponNotFound:
+        raise HTTPException(status_code=404, detail="No coupon with that id") from None
+    except CouponNotOffered:
+        raise HTTPException(status_code=404, detail="That coupon is not offered to this customer") from None
+    except CouponNotActive:
+        raise HTTPException(status_code=409, detail="That coupon is not valid today") from None
 
 
 @router.post(
