@@ -54,6 +54,8 @@ class SpendSightStore(
     var bonusPreview by mutableStateOf(false)
     var saver by mutableStateOf(false)
     var purchaseChoice by mutableStateOf("open")
+    var language by mutableStateOf(Lang.En)
+        private set
     var cutPercent by mutableStateOf(20)
     var homeEuro by mutableStateOf(220_000)
     var rateTenths by mutableStateOf(40)
@@ -141,7 +143,7 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                error = e.message ?: "The service did not answer."
+                error = e.message ?: t(language, R.string.T_the_service_did_not_answer)
                 phase = LoadPhase.Failed
             }
         }
@@ -161,7 +163,7 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                messages.add(CoachMessage(role = "coach", paragraphs = listOf(e.message ?: "I could not reach the service.")))
+                messages.add(CoachMessage(role = "coach", paragraphs = listOf(e.message ?: t(language, R.string.T_i_could_not_reach_the_service))))
             } finally {
                 asking = false
             }
@@ -179,7 +181,7 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                notice = e.message ?: "The save setting did not update."
+                notice = e.message ?: t(language, R.string.T_the_save_setting_did_not_update)
             } finally {
                 pendingEffort = null
             }
@@ -197,7 +199,7 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                notice = e.message ?: "The filing did not save."
+                notice = e.message ?: t(language, R.string.T_the_filing_did_not_save)
             } finally {
                 pendingFiling = false
             }
@@ -219,15 +221,24 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                if (token == loanToken) notice = e.message ?: "The loan sketch did not update."
+                if (token == loanToken) notice = e.message ?: t(language, R.string.T_the_loan_sketch_did_not_update)
             }
+        }
+    }
+
+    fun chooseLanguage(next: Lang) {
+        if (next == language) return
+        language = next
+        val first = messages.firstOrNull()
+        if (first != null && first.paragraphs.singleOrNull() in coastOpenings) {
+            messages[0] = CoachMessage(role = "coach", paragraphs = listOf(coastOpening(next)))
         }
     }
 
     fun deleteThread() {
         messages.clear()
         disclaimer = ""
-        messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening)))
+        messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening(language))))
         sheet = null
     }
 
@@ -266,42 +277,42 @@ class SpendSightStore(
     }
 
     fun prepareTransfer() {
-        val amount = effortRow.save
+        val amount = eur(effortRow.saveCents, language)
         dialog = if (transferPrepared) {
             Dialog(
-                "Cancel the prepared move",
-                "The $amount stays on S-Tili. Nothing has moved.",
-                "Keep it prepared",
-                "Cancel the move",
+                t(language, R.string.T_cancel_the_prepared_move),
+                t(language, R.string.T_the_stays_on_s_tili_nothing_has_moved, amount),
+                t(language, R.string.T_keep_it_prepared),
+                t(language, R.string.T_cancel_the_move),
                 Confirm.CancelTransfer,
             )
         } else {
             Dialog(
-                "Prepare the monthly move",
-                "A move of $amount would leave S-Tili for the ASP account. The coach prepared this on the design sample. It does not run until you confirm, and the service has no transfer route.",
-                "Not now",
-                "Prepare it",
+                t(language, R.string.T_prepare_the_monthly_move),
+                t(language, R.string.T_a_move_of_would_leave_s_tili_for_the_asp_account_t, amount),
+                t(language, R.string.T_not_now),
+                t(language, R.string.T_prepare_it),
                 Confirm.PrepareTransfer,
             )
         }
     }
 
     fun toggleSaver() {
-        val october = eur(book.bonus.octoberBonusCents)
+        val october = eur(book.bonus.octoberBonusCents, language)
         dialog = if (saver) {
             Dialog(
-                "Keep Bonus on S-Tili",
-                "The next Bonus stays on S-Tili, where it can be spent. Nothing in this design moves money.",
-                "Cancel",
-                "Keep it on S-Tili",
+                t(language, R.string.T_keep_bonus_on_s_tili),
+                t(language, R.string.T_the_next_bonus_stays_on_s_tili_where_it_can_be_spe),
+                t(language, R.string.T_cancel),
+                t(language, R.string.T_keep_it_on_s_tili),
                 Confirm.KeepBonus,
             )
         } else {
             Dialog(
-                "Send the next Bonus to Säästäjä",
-                "Bonus would go to Säästäjä instead of S-Tili. October’s Bonus, $october, is already on S-Tili. You can change this later. This preview does not move money.",
-                "Not now",
-                "Send next Bonus",
+                t(language, R.string.T_send_the_next_bonus_to_s_st_j),
+                t(language, R.string.T_bonus_would_go_to_s_st_j_instead_of_s_tili_october, october),
+                t(language, R.string.T_not_now),
+                t(language, R.string.T_send_next_bonus),
                 Confirm.SendBonus,
             )
         }
@@ -313,7 +324,7 @@ class SpendSightStore(
         ledger = if (kept != null) fresh.copy(loan = kept) else fresh
         newestSpendMonth = fresh.spending.month
         if (messages.isEmpty()) {
-            messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening)))
+            messages.add(CoachMessage(role = "coach", paragraphs = listOf(coastOpening(language))))
         }
     }
 
@@ -325,7 +336,7 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                notice = e.message ?: "That month is not in the service."
+                notice = e.message ?: t(language, R.string.T_that_month_is_not_in_the_service)
             }
         }
     }
@@ -339,7 +350,7 @@ class SpendSightStore(
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                notice = e.message ?: "The save reading did not update."
+                notice = e.message ?: t(language, R.string.T_the_save_reading_did_not_update)
             }
         }
     }

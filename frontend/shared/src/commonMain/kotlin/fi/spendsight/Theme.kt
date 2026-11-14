@@ -198,7 +198,7 @@ fun EffortPicker(store: SpendSightStore) {
 
 @Composable
 fun MonthPicker(store: SpendSightStore) {
-    Segmented(listOf("October" to (store.month == Month.Oct), "1–13 Nov" to (store.month == Month.Nov))) { index ->
+    Segmented(listOf(Month.Oct.heading() to (store.month == Month.Oct), Month.Nov.heading() to (store.month == Month.Nov))) { index ->
         store.month = if (index == 0) Month.Oct else Month.Nov
     }
 }
@@ -222,7 +222,7 @@ fun BasketLegend(store: SpendSightStore, month: Month) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(8.dp).clip(CircleShape).background(basketColor(basket)))
                 Spacer(Modifier.width(8.dp))
-                Text(basket.title, color = Secondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
+                Text(basket.heading(), color = Secondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
                 Text(eur(store.basketSum(month, basket)), color = Ink, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
             }
         }
@@ -275,7 +275,7 @@ fun ChartBlock(rows: List<ChartRow>) {
     val max = rows.maxOf { maxOf(it.octoberCents, it.novemberCents) }.coerceAtLeast(1)
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         rows.forEach { row ->
-            Text(row.label, color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+            Text(categoryLabel(row.label), color = Ink, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
             BarLine(Pace, row.octoberCents, max)
             BarLine(Green, row.novemberCents, max)
         }

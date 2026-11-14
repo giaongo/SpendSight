@@ -1,54 +1,54 @@
 package fi.spendsight
 
 /** Account explanations. These are not ledger figures. */
-val accountCopy = listOf(
+fun accounts(lang: Lang): List<AccountCopy> = listOf(
     AccountCopy(
         "tili",
         "S-Tili",
-        "Everyday. Bonus lands here.",
-        "Everyday account. Salary, rent, and Bonus land here. The safe-to-spend number is counted from this account.",
+        t(lang, R.string.T_everyday_bonus_lands_here),
+        t(lang, R.string.T_everyday_account_salary_rent_and_bonus_land_here_t),
     ),
     AccountCopy(
         "asp",
-        "ASP account",
-        "The home. Plan to leave it there.",
-        "For a first home. A month is €50 to €1,500, and the loan wants at least 20 months. Pauses are allowed, so a missed month is not a failure. S-Pankki pays 1% while you save. Another 4% is paid when you buy the home, for the year you started and up to five calendar years after that. Both are tax-free. The extra interest is paid at the purchase. It is not a monthly forecast, and it is not paid on money you took out before then. Opening the account happens with S-Pankki. This screen does not open one.",
+        t(lang, R.string.T_asp_account),
+        t(lang, R.string.T_the_home_plan_to_leave_it_there),
+        t(lang, R.string.T_for_a_first_home_a_month_is_50_to_1_500_and_the_lo),
     ),
     AccountCopy(
         "tuotto",
         "S-Tuottotili",
-        "Savings you can take.",
-        "Savings you can take out when you need them. The cushion for a broken machine belongs here, not on the ASP account. Interest depends on the balance. This design does not quote a rate.",
+        t(lang, R.string.T_savings_you_can_take),
+        t(lang, R.string.T_savings_you_can_take_out_when_you_need_them_the_cu),
     ),
     AccountCopy(
         "maara",
         "S-Määräaikaistili",
-        "Stays until a date.",
-        "A fixed date. The money stays until that date. Use it only for an amount you already know you will not need.",
+        t(lang, R.string.T_stays_until_a_date),
+        t(lang, R.string.T_a_fixed_date_the_money_stays_until_that_date_use_i),
     ),
     AccountCopy(
         "saastaja",
         "Säästäjä",
-        "Bonus, card rounding, or a monthly sum. A fund can fall.",
-        "Four ways to save. Send Bonus to a fund. Set aside €0.50 to €5 on each debit-card payment. Move a monthly sum. Add extra when you want. The funds can fall. This design does not predict them. October’s Bonus stays on S-Tili unless you send the next one.",
+        t(lang, R.string.T_bonus_card_rounding_or_a_monthly_sum_a_fund_can_fa),
+        t(lang, R.string.T_four_ways_to_save_send_bonus_to_a_fund_set_aside_0),
     ),
 )
 
-/** Shown before the first coast answer. The service writes the disclaimer after that. */
-const val coastOpening =
-    "Ask about this customer's transactions. The service writes the answer. It can be wrong, and it does not move money."
+fun coastOpening(lang: Lang): String = t(lang, R.string.T_ask_about_this_customer_s_transactions_the_service)
 
-/** Questions the chat chips send to this customer's coast endpoint. The service writes the answer. */
-val coachChips = listOf(
-    "Balance" to "What is my balance?",
-    "Last salary" to "When was my latest salary, and how much was it?",
-    "Last month" to "How much left my account last month?",
-    "Biggest category" to "What did I spend the most on?",
-    "Recent months" to "How did money in and money out change over the recent months?",
-    "Mortgage" to "Is there a mortgage decision on this customer?",
+val coastOpenings: Set<String> = Lang.entries.map { coastOpening(it) }.toSet()
+
+/** Chip label and the question sent to this customer's coast endpoint. */
+fun coachChips(lang: Lang): List<Pair<String, String>> = listOf(
+    t(lang, R.string.T_balance) to t(lang, R.string.T_what_is_my_balance),
+    t(lang, R.string.T_last_salary) to t(lang, R.string.T_when_was_my_latest_salary_and_how_much_was_it),
+    t(lang, R.string.T_last_month) to t(lang, R.string.T_how_much_left_my_account_last_month),
+    t(lang, R.string.T_biggest_category) to t(lang, R.string.T_what_did_i_spend_the_most_on),
+    t(lang, R.string.T_recent_months) to t(lang, R.string.T_how_did_money_in_and_money_out_change_over_the_rec),
+    t(lang, R.string.T_mortgage) to t(lang, R.string.T_is_there_a_mortgage_decision_on_this_customer),
 )
 
-/** Categories the filing route accepts. Unknown names are rejected. */
+/** Categories the filing route accepts. Unknown names are rejected. These stay English on the request. */
 val filingOrder = listOf(
     "Rent",
     "Bills",

@@ -85,7 +85,9 @@ That load calls, in parallel:
 | Save | The session’s `reads.save` with `?years=`. The chips are 1, 3, and 5. This is recorded deposits. It does not move money |
 | SpendSight | Chat for the session customer. `POST /customers/{customer_id}/coast/ask` with `{ "text": "..." }`. The bubble is `answer`. The line under the composer is `disclaimer` |
 
-A category that exists on the loaded spending month lists those transactions. The amounts are the strings the service sent. Those rows have no filing sheet.
+The top bar switches the app’s own words in this order: Finnish (`FI`), English (`EN`), Swedish (`SW`). The choice stays on this phone. Those words live in `strings.xml` (`translations/values`, `translations/values-fi-rFI`, and `translations/values-sv-rFI`) and screens read them with `t()`. Known category names, including Housing, are shown in the selected language. A filing request still sends the English name. The fixed notes on Today, Spending, and Save are translated. Any other sentence the service writes stays as sent. Amounts drawn from the service’s cents use English grouping (`€1,028.30`) or Finnish and Swedish grouping (`€1 028,30`). A chip asks in the language that is selected.
+
+A category that exists on the loaded spending month lists those transactions. The rows show the service’s cents in the selected number format. Those rows have no filing sheet.
 
 The account rows on Save are copy stored in the app. They explain where a euro can sit. They are not a second ledger.
 

@@ -28,7 +28,9 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -46,6 +48,7 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
     SystemBack(enabled = store.dialog != null || store.sheet != null || store.canBack) {
         store.onBack()
     }
+    CompositionLocalProvider(LocalLang provides store.language) {
     Box(Modifier.fillMaxSize().background(Bg)) {
         Column(Modifier.fillMaxSize().statusBarsPadding()) {
             TopBar(store)
@@ -60,17 +63,17 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
             Box(Modifier.weight(1f).fillMaxWidth()) {
                 when (store.phase) {
                     LoadPhase.Loading -> StatusPane(
-                        "Reading the ledger",
-                        "SpendSight is asking the service for every figure.",
+                        t(R.string.T_reading_the_ledger),
+                        t(R.string.T_spendsight_is_asking_the_service_for_every_figure),
                     )
                     LoadPhase.Failed -> Column(
                         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Hero("The service did not answer", 32)
+                        Hero(t(R.string.T_the_service_did_not_answer_2), 32)
                         Lede(store.error)
-                        PrimaryButton("Try again") { store.load() }
-                        Note("This build calls $baseUrl.")
+                        PrimaryButton(t(R.string.T_try_again)) { store.load() }
+                        Note(t(R.string.T_this_build_calls, baseUrl))
                     }
                     LoadPhase.Ready -> ScreenBody(store, Modifier.fillMaxSize())
                 }
@@ -114,6 +117,29 @@ fun App(store: SpendSightStore = remember { SpendSightStore() }) {
             )
         }
     }
+    }
+}
+
+@Composable
+private fun LanguageSwitch(store: SpendSightStore) {
+    Row(
+        Modifier.clip(RoundedCornerShape(10.dp)).background(Fill).padding(2.dp),
+    ) {
+        Lang.entries.forEach { lang ->
+            val on = store.language == lang
+            Text(
+                lang.short,
+                color = if (on) Color.White else Secondary,
+                fontSize = 12.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (on) Green else Color.Transparent)
+                    .clickable { store.chooseLanguage(lang) }
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+            )
+        }
+    }
 }
 
 @Composable
@@ -133,13 +159,14 @@ private fun TopBar(store: SpendSightStore) {
             }
         }
         Text(
-            store.current.title,
+            store.current.heading(),
             modifier = Modifier.weight(1f),
             color = Ink,
             fontSize = 17.sp,
             fontWeight = FontWeight.SemiBold,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
         )
+        LanguageSwitch(store)
         Box(
             Modifier
                 .padding(end = 6.dp)
@@ -174,7 +201,7 @@ private fun TabBar(store: SpendSightStore) {
             ) {
                 TabGlyph(tab, if (on) Green else Tertiary)
                 Spacer(Modifier.height(2.dp))
-                Text(tab.label, color = if (on) Green else Tertiary, fontSize = 11.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium)
+                Text(tab.heading(), color = if (on) Green else Tertiary, fontSize = 11.sp, fontWeight = if (on) FontWeight.SemiBold else FontWeight.Medium)
             }
         }
     }
@@ -211,57 +238,65 @@ private fun SheetHost(store: SpendSightStore, sheet: Sheet) {
                     Text(name, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Lede(
                         if (session == null) {
-                            "The service has not answered yet."
+                            t(R.string.T_the_service_has_not_answered_yet)
                         } else {
-                            "Postal code ${session.postalCode}. Age ${session.age}. Account ${session.accountId}."
+                            t(R.string.T_postal_code_age_account, session.postalCode, session.age, session.accountId)
                         },
                     )
-                    Lede(session?.note ?: "Today, Spending, and Save come from the service. The coach answers separately, from the design sample. It does not move money, and an answer can be wrong.")
-                    Lede("Bonus follows the S-group steps. One percentage covers the whole month once a step is reached. Under €50 in a month, Bonus is €0. The steps run from 1% at €50 to 5% at €900.")
-                    Lede("The ASP figures use S-Pankki’s published terms: €50–€1,500 a month, 20 months, 10% of the home, 1% while saving, and 4% more when the home is bought. The loan sketch is arithmetic, not an offer.")
-                    TextLink("Your data") { store.sheet = Sheet.Privacy }
+                    Lede(
+                        session?.note?.let { knownNote(it) } ?: t(R.string.T_today_spending_and_save_come_from_the_service_the),
+                    )
+                    Lede(t(R.string.T_bonus_follows_the_s_group_steps_one_percentage_cov))
+                    Lede(t(R.string.T_the_asp_figures_use_s_pankki_s_published_terms_50))
+                    TextLink(t(R.string.T_your_data)) { store.sheet = Sheet.Privacy }
                 }
                 Sheet.Privacy -> {
-                    Text("Your data", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Lede("SpendSight reads your payments for October and 1–13 November, the holds, and the save setting you pick, and only so it can answer you. It does not read other customers. The reading stays inside the bank.")
-                    Lede("Answers can be wrong. Each figure names the category, the period, and how many payments it used. Check anything that would move money. This is an automated assistant, not a person at S-Pankki.")
-                    Lede("A question is sent with this customer's figures so the answer can be written. The service does not store the question. Clearing the chat removes it from this screen. It does not change the payments.")
-                    TextLink("Delete this thread") { store.deleteThread() }
-                    Lede("If you refile a payment, the next list uses your filing. A move between accounts is prepared only after you confirm. Booking a person uses the existing S-Pankki and Prisma customer service. This screen does not book a time.")
-                    TextLink("Book a person") { store.sheet = Sheet.Book }
+                    Text(t(R.string.T_your_data), color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Lede(t(R.string.T_spendsight_reads_your_payments_for_october_and_1_1))
+                    Lede(t(R.string.T_answers_can_be_wrong_each_figure_names_the_categor))
+                    Lede(t(R.string.T_a_question_is_sent_with_this_customer_s_figures_so))
+                    TextLink(t(R.string.T_delete_this_thread)) { store.deleteThread() }
+                    Lede(t(R.string.T_if_you_refile_a_payment_the_next_list_uses_your_fi))
+                    TextLink(t(R.string.T_book_a_person)) { store.sheet = Sheet.Book }
                 }
                 Sheet.Book -> {
-                    Text("Book a person", color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-                    Lede("S-Pankki and Prisma already book customer service. This screen does not reserve a time, and it does not send what you asked the coach.")
+                    Text(t(R.string.T_book_a_person), color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+                    Lede(t(R.string.T_s_pankki_and_prisma_already_book_customer_service))
                 }
                 is Sheet.Account -> {
-                    val account = accountCopy.first { it.id == sheet.id }
+                    val account = accounts(store.language).first { it.id == sheet.id }
                     Text(account.title, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                     Lede(account.body)
                 }
                 is Sheet.PaymentSheet -> {
                     val row = store.payment(sheet.id)
                     if (row == null) {
-                        Note("That payment is not loaded.")
+                        Note(t(R.string.T_that_payment_is_not_loaded))
                     } else {
                         Text(row.place, color = Ink, fontSize = 22.sp, fontWeight = FontWeight.Bold)
                         Text(row.shownAmount(), color = Ink, fontSize = 32.sp, fontWeight = FontWeight.Bold)
                         Note("${row.whenLabel} · ${row.detail}")
-                        Lede(row.category, strong = true)
-                        Note(row.basket.title)
-                        Lede(if (row.earnsBonus) "Earns Bonus. Counts toward this month’s S-group step." else "No Bonus at this place. S-group shops and Rosso, Picnic, ABC, and Sokos do.")
+                        Lede(categoryLabel(row.category), strong = true)
+                        Note(row.basket.heading())
+                        Lede(
+                            if (row.earnsBonus) {
+                                t(R.string.T_earns_bonus_counts_toward_this_month_s_s_group_ste)
+                            } else {
+                                t(R.string.T_no_bonus_at_this_place_s_group_shops_and_rosso_pic)
+                            },
+                        )
                         Lede(row.reason)
                         Lede(
-                            (if (row.month == Month.Oct) "October is one line per place, so a new filing covers that whole line. " else "") +
-                                "A new filing changes the basket. It does not change whether this place earns Bonus.",
+                            (if (row.month == Month.Oct) t(R.string.T_october_is_one_line_per_place_so_a_new_filing_cove) else "") +
+                                t(R.string.T_a_new_filing_changes_the_basket_it_does_not_change),
                         )
                         store.filingChoices().forEach { (category, basket) ->
-                            ChevronRow(category, basket.title) { store.refile(row.id, category) }
+                            ChevronRow(categoryLabel(category), basket.heading()) { store.refile(row.id, category) }
                         }
                     }
                 }
             }
-            TextLink("Done") { store.sheet = null }
+            TextLink(t(R.string.T_done)) { store.sheet = null }
         }
     }
 }
