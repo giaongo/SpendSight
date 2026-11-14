@@ -1,0 +1,51 @@
+"""Queries for Statistics Finland's public PxWeb API."""
+
+from __future__ import annotations
+
+import json
+from urllib.error import HTTPError
+from urllib.request import Request, urlopen
+
+STATFI_URL = "https://pxdata.stat.fi/PxWeb/api/v1/en/StatFin/vtutk/15jx.px"
+
+EDUCATION_ASSETS_QUERY = {
+    "query": [
+        {
+            "code": "koulutusaste_17_20180101",
+            "selection": {
+                "filter": "item",
+                "values": ["SSS", "3_4", "5_6", "7", "8", "9_X"],
+            },
+        },
+        {
+            "code": "sukupuoli_9_20180101",
+            "selection": {
+                "filter": "item",
+                "values": ["SSS", "1", "2"],
+            },
+        },
+    ],
+    "response": {"format": "json-stat2"},
+}
+
+
+class StatisticsApiError(Exception):
+    """The Statistics Finland API could not return a usable response."""
+
+
+def fetch_education_assets() -> dict:
+    request = Request(
+        STATFI_URL,
+        data=json.dumps(EDUCATION_ASSETS_QUERY).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=15) as response:
+            return json.loads(response.read())
+    except HTTPError as exc:
+        raise StatisticsApiError(f"Statistics Finland API returned HTTP {exc.code}") from exc
+    except OSError as exc:
+        raise StatisticsApiError("Could not reach Statistics Finland API") from exc
+    except json.JSONDecodeError as exc:
+        raise StatisticsApiError("Statistics Finland API returned invalid JSON") from exc

@@ -55,6 +55,10 @@ The image sets `JUNCTION_DIR=/data/junction` and `SPENDSIGHT_CACHE_DIR=/data/cac
 
 `GET /junction/status` is the same dataset with the index path and a note that a mortgage decision here is not the design sample's outcome.
 
+## Statistics Finland
+
+`GET /statistics/education-assets` queries Statistics Finland's public PxWeb API table `15jx.px` for listed shares, mutual funds, and deposits by level of education and sex. It returns the upstream JSON-stat2 response; a Statistics Finland request failure returns 502.
+
 ## Customers
 
 `GET /junction/customers?limit=50&offset=0&postal_code=&q=` lists customers. `limit` is 1–200. `q` matches the customer id.

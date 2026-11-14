@@ -20,6 +20,7 @@ from app.schemas import (
     FilingPreviewRequest,
     FilingRequest,
 )
+from app.statfi import StatisticsApiError, fetch_education_assets
 from app.store import Session
 from app.verda import VerdaConfigError, VerdaError, ask_customer
 
@@ -43,6 +44,7 @@ unicode minus. The coach at `POST /coach/ask` answers from the design sample,
 not from these transactions.
 
 Interactive reference: `/docs`. Written reference: `backend/API.md`.
+`/statistics/education-assets` queries the public Statistics Finland PxWeb API.
 """
 
 
@@ -91,6 +93,15 @@ def healthz(request: Request) -> JSONResponse:
     ready = request.app.state.junction is not None and index["status"] == "ready"
     body = {"ok": ready, "index": index}
     return JSONResponse(body, status_code=200 if ready else 503)
+
+
+@router.get("/statistics/education-assets", tags=["Statistics"])
+def statistics_education_assets() -> dict:
+    """Listed shares, mutual funds, and deposits by education and sex."""
+    try:
+        return fetch_education_assets()
+    except StatisticsApiError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
 @router.get("/session")
