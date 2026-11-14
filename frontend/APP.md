@@ -8,15 +8,15 @@ The service is documented in [`backend/API.md`](../backend/API.md). The interact
 
 Start the service first, from `backend/`, as `backend/API.md` describes. It listens on `https://127.0.0.1:8000` with the certificate in `backend/.cache/certs/`.
 
-Then, from `frontend/`:
+`/run-android` installs the debug app and opens it. The steps are in [`.agents/skills/run-android/SKILL.md`](../.agents/skills/run-android/SKILL.md). From `frontend/`, the same install is:
 
 ```bash
 ./gradlew :androidApp:installDebug
 ```
 
-That installs the debug app on a connected emulator or phone. The package is `fi.spendsight`. The build needs JDK 17. `minSdk` is 26.
+The package is `fi.spendsight`. The launcher is `fi.spendsight.MainActivity`. The build needs JDK 17. `minSdk` is 26.
 
-For iOS, open `frontend/iosApp/iosApp.xcodeproj` and run the `iosApp` scheme. The deployment target is 15.2. Xcode builds the shared framework with Gradle. The simulator uses this computer’s `127.0.0.1`.
+`/run-ios` builds the simulator app and opens it. The steps are in [`.agents/skills/run-ios/SKILL.md`](../.agents/skills/run-ios/SKILL.md). Android Studio’s Run button cannot launch this project on Xcode 15.0.1. The simulator uses this computer’s `127.0.0.1`.
 
 ## Address
 

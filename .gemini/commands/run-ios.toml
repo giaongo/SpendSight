@@ -1,0 +1,8 @@
+description = "Build the SpendSight iOS app and launch it on an iOS Simulator."
+prompt = """
+Follow the skill below exactly. Text after the command, if any, is the simulator name or UDID.
+
+{{args}}
+
+@{.agents/skills/run-ios/SKILL.md}
+"""

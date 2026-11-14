@@ -31,7 +31,7 @@ Frontend (run from `frontend/`; needs JDK 17):
 ./gradlew :shared:allTests             # shared tests (commonTest)
 ```
 
-For iOS, open `frontend/iosApp/iosApp.xcodeproj` and run the `iosApp` scheme. Xcode builds the shared framework through Gradle.
+`/run-android` and `/run-ios` install and launch the app. The steps are in `.agents/skills/run-android/SKILL.md` and `.agents/skills/run-ios/SKILL.md`. Android Studio’s Run button cannot launch the iOS app on Xcode 15.0.1.
 
 The app calls `https://10.0.2.2:8000` from the Android emulator and `https://127.0.0.1:8000` on iOS (`defaultBaseUrl()` in each platform's `Http.kt`). It trusts the self-signed dev cert only for loopback, `10.0.2.2`, and private LAN addresses.
 

@@ -1,0 +1,8 @@
+description = "Install the SpendSight debug app and launch it on a connected Android device or emulator."
+prompt = """
+Follow the skill below exactly. Text after the command, if any, is the adb serial.
+
+{{args}}
+
+@{.agents/skills/run-android/SKILL.md}
+"""
