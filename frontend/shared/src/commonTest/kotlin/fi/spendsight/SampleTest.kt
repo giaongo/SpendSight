@@ -220,4 +220,10 @@ class ApiContractTest {
         assertFalse(isLocalDevHost("example.com"))
         assertFalse(isLocalDevHost("1.1.1.1"))
     }
+
+    @Test
+    fun deployedUrlIsEmptyOrHttpsWithoutTrailingSlash() {
+        val url = DEPLOYED_BASE_URL
+        assertTrue(url.isEmpty() || (url.startsWith("https://") && !url.endsWith("/")), url)
+    }
 }

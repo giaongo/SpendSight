@@ -29,6 +29,18 @@ For iOS, open `frontend/iosApp/iosApp.xcodeproj` and run the `iosApp` scheme. Th
 
 `127.0.0.1` on the Android emulator is the emulator, so a build that calls `https://127.0.0.1:8000` shows “Failed to connect to /127.0.0.1:8000”. `10.0.2.2` is this computer from that emulator.
 
+### Deployed service (OPS-10)
+
+Set `spendsight.apiUrl` to build an app that calls the deployed service instead. It must be `https://host` with no path or trailing slash.
+
+| How | Example |
+| --- | --- |
+| Gradle flag | `./gradlew :androidApp:installDebug -Pspendsight.apiUrl=https://api.95-133-254-29.sslip.io` |
+| Environment | `SPENDSIGHT_API_URL=https://api.95-133-254-29.sslip.io ./gradlew :androidApp:installDebug` |
+| `frontend/local.properties` (gitignored) | `spendsight.apiUrl=https://api.95-133-254-29.sslip.io` |
+
+Use `local.properties` for iOS: Xcode runs Gradle itself and does not pass your flags. Remove the line, or leave it empty, to go back to the local address. Gradle writes the value into a generated `DEPLOYED_BASE_URL` constant, so change it and rebuild. The deployed service has a Let's Encrypt certificate from Caddy, so it needs no special trust. The dev-certificate exception still covers local addresses only.
+
 The store reads `baseUrl` when it is created. Change the address, then rebuild. A physical phone needs this computer’s LAN address, and the service has to listen on that address. The process in `backend/API.md` binds `127.0.0.1` only.
 
 The client trusts the dev certificate for a local address: loopback, `10.0.2.2`, and private LAN ranges. Any other host uses the normal trust store.

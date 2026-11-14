@@ -10,7 +10,8 @@ import platform.Foundation.NSURLSessionAuthChallengeUseCredential
 import platform.Foundation.credentialForTrust
 import platform.Foundation.serverTrust
 
-actual fun defaultBaseUrl(): String = "https://127.0.0.1:8000"
+/** The deployed URL when the build sets `spendsight.apiUrl` (OPS-10), else this computer. */
+actual fun defaultBaseUrl(): String = DEPLOYED_BASE_URL.ifEmpty { "https://127.0.0.1:8000" }
 
 @OptIn(ExperimentalForeignApi::class)
 actual fun createHttpClient(): HttpClient = HttpClient(Darwin) {
