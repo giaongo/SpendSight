@@ -12,7 +12,8 @@ import javax.net.ssl.TrustManager
 import javax.net.ssl.TrustManagerFactory
 import javax.net.ssl.X509TrustManager
 
-actual fun defaultBaseUrl(): String = "https://10.0.2.2:8000"
+/** The deployed URL when the build sets `spendsight.apiUrl` (OPS-10), else this computer. */
+actual fun defaultBaseUrl(): String = DEPLOYED_BASE_URL.ifEmpty { "https://10.0.2.2:8000" }
 
 actual fun createHttpClient(): HttpClient = HttpClient(OkHttp) {
     engine {

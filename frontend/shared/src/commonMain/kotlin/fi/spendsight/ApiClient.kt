@@ -32,6 +32,7 @@ import kotlinx.serialization.json.contentOrNull
  * The phone calls those paths. `/docs` is the reference only.
  * This computer or the iOS simulator: https://127.0.0.1:8000
  * Android emulator: https://10.0.2.2:8000 (127.0.0.1 on the emulator is the emulator)
+ * A build with `spendsight.apiUrl` set calls that deployed URL instead (see frontend/APP.md).
  * The client trusts the dev certificate only for a local address.
  */
 expect fun defaultBaseUrl(): String
