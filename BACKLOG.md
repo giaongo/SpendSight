@@ -4,27 +4,27 @@ The phone is Kotlin Multiplatform in `frontend/`. The service is Python in `back
 
 The signed-in customer for the demo is Aino Korhonen. The body of a request carries no customer id. A customer id in the body is ignored. Today in the demo is 13 Nov. October is one line per place. November is each payment from 1 to 13 Nov.
 
-**Now** is the coach and Today. **Next** is the rest of her own money. **Later** is Home, the loan sketch, and anything the design keeps off.
+**Now** is the coach and Today. **Next** is the rest of her own money. **Later** is Home, the loan sketch, and anything the design keeps off. **Platform** is hosting the service and the coach model on Verda.
 
 The oracle is `selfCheck` in `design/my-money/index.html`. A story that names a figure below is done when the service returns that figure and the screen shows it.
 
-| Check | Cents |
-| --- | --- |
-| October out | 224390 |
-| Must every month / must when it happens / everyday | 103790 / 21000 / 99600 |
-| October slip / S-group | 35600 / 65200 |
-| October Bonus | 2282 |
-| November out / S-group / Bonus | 121640 / 21400 / 321 |
-| Holds / left after salary | 138590 / 263830 |
-| Safe to spend / bills before payday | 102830 / 7590 |
-| Steady slip line | 6400 |
-| Runway | 38 days, 3049 a day, 15 payments |
-| Impulse peak | 12 Nov, 3 payments, 5140 |
-| Dining fifth / one meal a week / two | 3720 / 8268 / 16536 |
-| Subscriptions kept | 4990 a month, 59880 a year |
-| Jacket Bonus gain / net cost | 285 / 8615 |
-| Steady pile, 5 years, no interest | 2400000 |
-| Loan sketch at the default | 104512 a month; 127572 at 6% |
+| Check                                              | Cents                            |
+| -------------------------------------------------- | -------------------------------- |
+| October out                                        | 224390                           |
+| Must every month / must when it happens / everyday | 103790 / 21000 / 99600           |
+| October slip / S-group                             | 35600 / 65200                    |
+| October Bonus                                      | 2282                             |
+| November out / S-group / Bonus                     | 121640 / 21400 / 321             |
+| Holds / left after salary                          | 138590 / 263830                  |
+| Safe to spend / bills before payday                | 102830 / 7590                    |
+| Steady slip line                                   | 6400                             |
+| Runway                                             | 38 days, 3049 a day, 15 payments |
+| Impulse peak                                       | 12 Nov, 3 payments, 5140         |
+| Dining fifth / one meal a week / two               | 3720 / 8268 / 16536              |
+| Subscriptions kept                                 | 4990 a month, 59880 a year       |
+| Jacket Bonus gain / net cost                       | 285 / 8615                       |
+| Steady pile, 5 years, no interest                  | 2400000                          |
+| Loan sketch at the default                         | 104512 a month; 127572 at 6%     |
 
 ## Shared
 
@@ -74,6 +74,23 @@ The oracle is `selfCheck` in `design/my-money/index.html`. A story that names a 
 - **API-11 · Home plan.** The ASP progress, the cushion, and the month count. Interest terms are labels, not a forecast. The call does not open an account and does not say whether a bank should lend.
 - **API-12 · Loan arithmetic.** Price, deposit, rate, and years in. Monthly payment out. No offer, no refusal, no payoff plan. The mortgage files in `Junction-2026-S-pankki/` are not her outcome.
 - **API-13 · Wider data.** Anonymised open figures, such as Statistics Finland, only after a source is loaded. Last year only after that year is loaded. Until then the coach refuses peer comparison and the chart omits the empty series.
+
+## Platform · Verda
+
+The service runs on one Verda CPU instance with Docker Compose: Caddy for HTTPS, and FastAPI with the SQLite index on the instance’s disk. The coach’s wording comes from an open-weight model on a Verda serverless GPU container in the EU, which only the service calls. Python keeps every figure, tool choice, and refusal. If the model is down, the coach falls back to today’s fixed wording. The two data worlds stay apart: the coach and the model never read the Junction dataset, and Aino’s sample ledger stays in code. GitHub Actions tests every push and deploys `master`. Terraform creates the VM.
+
+- **OPS-01 · Verda VM in Terraform.** `infra/terraform/` uses Terraform, pinned with `required_version` (for example `>= 1.6`), and the `verda-cloud/verda` provider (`~> 1.0`). Commit `.terraform.lock.hcl`. Resources: `verda_ssh_key` for each team member, and one `verda_instance` of a CPU type with about 4 vCPU and 16 GB RAM, Ubuntu 24.04, on-demand rather than spot, with a disk of about 100 GB so `/data` fits on it. Look up the CPU type, image, and location codes in the Verda API and keep them in `variables.tf`, not hard-coded. The `startup_script` (`infra/terraform/startup.sh`) installs Docker with the Compose plugin, creates `/data`, and clones the repo. It is safe to run twice. Outputs: the instance id and public IP, which feed the Caddy name in OPS-03 and the deploy host in OPS-09. SSH by key only. Port 22 opens to the team’s IPs, and 80/443 to everyone, or only to the team if OPS-05 says so. Changing the instance type or image replaces the VM, so `/data` must be re-synced with OPS-04 after that. - DONE
+- **OPS-02 · Container image.** `backend/Dockerfile` builds from `python:3.12-slim` with `uv sync --frozen`, runs as a non-root user, and starts uvicorn on `0.0.0.0:8000` over plain HTTP with one worker, because `Session` holds Aino’s demo session in memory. `app/__main__.py` keeps the self-signed HTTPS mode for local runs. Add a `SPENDSIGHT_CACHE_DIR` setting next to `JUNCTION_DIR` in `app/junction_db.py`, so the index can live on `/data`. Add `.dockerignore` so `.venv`, `.cache`, and the CSVs stay out of the image. Add a `/healthz` route that reports whether the Junction index is ready. - DONE
+- **OPS-03 · Compose and Caddy.** `infra/docker-compose.yml` has two services. `api` uses the OPS-02 image, mounts `/data/junction` and `/data/cache`, and sets `JUNCTION_DIR` and `SPENDSIGHT_CACHE_DIR`. `caddy` listens on 80/443 and proxies to `api:8000`. The `Caddyfile` names `api.<domain>`, or an `sslip.io` name on the instance IP, and Caddy gets the Let’s Encrypt certificate itself. Both services restart on boot. Secrets such as the model token live in `/data/.env` on the instance, never in Git. - DONE
+- **OPS-04 · Data on the instance.** `rsync -t` the four CSVs to `/data/junction` and the local `junction.sqlite` to `/data/cache`, so the index stays newer than the CSV and the service does not re-index on first boot. The CSVs are never in the image or in Git. If the index is lost, the service rebuilds it from the CSVs on start. That is the backup. - DONE
+- **OPS-05 · Access to the dataset.** `/customers/*` serves S-Pankki data with no auth. Before the address is public, check the Junction data terms. If public hosting is not allowed, keep the OPS-01 IP allowlist, or require a shared API key header that the app sends and Caddy checks.
+- **OPS-06 · Coach model on Verda Containers.** Deploy an open-weight instruct model, small enough for one GPU, on a Verda serverless container in an EU location. Serve it with vLLM’s OpenAI-compatible API, with request logging off, so question text is not kept in the container logs. Scale to zero when idle. The endpoint’s bearer token lives only in `/data/.env` and GitHub Secrets, never in the app. Warm the container before judging, because a cold start can take minutes.
+- **OPS-07 · Coach calls the model.** Follows API-03. After `app/coach.py` has classified the question, chosen the tool, and computed the figure, it may send the model the question and that one tool’s result, and ask for one `because` sentence. The model never sees the ledger, a tool list, the Junction data, or another customer. It may also suggest an intent, which counts only when the Python classifier agrees. A refusal never calls the model. The service rejects a reply that has a euro amount or number not in the tool result, is too long, or times out after about 3 seconds, and then uses the fixed `because`. `COACH_MODEL_URL` unset means fixed wording only, which is how tests and local runs work. The audit still stores intent, tool, time, and account, never the question text. `test_oracle.py` stays green because figures never come from the model.
+- **OPS-08 · CI.** GitHub Actions on every push and pull request. Backend: `uv sync --extra dev`, ruff, then pytest with `COACH_MODEL_URL` unset. Tests use a small fixture subset of the Junction CSVs in `backend/tests/fixtures/`, because the real dataset is gitignored. `test_oracle.py` must pass. A test covers the OPS-07 fallback with a fake model that times out, invents a number, or rambles. Frontend: `./gradlew :shared:allTests` and `:androidApp:assembleDebug` on JDK 17. The Docker image builds on every run, so a broken Dockerfile fails the PR. - DONE (the OPS-07 fake-model test waits for OPS-07)
+- **OPS-09 · CD.** On `master`, after CI passes, a deploy job SSHes to the instance with a deploy key from GitHub Secrets and runs `git pull && docker compose up -d --build`. It then checks `/healthz` and one oracle route through Caddy. If the check fails, it checks out the previous commit and runs Compose again. Deploys go through a GitHub environment so they can be paused during judging. - DONE (deploy key is limited to `infra/spendsight-deploy.sh` on the VM; needs the `production` environment secrets)
+- **OPS-10 · App base URL.** `defaultBaseUrl()` in each platform’s `Http.kt` takes the deployed URL from a build setting. Debug builds keep `10.0.2.2` and `127.0.0.1`. The self-signed trust stays limited to loopback and private LAN addresses. Caddy’s certificate needs no special trust.
+- **OPS-11 · Terraform state and CI.** State goes in a shared remote backend with locking, such as an S3-compatible bucket or Terraform Cloud, never in Git. `VERDA_CLIENT_ID` and `VERDA_CLIENT_SECRET` stay in GitHub Secrets and each person’s shell, never in `.tf` files. On a pull request that touches `infra/terraform/`, CI runs `terraform fmt -check`, `validate`, and `plan`, and posts the plan as a comment. `apply` is a manual workflow behind the OPS-09 environment, so the VM is never replaced by accident. The OPS-06 model container can be added to the same Terraform later.
+- **OPS-12 · Runbook and cost.** `infra/README.md` covers first setup, `docker compose logs`, restart, redeploy an older commit, re-sync the data, warm the model, and switch the model off by unsetting `COACH_MODEL_URL`. After judging, stop the instance and delete the container, or run `terraform destroy`, to stop the bill.
 
 ## Out of this backlog
 

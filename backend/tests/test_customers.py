@@ -1,3 +1,7 @@
+import pytest
+
+
+@pytest.mark.full_data
 def test_database_overview_matches_the_index(client):
     body = client.get("/database").json()
     assert body["customers"] == 5_100

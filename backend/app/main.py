@@ -8,9 +8,9 @@ call is separate and still answers from the design sample.
 from __future__ import annotations
 
 from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.junction_db import IndexNotReady, JunctionLibrary, query_transactions
+from app.junction_db import IndexNotReady, JunctionLibrary, index_ready, query_transactions
 from app.ledger import SLIP_CATEGORIES, loan_sketch
 from app.schemas import (
     AskRequest,
@@ -82,6 +82,15 @@ def health(request: Request) -> dict:
         "transactions_rows": transactions.get("rows"),
         "customer_id": None if library is None else library.primary.customer_id,
     }
+
+
+@router.get("/healthz")
+def healthz(request: Request) -> JSONResponse:
+    """Liveness and readiness for the container. 503 until the Junction index is ready."""
+    index = index_ready()
+    ready = request.app.state.junction is not None and index["status"] == "ready"
+    body = {"ok": ready, "index": index}
+    return JSONResponse(body, status_code=200 if ready else 503)
 
 
 @router.get("/session")

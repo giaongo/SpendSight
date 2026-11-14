@@ -19,6 +19,7 @@ Backend (run from `backend/`; the venv lives at `backend/.venv`, and there is al
 pip install -e '.[dev]'            # or: uv sync --extra dev
 .venv/bin/pytest                   # all tests
 .venv/bin/pytest tests/test_oracle.py::test_name   # a single test
+.venv/bin/ruff check .             # lint (CI runs this)
 .venv/bin/python -m app            # runs uvicorn over HTTPS on 127.0.0.1:8000
 ```
 
@@ -47,7 +48,7 @@ The coach never reads the Junction data, and Aino's figures are never computed f
 Other backend conventions:
 - Money is integer cents in `*_cents` fields. Display strings use `€` and a unicode minus (`app/money.py`). `js_round` copies JavaScript rounding so figures match the design.
 - A customer id in a request body is ignored. The session decides who the customer is.
-- `app/main.py` `create_app()` builds the app. Tests use it through the `client` fixture in `tests/conftest.py`, so tests load the real Junction data.
+- `app/main.py` `create_app()` builds the app. Tests use it through the `client` fixture in `tests/conftest.py`. By default they read the small fixture in `tests/fixtures/junction/` (three whole customers, rebuilt with `tests/fixtures/make_fixtures.py`) with a throwaway index; `SPENDSIGHT_TEST_FULL_DATA=1 .venv/bin/pytest` uses the real dataset and also runs the `full_data` tests (dataset-wide totals).
 
 Frontend flow: `ApiClient.kt` (Ktor; OkHttp on Android, Darwin on iOS) → `ApiDto.kt` (serializable DTOs that mirror the service responses) → `Store.kt` `SpendSightStore` (state, loading, actions) → `App.kt` / `Screens.kt` (Compose UI, four tabs: Today, Spending, Save, SpendSight). `Theme.kt` and `UiCopy.kt` hold the design tokens and fixed copy. The opening load makes about 18 calls in parallel, and one failure fails the whole load (see `frontend/APP.md`). Today, Spending, and Save follow the `reads` paths returned by `GET /session`. Design-sample screens show a "Design sample" banner.
 
