@@ -409,12 +409,105 @@ data class FactDto(
 )
 
 @Serializable
+data class CardFigureDto(
+    val label: String = "",
+    @SerialName("amount_cents") val amountCents: Int = 0,
+    val amount: String = "",
+)
+
+@Serializable
+data class CardItemDto(
+    val key: String = "",
+    val label: String = "",
+    @SerialName("amount_cents") val amountCents: Int = 0,
+    val amount: String = "",
+    val detail: String? = null,
+    val highlight: Boolean = false,
+    @SerialName("bar_pct") val barPct: Int? = null,
+)
+
+@Serializable
+data class CardChoiceDto(
+    val key: String = "",
+    val label: String = "",
+    val verdict: String? = null,
+    @SerialName("verdict_detail") val verdictDetail: String? = null,
+    val reference: CardFigureDto? = null,
+    val items: List<CardItemDto> = emptyList(),
+)
+
+@Serializable
+data class CardOptionsDto(
+    val label: String? = null,
+    val selected: String? = null,
+    val note: String? = null,
+    val choices: List<CardChoiceDto> = emptyList(),
+)
+
+@Serializable
+data class SpenderProfileDto(
+    val key: String = "",
+    val window: String = "",
+    @SerialName("big_buys") val bigBuys: Int = 0,
+    @SerialName("threshold_cents") val thresholdCents: Int = 0,
+    @SerialName("flex_payments") val flexPayments: Int = 0,
+    @SerialName("months_with_essentials") val monthsWithEssentials: Int = 0,
+    val months: Int = 0,
+)
+
+@Serializable
+data class VisitSkipDto(
+    val skip: Int = 0,
+    @SerialName("month_cents") val monthCents: Int = 0,
+    @SerialName("year_cents") val yearCents: Int = 0,
+)
+
+@Serializable
+data class VisitCutDto(
+    val category: String = "",
+    val visits: Int = 0,
+    @SerialName("visit_cents") val visitCents: Int = 0,
+    val selected: Int = 0,
+    val options: List<VisitSkipDto> = emptyList(),
+)
+
+@Serializable
+data class AnswerCardDto(
+    val kind: String = "",
+    val title: String = "",
+    val context: String? = null,
+    val headline: CardFigureDto? = null,
+    val reference: CardFigureDto? = null,
+    val verdict: String? = null,
+    @SerialName("verdict_detail") val verdictDetail: String? = null,
+    val items: List<CardItemDto> = emptyList(),
+    val options: CardOptionsDto? = null,
+    val how: String? = null,
+    val screen: String? = null,
+    val profile: SpenderProfileDto? = null,
+    val cut: VisitCutDto? = null,
+)
+
+@Serializable
+data class FollowUpDto(
+    val text: String = "",
+    val category: String = "",
+)
+
+@Serializable
 data class CustomerCoachResponseDto(
     @SerialName("customer_id") val customerId: String,
     val answer: String,
-    val model: String,
-    val source: String,
+    val model: String = "",
+    val source: String = "",
+    @SerialName("uses_customer_data") val usesCustomerData: Boolean = false,
     val disclaimer: String,
+    val category: String? = null,
+    val lead: String? = null,
+    val detail: String? = null,
+    val card: AnswerCardDto? = null,
+    val caption: String? = null,
+    @SerialName("follow_ups") val followUps: List<FollowUpDto> = emptyList(),
 )
 
 @Serializable
@@ -497,10 +590,20 @@ fun screenFor(name: String?): Screen? = when (name) {
     else -> null
 }
 
-fun CustomerCoachResponseDto.toMessage(): CoachMessage = CoachMessage(
-    role = "coach",
-    paragraphs = listOf(answer),
-)
+fun CustomerCoachResponseDto.toMessage(asked: HomeAsk? = null): CoachMessage {
+    val shownLead = lead ?: answer.takeIf { asked != null && card == null }
+    val shaped = asked != null || card != null
+    return CoachMessage(
+        role = "coach",
+        paragraphs = if (shaped && !shownLead.isNullOrBlank()) emptyList() else listOf(answer),
+        lead = shownLead,
+        detail = detail,
+        card = card,
+        caption = caption,
+        followUps = followUps,
+        homeAsk = asked,
+    )
+}
 
 fun CoachResponseDto.toMessage(charts: List<ChartRow>?): CoachMessage {
     val target = screenFor(screen)

@@ -39,7 +39,7 @@ fun coastOpening(lang: Lang): String = t(lang, R.string.T_ask_about_this_custome
 
 val coastOpenings: Set<String> = Lang.entries.map { coastOpening(it) }.toSet()
 
-/** Questions shown above the ask field on Home. Each one is sent as written. */
+/** Questions shown above the ask field. Each one is sent as written. */
 fun homeQuestions(lang: Lang): List<String> = listOf(
     t(lang, R.string.T_where_go),
     t(lang, R.string.T_kind_of_spender),
@@ -47,6 +47,18 @@ fun homeQuestions(lang: Lang): List<String> = listOf(
     t(lang, R.string.T_save_more),
     t(lang, R.string.T_typical_household),
 )
+
+/** Which of the five fixed chat screens a sent question opens, in any of the three languages. */
+fun homeAsk(text: String): HomeAsk? {
+    val asked = text.trim()
+    for (lang in Lang.entries) {
+        val index = homeQuestions(lang).indexOf(asked)
+        if (index >= 0) return HomeAsk.entries[index]
+    }
+    return null
+}
+
+enum class HomeAsk { Where, Spender, Week, Save, Household }
 
 /** Chip label and the question sent to this customer's coach endpoint. */
 fun coachChips(lang: Lang): List<Pair<String, String>> = listOf(

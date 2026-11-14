@@ -38,12 +38,21 @@ class FactModel(BaseModel):
 
 
 class CustomerCoachResponse(BaseModel):
+    """The prose answer, plus the card the phone draws under the five fixed questions."""
+
+    model_config = ConfigDict(extra="ignore")
     customer_id: str
     answer: str
-    model: str
-    source: str
-    uses_customer_data: bool
+    model: str = ""
+    source: str = ""
+    uses_customer_data: bool = False
     disclaimer: str
+    category: str | None = None
+    lead: str | None = None
+    detail: str | None = None
+    card: dict | None = None
+    caption: str | None = None
+    follow_ups: list[dict] = Field(default_factory=list)
 
 
 class CoachResponse(BaseModel):

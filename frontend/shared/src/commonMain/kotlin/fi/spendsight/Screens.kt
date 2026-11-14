@@ -747,12 +747,14 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
                 store.messages[index],
                 onAction = { action -> if (action != null) store.push(action) },
                 onEdit = { store.draft = it },
+                onAsk = { store.ask(it) },
             )
         }
         if (store.asking) {
             item { Text(t(R.string.T_writing_the_answer), color = Secondary, fontSize = 15.sp, fontWeight = FontWeight.Medium) }
         } else {
             item {
+                val shaped = store.messages.lastOrNull()?.let { it.homeAsk != null || it.card != null } == true
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (store.disclaimer.isNotBlank()) {
                         Text(store.disclaimer, color = Secondary, fontSize = 13.sp, lineHeight = 18.sp)
@@ -764,10 +766,12 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
                         fontWeight = FontWeight.SemiBold,
                         modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(vertical = 6.dp),
                     )
-                    Text(t(R.string.T_ask_next), color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        coachChips(store.language).forEachIndexed { i, (label, ask) ->
-                            QuestionChip(label, if (i == 0) Lilac else Fill) { store.ask(ask) }
+                    if (!shaped) {
+                        Text(t(R.string.T_ask_next), color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            coachChips(store.language).forEachIndexed { i, (label, ask) ->
+                                QuestionChip(label, if (i == 0) Lilac else Fill) { store.ask(ask) }
+                            }
                         }
                     }
                 }
@@ -778,7 +782,12 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
 }
 
 @Composable
-private fun Bubble(message: CoachMessage, onAction: (Screen?) -> Unit, onEdit: (String) -> Unit) {
+private fun Bubble(
+    message: CoachMessage,
+    onAction: (Screen?) -> Unit,
+    onEdit: (String) -> Unit,
+    onAsk: (String) -> Unit,
+) {
     val mine = message.role == "user"
     val paragraphs = message.paragraphs.ifEmpty { listOfNotNull(message.text) }
     if (mine) {
@@ -803,6 +812,10 @@ private fun Bubble(message: CoachMessage, onAction: (Screen?) -> Unit, onEdit: (
                 )
             }
         }
+        return
+    }
+    if (message.homeAsk != null || message.card != null) {
+        CoachAnswer(message, onAsk) { onAction(it) }
         return
     }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -853,7 +866,7 @@ fun Composer(store: SpendSightStore) {
             .dismissKeyboardOnTap()
             .padding(top = 10.dp, bottom = 8.dp),
     ) {
-        if (store.current == Screen.Insight && text.isBlank()) {
+        if ((store.current == Screen.Insight || store.current == Screen.Coach) && text.isBlank()) {
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),

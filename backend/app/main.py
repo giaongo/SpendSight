@@ -21,7 +21,7 @@ from app.schemas import (
     FilingPreviewRequest,
     FilingRequest,
 )
-from app.statfi import StatisticsApiError, fetch_education_assets
+from app.statfi import StatisticsApiError, StatisticsCache, fetch_education_assets
 from app.store import Session
 from app.verda import VerdaConfigError, VerdaError, ask_customer
 
@@ -58,6 +58,7 @@ def create_app() -> FastAPI:
     app.state.session = Session()
     app.state.junction = JunctionLibrary()
     app.state.offers = OfferBook()
+    app.state.statistics = StatisticsCache()
     app.include_router(router)
     return app
 
@@ -228,7 +229,7 @@ def activate_coupon(customer_id: str, coupon_id: str, request: Request) -> dict:
 def customer_coach_ask(customer_id: str, body: AskRequest, request: Request) -> dict:
     """Answer one question with Verda, using only this customer's transactions."""
     try:
-        return ask_customer(_book(request, customer_id), body.text)
+        return ask_customer(_book(request, customer_id), body.text, getattr(request.app.state, "statistics", None))
     except VerdaConfigError as exc:
         raise HTTPException(status_code=503, detail=str(exc)) from exc
     except VerdaError as exc:

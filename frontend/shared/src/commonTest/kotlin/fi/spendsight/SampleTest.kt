@@ -162,6 +162,72 @@ class ApiContractTest {
         assertNull(message.source)
         assertFalse(message.refused)
         assertNull(message.fact)
+        assertNull(message.card)
+        assertNull(message.homeAsk)
+    }
+
+    @Test
+    fun decodesTheFixedCoachCard() {
+        val reply = ApiJson.decodeFromString<CustomerCoachResponseDto>(
+            """
+            {
+              "customer_id": "CUST00007",
+              "answer": "You spent it.",
+              "model": "test",
+              "source": "verda",
+              "uses_customer_data": true,
+              "disclaimer": "It can be wrong.",
+              "category": "personal_finance",
+              "lead": "Money went out in September.",
+              "detail": "Restaurants were the largest part.",
+              "caption": "AI answer · numbers come from your transactions",
+              "follow_ups": [{"text": "How much have I saved?", "category": "personal_finance"}],
+              "card": {
+                "kind": "spending_breakdown",
+                "title": "Where did your money go?",
+                "context": "September 2026",
+                "headline": {"label": "Money out", "amount_cents": 330417, "amount": "€3,304.17"},
+                "items": [{
+                  "key": "Restaurants",
+                  "label": "Restaurants",
+                  "amount_cents": 119859,
+                  "amount": "€1,198.59",
+                  "detail": "36% · 10 payments",
+                  "highlight": true,
+                  "bar_pct": 100
+                }],
+                "profile": {
+                  "key": "big_buys",
+                  "window": "Jul 2026 – Sep 2026",
+                  "big_buys": 6,
+                  "threshold_cents": 10000,
+                  "flex_payments": 20,
+                  "months_with_essentials": 3,
+                  "months": 3
+                },
+                "cut": {
+                  "category": "Restaurants",
+                  "visits": 10,
+                  "visit_cents": 11986,
+                  "selected": 2,
+                  "options": [{"skip": 2, "month_cents": 23972, "year_cents": 287664}]
+                }
+              }
+            }
+            """.trimIndent(),
+        )
+        val message = reply.toMessage(HomeAsk.Where)
+        assertEquals(HomeAsk.Where, message.homeAsk)
+        assertEquals(330417, message.card?.headline?.amountCents)
+        assertEquals(119859, message.card?.items?.single()?.amountCents)
+        assertEquals(6, message.card?.profile?.bigBuys)
+        assertEquals(23972, message.card?.cut?.options?.single()?.monthCents)
+        assertTrue(message.paragraphs.isEmpty())
+        assertEquals("Money went out in September.", message.lead)
+        assertEquals(HomeAsk.Household, homeAsk("Mitä tyypillinen kotitalous kuluttaa?"))
+        assertEquals(HomeAsk.Save, homeAsk("Hur skulle jag kunna spara mer?"))
+        assertEquals(HomeAsk.Week, homeAsk("What can I safely spend this week?"))
+        assertNull(homeAsk("What is my balance?"))
     }
 
     @Test

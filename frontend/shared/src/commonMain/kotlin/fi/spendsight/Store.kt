@@ -170,7 +170,7 @@ class SpendSightStore(
             try {
                 val reply = api.ask(customerId, question)
                 disclaimer = reply.disclaimer
-                messages.add(reply.toMessage())
+                messages.add(reply.toMessage(homeAsk(question)))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

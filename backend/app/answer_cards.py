@@ -24,7 +24,7 @@ PEER = "peer_comparison"
 GENERAL = "general"
 
 _SAVINGS = re.compile(
-    r"\bsaved\b|\bsavings\b|put aside|invest|deposit|säästin|säästöt|säästöni|sijoit|talletu|talletin",
+    r"\bsaved\b|\bsavings\b|put aside|invest|deposit|säästin|säästöt|säästöni|säästänyt|sijoit|talletu|talletin|sparat",
     re.IGNORECASE,
 )
 _BALANCE = re.compile(
@@ -33,7 +33,7 @@ _BALANCE = re.compile(
 )
 _MONTHS = re.compile(
     r"months|monthly|trend|over time|usual|normal month|last year|change|changed|compare|"
-    r"kuukaudet|kuukausittain|tavallinen kuukausi|muuttu|vertaa",
+    r"kuukaudet|kuukausittain|tavallinen kuukausi|muuttu|vertaa|månad|förändr",
     re.IGNORECASE,
 )
 
@@ -467,4 +467,117 @@ def _savings_card(book, years: int = 5) -> dict:
             [[item["label"], item["amount"]] for item in items],
         ),
         "screen": "save",
+    }
+
+
+# Extra blocks for the five fixed questions. They do not change the shared card keys.
+_ESSENTIAL = {
+    "Housing",
+    "Utilities",
+    "Health",
+    "Transportation",
+    "Rent",
+    "Bills",
+    "Transport pass",
+    "Repair",
+    "Pharmacy",
+}
+_SKIP = {"Salary", "Invest Deposit"}
+_BIG_CENTS = 10_000
+_SPENDER_Q = re.compile(r"spender|rahankäyttäjä|spenderare", re.IGNORECASE)
+_SAVE_Q = re.compile(
+    r"save more|säästää enemmän|spara mer|eat out|eating out|syö ulkona|ät ute",
+    re.IGNORECASE,
+)
+_PAYMENTS = re.compile(r"(\d+)\s+payments?")
+
+
+def enrich_card(book, question: str, card: dict) -> dict:
+    """Add the spender reading or the visit cut when the question asks for that screen."""
+    extra: dict = {}
+    if _SPENDER_Q.search(question):
+        extra["profile"] = spender_profile(book)
+    if _SAVE_Q.search(question) and card.get("kind") == "spending_breakdown":
+        cut = visit_cut(card.get("items") or [])
+        if cut is not None:
+            extra["cut"] = cut
+    if not extra:
+        return card
+    return {**card, **extra}
+
+
+def spender_profile(book) -> dict:
+    """Purchases outside essentials over the last three months this customer has.
+
+    A big buy is one of those payments of at least €100. Big-buys means those
+    payments are at least four and at most half of the flexible payments.
+    """
+    months = list(book.months)[-3:]
+    big = 0
+    flex = 0
+    essentials_months = 0
+    for month in months:
+        essential_paid = False
+        for row in book.months[month]:
+            cents = row["amount_cents"]
+            name = row["category"]
+            if cents >= 0 or name in _SKIP:
+                continue
+            if name in _ESSENTIAL:
+                essential_paid = True
+                continue
+            flex += 1
+            if -cents >= _BIG_CENTS:
+                big += 1
+        if essential_paid:
+            essentials_months += 1
+    if big >= 4 and flex > 0 and big * 2 <= flex:
+        key = "big_buys"
+    elif flex >= 8:
+        key = "steady"
+    else:
+        key = "everyday"
+    first, last = months[0], months[-1]
+    window = _month_short(first) if first == last else f"{_month_short(first)} – {_month_short(last)}"
+    return {
+        "key": key,
+        "window": window,
+        "big_buys": big,
+        "threshold_cents": _BIG_CENTS,
+        "flex_payments": flex,
+        "months_with_essentials": essentials_months,
+        "months": len(months),
+    }
+
+
+def visit_cut(items: list[dict]) -> dict | None:
+    """What skipping visits in the largest flexible category would set aside.
+
+    The per-visit amount is the category total divided by its payment count.
+    Each option is that amount times the visits skipped, for the month and for a year.
+    """
+    flexible = [
+        item
+        for item in items
+        if item.get("key") not in _ESSENTIAL and item.get("key") not in _SKIP and item.get("amount_cents", 0) > 0
+    ]
+    if not flexible:
+        return None
+    chosen = next((item for item in flexible if item["key"] == "Restaurants"), flexible[0])
+    detail = chosen.get("detail") or ""
+    found = _PAYMENTS.search(detail)
+    count = int(found.group(1)) if found else 0
+    if count < 1:
+        return None
+    visit = js_round(chosen["amount_cents"] / count)
+    span = min(count, 12)
+    return {
+        "category": chosen["key"],
+        "visits": count,
+        "visit_cents": visit,
+        "selected": min(2, span),
+        "options": [
+            {"skip": n, "month_cents": visit * n, "year_cents": visit * n * 12}
+            for n in range(span + 1)
+        ],
     }

@@ -83,7 +83,9 @@ The answer uses the same language as the question. The service detects that lang
 
 A question about that customer's spending, balance, salary, bills, savings, or mortgage is answered from their transactions. The service computes the figures and sends them with the question. The model may phrase the answer. It does not choose the cents.
 
-Any other question is answered on its own. Their transactions are not included. `uses_customer_data` is true only for the spending case.
+A question falls into one of three groups. Personal finance uses this customer's transactions and a card counted here (`spending_breakdown`, `month_trend`, `balance`, or `savings`). Peer comparison uses Statistics Finland table 15jx, which is deposits and funds by age, not household spending. A general question is answered on its own. `uses_customer_data` is true for the personal and peer groups.
+
+The response keeps `answer` as the model's text and adds `category`, `lead`, `detail`, `card`, `caption`, and `follow_ups`. The card's figures are counted here. The model only writes the lead and the detail. If Statistics Finland cannot be reached, a peer question returns no card and does not call the model.
 
 The call is `POST <VERDA_BASE_URL>/v1/chat/completions`. The question is not stored.
 
@@ -97,7 +99,7 @@ The call needs `backend/.env`:
 | `VERDA_BASE_URL` | Containers API URL, `https://containers.verda.com/<deployment-name>` |
 | `VERDA_MODEL` | Model id from `GET <base>/v1/models`. The tutorial model is `Qwen/Qwen2.5-1.5B-Instruct` |
 
-A missing key or base URL returns 503. A deployment error returns 502. The response is `customer_id`, `answer`, `model`, `source` (`verda`), `uses_customer_data`, and `disclaimer`.
+A missing key or base URL returns 503. A deployment error returns 502. The response is `customer_id`, `answer`, `model`, `source` (`verda`), `uses_customer_data`, `disclaimer`, `category`, `lead`, `detail`, `card`, `caption`, and `follow_ups`. `card` is null for a general question and when the statistics table cannot be loaded.
 
 CUST00001 is age 63, postal code 00990, account `ACC000001`, 581 transactions, balance €4,723.58 on 2026-09-30. CUST00002 is account `ACC000002`, balance €1,539.16 on the same date, with no investment deposits.
 

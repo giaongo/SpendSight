@@ -68,6 +68,12 @@ data class CoachMessage(
     val action: Screen? = null,
     val chart: List<ChartRow>? = null,
     val limit: String? = null,
+    val lead: String? = null,
+    val detail: String? = null,
+    val card: AnswerCardDto? = null,
+    val caption: String? = null,
+    val followUps: List<FollowUpDto> = emptyList(),
+    val homeAsk: HomeAsk? = null,
 )
 
 sealed interface Screen {
