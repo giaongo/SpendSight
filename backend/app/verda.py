@@ -586,6 +586,31 @@ def _load_peer(book: CustomerBook, statistics) -> tuple[dict, dict] | None:
 _INVEST_TOPIC = re.compile(r"invest|stock|\betfs?\b|\bfunds?\b|shares?\b|crypto|bitcoin|pension", re.IGNORECASE)
 
 
+_RELATIVE = (
+    r"(?:mom|mum|mother|dad|father|parents?|wife|husband|spouse|partner|girlfriend|boyfriend|brother|sister|"
+    r"son|daughter|child|children|kids?|friend|boss|neighbou?r|colleague|grandma|grandmother|grandpa|"
+    r"grandfather|aunt|uncle|cousin|ex)"
+)
+_THIRD_PARTY = re.compile(
+    rf"\b(?:my|his|her|their|the)\s+{_RELATIVE}\s+(?:has|have|had|earns?|makes?|spends?|spent|saves?|owns?|got|is paid)\b"
+    rf"|\b(?:does|do|did|is|has|have|can)\s+(?:my\s+)?{_RELATIVE}\s+(?:have|earn|make|spend|save|own|got|got?)\b"
+    rf"|\b(?:my\s+)?{_RELATIVE}(?:'s|s')\s+(?:money|salary|balance|account|income|savings|spending|wage|pay)\b"
+    r"|\b(?:someone|somebody|another person|another customer|other customer)(?:'s)?\s+"
+    r"(?:account|balance|money|salary|transactions|spending)\b"
+    r"|\bcustomer\s*(?:id\s*)?cust\d+\b",
+    re.IGNORECASE,
+)
+_THIRD_PARTY_REPLY = (
+    "I can only answer questions about your own money, so I can't tell you about anyone else's. "
+    "I'm happy to look at your own spending or savings instead."
+)
+
+
+def third_party_question(question: str) -> bool:
+    """A question about another person's money (a relative, a friend, another customer)."""
+    return bool(_THIRD_PARTY.search(question))
+
+
 # The last topic each customer asked about, so a short follow-up ("Give a concrete example") has context.
 _LAST_TOPIC: dict[str, str] = {}
 
@@ -593,6 +618,24 @@ _LAST_TOPIC: dict[str, str] = {}
 def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
     key, base, model = settings()
     language = answer_language(question)
+    # Someone else's money is out of scope: decline in fixed words, never answer with this customer's figures.
+    if third_party_question(question):
+        reply = _reply(
+            book,
+            answer=_THIRD_PARTY_REPLY,
+            lead=_THIRD_PARTY_REPLY,
+            detail=None,
+            model="",
+            source="spendsight",
+            uses_data=False,
+            language=language,
+            category=GENERAL,
+            card=None,
+            follow_key=GENERAL,
+        )
+        reply["caption"] = "I only use your own account"
+        return reply
+
     # "What if I invest that money?", "What's the snowball effect?" and a short follow-up like
     # "Give a concrete example": fixed copy and service figures, so no model call.
     if snowball_question(question):

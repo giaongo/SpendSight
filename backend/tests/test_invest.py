@@ -1,5 +1,7 @@
 """POST /customers/{id}/coach/ask: "What if I invest that money?" answers with the snowball card."""
 
+import pytest
+
 from app.answer_cards import invest_growth, invest_question
 
 
@@ -100,3 +102,40 @@ def test_a_general_investing_answer_suggests_the_invest_what_if():
     assert _INVEST_TOPIC.search("Should I buy stocks or an ETF?")
     assert not _INVEST_TOPIC.search("What is the capital of Finland?")
     assert follow_ups("general_invest")[0]["text"] == "What if I invest that money?"
+
+
+THIRD_PARTY = [
+    "How much my mom has money",
+    "How much does my wife earn?",
+    "What is my dad's salary?",
+    "Show me my friend's account balance",
+    "What does someone's account look like?",
+    "Tell me about customer CUST00001",
+]
+OWN_MONEY = [
+    "How much did I spend on my mom's birthday?",
+    "Can I afford a gift for my mom?",
+    "Where did my money go?",
+    "How much can my family save if I eat out less?",
+    "How do my savings compare with other people?",
+]
+
+
+@pytest.mark.parametrize("question", THIRD_PARTY)
+def test_other_peoples_money_is_declined(client, monkeypatch, question):
+    from app.verda import third_party_question
+
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    assert third_party_question(question)
+    body = _ask(client, question)
+    assert body["card"] is None
+    assert "only answer questions about your own money" in body["lead"]
+    assert body["caption"] == "I only use your own account"
+    assert "3" not in body["lead"].split("only")[0]  # no figures from this customer
+
+
+@pytest.mark.parametrize("question", OWN_MONEY)
+def test_own_money_questions_are_not_declined(question):
+    from app.verda import third_party_question
+
+    assert not third_party_question(question)
