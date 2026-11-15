@@ -40,9 +40,6 @@ SpendSight is a Junction 2026 mobile-banking prototype that turns transaction da
 
 **Available for both iOS and Android.** Built with Kotlin Multiplatform and Compose, SpendSight provides a unified, feature-rich banking experience across platforms.
 
-> [!IMPORTANT]
-> SpendSight contains two intentionally separate data worlds: a Junction customer dataset and Aino Korhonen's fixed design-sample ledger. Never combine their identities or figures.
-
 Experience our solution!
 https://appetize.io/app/b_zyzwkf2r5ap7vvbeb3xwdjyija
 
