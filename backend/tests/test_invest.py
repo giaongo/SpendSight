@@ -41,3 +41,10 @@ def test_named_amount_is_used(client, monkeypatch):
     monkeypatch.delenv("VERDA_API_KEY", raising=False)
     body = client.post("/customers/CUST00002/coach/ask", json={"text": "What if I invest 100 euros a month?"}).json()
     assert body["card"]["invest"]["monthly_cents"] == 10_000
+
+
+def test_zero_amount_does_not_make_an_empty_card(client, monkeypatch):
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    body = client.post("/customers/CUST00002/coach/ask", json={"text": "What if I invest 0 euros a month?"}).json()
+    card = body.get("card") or {}
+    assert card.get("kind") != "invest_growth" or card["invest"]["monthly_cents"] > 0

@@ -758,6 +758,9 @@ INVEST_NOTE = (
 )
 
 
+_VISIT_WORD = {"Restaurants": "restaurant"}
+
+
 def invest_question(question: str) -> bool:
     """A what-if about investing money (not a question about past savings)."""
     return bool(_INVEST_Q.search(question))
@@ -780,7 +783,8 @@ def _invest_monthly(book, question: str) -> tuple[int, str] | None:
     found = _INVEST_AMOUNT.search(question)
     if found:
         number = found.group(1).replace(" ", "").replace(",", ".")
-        return js_round(float(number) * 100), "question"
+        cents = js_round(float(number) * 100)
+        return (cents, "question") if cents > 0 else None
     cut = visit_cut(_spending_card(book, "restaurants").get("items") or [])
     if cut is None:
         return None
@@ -797,7 +801,7 @@ def invest_card(book, question: str) -> dict | None:
     monthly, source = picked
     rows = invest_growth(monthly)
     last = rows[-1]
-    where = "a month" if source == "question" else f"a month: what skipping 2 {source.lower().removesuffix('s')} visits saves"
+    where = "a month" if source == "question" else f"a month: what skipping 2 {_VISIT_WORD.get(source, source.lower())} visits saves"
     return {
         "kind": "invest_growth",
         "title": "What if I invest that money?",
