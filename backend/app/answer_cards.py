@@ -66,6 +66,10 @@ FOLLOW_UPS: dict[str, list[tuple[str, str]]] = {
         ("Where did my money go?", PERSONAL),
         ("How do my savings compare with people my age?", PEER),
     ],
+    "general_invest": [
+        ("What if I invest that money?", PERSONAL),
+        ("How do my savings compare with people my age?", PEER),
+    ],
 }
 
 CAPTIONS = {

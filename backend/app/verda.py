@@ -583,6 +583,9 @@ def _load_peer(book: CustomerBook, statistics) -> tuple[dict, dict] | None:
         return None
 
 
+_INVEST_TOPIC = re.compile(r"invest|stock|\betfs?\b|\bfunds?\b|shares?\b|crypto|bitcoin|pension", re.IGNORECASE)
+
+
 # The last topic each customer asked about, so a short follow-up ("Give a concrete example") has context.
 _LAST_TOPIC: dict[str, str] = {}
 
@@ -725,5 +728,5 @@ def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
         language=language,
         category=GENERAL,
         card=None,
-        follow_key=GENERAL,
+        follow_key="general_invest" if _INVEST_TOPIC.search(question) else GENERAL,
     )

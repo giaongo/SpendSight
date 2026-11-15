@@ -772,10 +772,13 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
                         modifier = Modifier.clickable { store.sheet = Sheet.Privacy }.padding(vertical = 6.dp),
                     )
                     if (!shaped) {
+                        // Suggest what fits the last answer; fall back to the five home questions.
+                        val asks = store.messages.lastOrNull()?.followUps.orEmpty().map { followUpQuestion(it.text) }
+                            .ifEmpty { homeQuestions(store.language) }
                         Text(t(R.string.T_ask_next), color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            coachChips(store.language).forEachIndexed { i, (label, ask) ->
-                                QuestionChip(label, if (i == 0) Lilac else Fill) { store.ask(ask) }
+                            asks.forEachIndexed { i, ask ->
+                                QuestionChip(ask, QuestionTints[i % QuestionTints.size]) { store.ask(ask) }
                             }
                         }
                     }
@@ -849,7 +852,7 @@ private fun Bubble(
         // The opening note is fixed app copy, not an answer.
         if (paragraphs.none { it in coastOpenings }) {
             Text(
-                listOfNotNull(t(R.string.T_ai_answer), message.source).joinToString(" · "),
+                captionOf(message),
                 color = Secondary,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,

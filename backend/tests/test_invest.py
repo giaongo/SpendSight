@@ -91,3 +91,12 @@ def test_short_english_is_not_guessed_as_another_language():
     from app.verda import answer_language
 
     assert answer_language("Give a concrete example") == "English"
+
+
+def test_a_general_investing_answer_suggests_the_invest_what_if():
+    from app.answer_cards import follow_ups
+    from app.verda import _INVEST_TOPIC
+
+    assert _INVEST_TOPIC.search("Should I buy stocks or an ETF?")
+    assert not _INVEST_TOPIC.search("What is the capital of Finland?")
+    assert follow_ups("general_invest")[0]["text"] == "What if I invest that money?"

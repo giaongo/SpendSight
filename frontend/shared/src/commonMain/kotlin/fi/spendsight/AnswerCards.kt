@@ -642,7 +642,7 @@ private fun AskNext(message: CoachMessage, onAsk: (String) -> Unit) {
 }
 
 @Composable
-private fun followUpQuestion(text: String): String = when (text) {
+internal fun followUpQuestion(text: String): String = when (text) {
     "Where did my money go?" -> t(R.string.T_where_go)
     "How did my spending change over the last months?" -> t(R.string.T_follow_months)
     "How do my savings compare with people my age?" -> t(R.string.T_follow_peers)
@@ -651,7 +651,7 @@ private fun followUpQuestion(text: String): String = when (text) {
 }
 
 @Composable
-private fun captionOf(message: CoachMessage): String = when (message.caption) {
+internal fun captionOf(message: CoachMessage): String = when (message.caption) {
     "AI answer · numbers come from your transactions" -> t(R.string.T_ai_answer)
     "AI answer · numbers come from your transactions and Statistics Finland" -> t(R.string.T_ai_peer)
     "AI answer · not based on your transactions" -> t(R.string.T_ai_general)
