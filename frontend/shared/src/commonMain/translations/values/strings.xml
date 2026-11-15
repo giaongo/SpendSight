@@ -501,7 +501,12 @@
   <string name="T_demo_offers">Demo offers for Junction: S Group brands, invented discounts.</string>
   <string name="T_invest_year">In 1 year</string>
   <string name="T_invest_years">In %1$s years</string>
-  <string name="T_invest_put_in">You put in</string>
-  <string name="T_invest_growth">Growth</string>
+  <string name="T_invest_put_in">Money you add</string>
+  <string name="T_invest_growth">Money it earns</string>
   <string name="T_invest_kid">The snowball effect</string>
+  <string name="T_basket_total">%1$s went out</string>
+  <string name="T_basket_essentials_what">Rent, bills, transport</string>
+  <string name="T_basket_everyday_what">Eating out, shopping, fun</string>
+  <string name="T_see_week_budget">See this week’s budget</string>
+  <string name="T_ask_ate_out">What if I ate out less?</string>
 </resources>

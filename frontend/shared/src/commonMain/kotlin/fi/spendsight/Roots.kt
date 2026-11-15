@@ -469,6 +469,29 @@ private fun FunFact(store: SpendSightStore, spending: SpendingDto, look: Look?, 
         }
         Text(line, color = Ink, fontSize = 15.sp, lineHeight = 21.sp)
         AskFieldButton { store.push(Screen.Coach) }
+        HomeSuggestions(store, spending)
+    }
+}
+
+/** Question chips under the Home ask bar. Each one is a question the coach already answers. */
+@Composable
+private fun HomeSuggestions(store: SpendSightStore, spending: SpendingDto) {
+    val ateOut = t(R.string.T_ask_ate_out)
+    val safeWeek = t(R.string.T_safe_week)
+    val where = t(R.string.T_where_question)
+    val save = t(R.string.T_save_more)
+    val spike = spending.highlights?.spendingChange?.category == "Restaurants"
+    val questions = buildList {
+        if (spike) add(ateOut)
+        if (store.customer.safeToSpend != null) add(safeWeek)
+        add(where)
+        add(save)
+    }.distinct().take(3)
+    Row(
+        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        questions.forEach { question -> QuestionChip(question, Card) { store.ask(question) } }
     }
 }
 
@@ -612,23 +635,29 @@ fun InsightRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
             DesignSection {
                 SectionHead(month.replaceFirstChar { it.uppercase() })
                 CardBox {
+                    val total = essentials + everyday
                     Column(
                         Modifier.fillMaxWidth().clickable { store.ask(whereQuestion) },
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp),
                     ) {
-                        if (essentials + everyday > 0) {
-                            Row(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+                        if (total > 0) {
+                            Text(
+                                t(R.string.T_basket_total, eur(total)),
+                                color = Ink,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold,
+                                style = Tabular,
+                            )
+                            Row(Modifier.fillMaxWidth().height(14.dp).clip(RoundedCornerShape(7.dp)), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                                 if (essentials > 0) Box(Modifier.fillMaxHeight().weight(essentials.toFloat()).background(EssentialTeal))
                                 if (everyday > 0) Box(Modifier.fillMaxHeight().weight(everyday.toFloat()).background(EverydayBlue))
                             }
-                        }
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("${t(R.string.T_essentials)} ${eur(essentials)}", color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                            Text("${t(R.string.T_everyday)} ${eur(everyday)}", color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                            BasketLegendRow(EssentialTeal, t(R.string.T_essentials), t(R.string.T_basket_essentials_what), essentials, total)
+                            BasketLegendRow(EverydayBlue, t(R.string.T_everyday), t(R.string.T_basket_everyday_what), everyday, total)
                         }
                     }
                     Text(
-                        safeWeek,
+                        t(R.string.T_see_week_budget),
                         color = Green,
                         fontSize = 17.sp,
                         fontWeight = FontWeight.SemiBold,
@@ -673,6 +702,26 @@ fun InsightRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
                 }
             }
         }
+    }
+}
+
+/** One line of the basket legend: a colour dot, the group, what is in it, its share and its amount. */
+@Composable
+private fun BasketLegendRow(color: Color, label: String, what: String, cents: Int, total: Int) {
+    val share = if (total > 0) ((cents * 100L + total / 2) / total).toInt() else 0
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(12.dp).clip(CircleShape).background(color))
+        Spacer(Modifier.width(10.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                "$label · $share\u00A0%",
+                color = Ink,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+            )
+            Text(what, color = Secondary, fontSize = 13.sp)
+        }
+        Text(eur(cents), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = Tabular)
     }
 }
 
