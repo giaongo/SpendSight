@@ -4,7 +4,39 @@ The SpendSight client is a Kotlin Multiplatform app with one shared Compose UI f
 
 For the exact screen-to-endpoint behavior, also read [APP.md](APP.md).
 
-## Architecture
+## User Flow
+
+```mermaid
+flowchart TD
+    Start([App Launch]) --> Load["Load customer data"]
+    Load --> Check{Success?}
+    Check -->|No| Error["❌ Error - Retry"]
+    Error --> Load
+    Check -->|Yes| Tabs["✅ Main App<br/>(4 Tabs)"]
+    
+    Tabs --> Today["📊 Today<br/>Balance & Activity"]
+    Tabs --> Spending["💰 Spending<br/>Transactions"]
+    Tabs --> Save["🏦 Save<br/>Savings & Goals"]
+    Tabs --> Coach["💬 SpendSight<br/>AI Coach"]
+    
+    Today -.-> Detail["View Details"]
+    Spending -.-> Detail
+    Save -.-> Detail
+    Coach --> Ask["Ask Question"]
+    Ask --> Response["Get Answer"]
+    Response -.-> Action["Suggested Action"]
+    
+    Detail --> Tabs
+    Action --> Tabs
+```
+
+**Main screens:**
+- **Today**: Customer balance and recent activity
+- **Spending**: Browse and categorize transactions
+- **Save**: Track savings goals and trends
+- **SpendSight**: Chat with AI money coach
+
+**Flow:** App loads customer data → Show tabs → User navigates between screens → Tap for details or ask coach
 
 ```mermaid
 flowchart TB
@@ -244,6 +276,11 @@ For iOS-facing changes, also build the `iosApp` scheme. A successful build does 
 | Gradle uses the wrong Java | JDK 17 is not active | Set `JAVA_HOME` to a JDK 17 installation |
 | iOS shared framework is missing | Xcode skipped the Gradle build phase | Unset `OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED` and rebuild |
 
+## Quick commands
+- Run Android: `/run-android`
+- Run iOS: `/run-ios`
+- Start backend: `/run-backend`
+
 ## Design and contribution guardrails
 
 - Implement all product screens in shared Compose code; do not add React, a web view, a separate SwiftUI screen set, or Android-only Java UI.
@@ -251,3 +288,9 @@ For iOS-facing changes, also build the `iosApp` scheme. A successful build does 
 - Match `../design/my-money/index.html` and `../design/my-money/NOTES.md` while respecting the repository architecture.
 - Preserve unrelated changes and generated-file boundaries.
 - Read [AGENTS.md](AGENTS.md) and the [root contributor guide](../AGENTS.md) before editing.
+
+App Start → Load /customers/CUST00007 → 
+  ├─ Today (balance, activity)
+  ├─ Spending (categories, transactions)
+  ├─ Save (deposits, goals)
+  └─ SpendSight (coach chat, insights)

@@ -1,61 +1,60 @@
 """SpendSight HTTP API.
 
-Today, Spending, and Save without an id return the first customer in the
-Junction database. /customers/{customer_id} reads any customer. The coach
-call is separate and still answers from the design sample.
+Two separate data worlds. The Junction 2026 S-Pankki CSVs back the customer
+routes (Today, Spending, Save, the coach, coupons). Aino Korhonen's
+hard-coded design sample backs the ledger, tools, and chart routes.
 """
 
 from __future__ import annotations
 
-from fastapi import APIRouter, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 
-from app.junction_db import IndexNotReady, JunctionLibrary, index_ready, query_transactions
-from app.ledger import SLIP_CATEGORIES, loan_sketch
+from app.junction_db import JunctionLibrary, index_ready
+from app.ledger import SLIP_CATEGORIES, Ledger, loan_sketch
 from app.offers import CouponNotActive, CouponNotFound, CouponNotOffered, OfferBook
-from app.schemas import (
-    AskRequest,
-    CustomerCoachResponse,
-    CoachResponse,
-    EffortRequest,
-    FilingPreviewRequest,
-    FilingRequest,
-)
-from app.statfi import StatisticsApiError, StatisticsCache, fetch_education_assets
-from app.store import Session
+from app.schemas import AskRequest, CustomerCoachResponse, EffortRequest, FilingRequest
+from app.statfi import StatisticsCache
 from app.verda import VerdaConfigError, VerdaError, ask_customer
-
-
-def _clamp(limit: int) -> int:
-    return max(1, min(limit, 200))
-
 
 router = APIRouter()
 
+SAMPLE = "Design sample"
 
 API_DESCRIPTION = """
-The service reads the Junction 2026 S-Pankki files when it starts: 5,100 customers,
-200 mortgage applications, their negotiation events, and 3,626,755 transactions.
+Every route here is called by the SpendSight phone app, except the health checks.
 
-`/today`, `/spending`, and `/save` are the first customer, CUST00001.
-Add the customer id for anyone else, for example `/customers/CUST00002/today`.
+**Customers, Coach, Offers** read the Junction 2026 S-Pankki files loaded at startup
+(5,100 customers, 200 mortgage applications, 3,626,755 transactions). The app opens
+`GET /customers/{customer_id}` and follows its `reads` paths for Today, Spending, and Save.
+
+**Design sample** routes read Aino Korhonen's hard-coded ledger ("today" is 13 Nov).
+They never read the Junction files, and the Junction figures never come from them.
 
 Money fields named `*_cents` are integer cents. Display strings use `€` and a
-unicode minus. The coach at `POST /coach/ask` answers from the design sample,
-not from these transactions.
+unicode minus. Coupons and campaigns are sample S-Pankki offers, not real ones.
 
-Interactive reference: `/docs`. Written reference: `backend/API.md`.
-`/statistics/education-assets` queries the public Statistics Finland PxWeb API.
-
-`/customers/{customer_id}/coupons` and `/campaigns` are sample S-Pankki offers,
-not real ones. S-Pankki is the only issuer.
+Written reference: `backend/API.md`.
 """
+
+TAGS = [
+    {"name": "Customers", "description": "One Junction customer: summary, Today, Spending, Save."},
+    {"name": "Coach", "description": "Questions answered by the model from one customer's transactions."},
+    {"name": "Offers", "description": "Sample S-Pankki campaigns and coupons."},
+    {"name": SAMPLE, "description": "Aino Korhonen's demo ledger. Not Junction data."},
+    {"name": "Health", "description": "Liveness and readiness checks."},
+]
 
 
 def create_app() -> FastAPI:
     """Build the app after the Junction CSVs and the transaction index are in memory."""
-    app = FastAPI(title="SpendSight", version="0.1.0", description=API_DESCRIPTION)
-    app.state.session = Session()
+    app = FastAPI(
+        title="SpendSight",
+        version="0.1.0",
+        description=API_DESCRIPTION,
+        openapi_tags=TAGS,
+    )
+    app.state.ledger = Ledger()
     app.state.junction = JunctionLibrary()
     app.state.offers = OfferBook()
     app.state.statistics = StatisticsCache()
@@ -63,8 +62,8 @@ def create_app() -> FastAPI:
     return app
 
 
-def _session(request: Request) -> Session:
-    return request.app.state.session
+def _ledger(request: Request) -> Ledger:
+    return request.app.state.ledger
 
 
 def _junction(request: Request) -> JunctionLibrary:
@@ -79,8 +78,9 @@ def root() -> RedirectResponse:
     return RedirectResponse(url="/docs")
 
 
-@router.get("/health")
+@router.get("/health", tags=["Health"])
 def health(request: Request) -> dict:
+    """The service is up. Counts what was loaded."""
     library = request.app.state.junction
     transactions = library.transactions if library is not None else {}
     return {
@@ -88,54 +88,16 @@ def health(request: Request) -> dict:
         "service": "spendsight",
         "customers": None if library is None else len(library.customers),
         "transactions_rows": transactions.get("rows"),
-        "customer_id": None if library is None else library.primary.customer_id,
     }
 
 
-@router.get("/healthz")
+@router.get("/healthz", tags=["Health"])
 def healthz(request: Request) -> JSONResponse:
     """Liveness and readiness for the container. 503 until the Junction index is ready."""
     index = index_ready()
     ready = request.app.state.junction is not None and index["status"] == "ready"
     body = {"ok": ready, "index": index}
     return JSONResponse(body, status_code=200 if ready else 503)
-
-
-@router.get("/statistics/education-assets", tags=["Statistics"])
-def statistics_education_assets() -> dict:
-    """Listed shares, mutual funds, and deposits by education and sex."""
-    try:
-        return fetch_education_assets()
-    except StatisticsApiError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
-
-
-@router.get("/session")
-def session(request: Request) -> dict:
-    return _junction(request).primary.session_view()
-
-
-@router.get("/today")
-def today(request: Request) -> dict:
-    return _junction(request).primary.today_view()
-
-
-@router.get("/spending")
-def spending(request: Request, month: str | None = None) -> dict:
-    try:
-        return _junction(request).primary.spending_view(month)
-    except KeyError:
-        raise HTTPException(
-            status_code=400,
-            detail="month is YYYY-MM for a month this customer has",
-        ) from None
-
-
-@router.get("/save")
-def save(request: Request, years: int = 5) -> dict:
-    if years not in {1, 3, 5}:
-        raise HTTPException(status_code=400, detail="years is 1, 3, or 5")
-    return _junction(request).primary.save_view(years)
 
 
 def _book(request: Request, customer_id: str):
@@ -145,12 +107,6 @@ def _book(request: Request, customer_id: str):
         raise HTTPException(status_code=404, detail="No customer with that id") from None
     except LookupError:
         raise HTTPException(status_code=404, detail="That customer has no transactions") from None
-
-
-@router.get("/database", tags=["Database"])
-def database(request: Request) -> dict:
-    """Counts, dates, categories, and transaction types for the whole index."""
-    return _junction(request).database_view()
 
 
 @router.get("/customers/{customer_id}", tags=["Customers"])
@@ -183,12 +139,6 @@ def customer_save(customer_id: str, request: Request, years: int = 5) -> dict:
     if years not in {1, 3, 5}:
         raise HTTPException(status_code=400, detail="years is 1, 3, or 5")
     return _book(request, customer_id).save_view(years)
-
-
-@router.get("/customers/{customer_id}/months", tags=["Customers"])
-def customer_months(customer_id: str, request: Request) -> dict:
-    """Every month this customer has, with money in and money out."""
-    return _book(request, customer_id).months_view()
 
 
 def _offers(request: Request) -> OfferBook:
@@ -242,7 +192,7 @@ def demo_reset(request: Request) -> dict:
 
 @router.post(
     "/customers/{customer_id}/coach/ask",
-    tags=["Customers"],
+    tags=["Coach"],
     response_model=CustomerCoachResponse,
 )
 def customer_coach_ask(customer_id: str, body: AskRequest, request: Request) -> dict:
@@ -255,45 +205,40 @@ def customer_coach_ask(customer_id: str, body: AskRequest, request: Request) -> 
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
 
-@router.get("/settings/effort")
+@router.get("/settings/effort", tags=[SAMPLE])
 def get_effort(request: Request) -> dict:
-    return _session(request).ledger.effort_view()
+    """The save setting (small, steady, big) and what each one sets aside."""
+    return _ledger(request).effort_view()
 
 
-@router.put("/settings/effort")
+@router.put("/settings/effort", tags=[SAMPLE])
 def put_effort(body: EffortRequest, request: Request) -> dict:
-    view = _session(request).ledger.set_effort(body.effort)
-    view["today"] = _session(request).ledger.today_view()
+    """Change the save setting. Returns the settings and the updated Today figures."""
+    view = _ledger(request).set_effort(body.effort)
+    view["today"] = _ledger(request).today_view()
     return view
 
 
-@router.get("/ledger/summary")
+@router.get("/ledger/summary", tags=[SAMPLE])
 def ledger_summary(request: Request) -> dict:
-    return _session(request).ledger.summary()
+    """Every oracle figure in one read (see BACKLOG.md)."""
+    return _ledger(request).summary()
 
 
-@router.get("/payments")
+@router.get("/payments", tags=[SAMPLE])
 def payments(request: Request, month: str | None = None) -> dict:
-    ledger = _session(request).ledger
+    """Payments with category, basket, Bonus, and whether they recur. `month` is oct or nov."""
+    ledger = _ledger(request)
     if month is not None and month not in {"oct", "nov"}:
         raise HTTPException(status_code=400, detail="month is oct or nov")
     rows = ledger.payments if month is None else ledger.month(month)
     return {"payments": [ledger.payment_view(row) for row in rows]}
 
 
-@router.get("/payments/{payment_id}")
-def payment(payment_id: int, request: Request) -> dict:
-    ledger = _session(request).ledger
-    try:
-        row = ledger.payment(payment_id)
-    except LookupError:
-        raise HTTPException(status_code=404, detail="No payment with that id") from None
-    return ledger.payment_view(row)
-
-
-@router.post("/payments/{payment_id}/filing")
+@router.post("/payments/{payment_id}/filing", tags=[SAMPLE])
 def refile(payment_id: int, body: FilingRequest, request: Request) -> dict:
-    ledger = _session(request).ledger
+    """File one payment into another category. Bonus stays with the place."""
+    ledger = _ledger(request)
     try:
         row = ledger.refile(payment_id, body.category)
     except KeyError:
@@ -306,21 +251,10 @@ def refile(payment_id: int, body: FilingRequest, request: Request) -> dict:
     return ledger.payment_view(row)
 
 
-@router.post("/ledger/file")
-def preview_file(body: FilingPreviewRequest, request: Request) -> dict:
-    ledger = _session(request).ledger
-    try:
-        return ledger.preview_filing(body.place, body.category)
-    except KeyError:
-        raise HTTPException(
-            status_code=400,
-            detail="Unknown category. A new merchant stays unfiled until you file it into a known category.",
-        ) from None
-
-
-@router.get("/tools/week")
+@router.get("/tools/week", tags=[SAMPLE])
 def tool_week(request: Request) -> dict:
-    ledger = _session(request).ledger
+    """Safe to spend before payday: balance minus bills before payday minus the buffer."""
+    ledger = _ledger(request)
     week = ledger.safe_week()
     week["safe_to_spend"] = ledger.today_view()["safe_to_spend"]
     week["slip_cents"] = ledger.slip_cents()
@@ -329,9 +263,10 @@ def tool_week(request: Request) -> dict:
     return week
 
 
-@router.get("/tools/spender")
+@router.get("/tools/spender", tags=[SAMPLE])
 def tool_spender(request: Request) -> dict:
-    ledger = _session(request).ledger
+    """October split into must-every-month, must-when-it-happens, and everyday."""
+    ledger = _ledger(request)
     return {
         "october_out_cents": ledger.sum_month("oct"),
         "must_every_month_cents": ledger.sum_month("oct", lambda row: row.basket == "regular"),
@@ -342,59 +277,68 @@ def tool_spender(request: Request) -> dict:
     }
 
 
-@router.get("/tools/dining")
+@router.get("/tools/dining", tags=[SAMPLE])
 def tool_dining(request: Request) -> dict:
-    return _session(request).ledger.dining()
+    """What a fifth less dining out, or one or two fewer meals a week, would save."""
+    return _ledger(request).dining()
 
 
-@router.get("/tools/impulse")
+@router.get("/tools/impulse", tags=[SAMPLE])
 def tool_impulse(request: Request) -> dict:
-    return _session(request).ledger.impulse()
+    """November dining, coffee, taxi, and shopping payments by day, and the peak day."""
+    return _ledger(request).impulse()
 
 
-@router.get("/tools/runway")
+@router.get("/tools/runway", tags=[SAMPLE])
 def tool_runway(request: Request) -> dict:
-    return _session(request).ledger.runway()
+    """Days until the balance runs out at the November pace, rent left out."""
+    return _ledger(request).runway()
 
 
-@router.get("/tools/subscriptions")
+@router.get("/tools/subscriptions", tags=[SAMPLE])
 def tool_subscriptions(request: Request) -> dict:
-    return _session(request).ledger.subscription_cut()
+    """Three subscriptions to cancel, with the month and year totals."""
+    return _ledger(request).subscription_cut()
 
 
-@router.get("/charts")
+@router.get("/charts", tags=[SAMPLE])
 def charts(request: Request) -> dict:
+    """November so far against the October pace, by category."""
     return {
-        "rows": _session(request).ledger.charts(),
+        "rows": _ledger(request).charts(),
         "note": "Her months only. Last year is not loaded, so it is not drawn.",
     }
 
 
-@router.get("/bonus")
+@router.get("/bonus", tags=[SAMPLE])
 def bonus(request: Request) -> dict:
-    return _session(request).ledger.bonus_view()
+    """S-Group Bonus steps and the gap to the next one."""
+    return _ledger(request).bonus_view()
 
 
-@router.get("/purchase")
+@router.get("/purchase", tags=[SAMPLE])
 def purchase(request: Request) -> dict:
-    return _session(request).ledger.jacket()
+    """The jacket purchase: Bonus gained against the net cost."""
+    return _ledger(request).jacket()
 
 
-@router.get("/watch")
+@router.get("/watch", tags=[SAMPLE])
 def watch(request: Request) -> dict:
+    """Charges to check, such as a second Bolt ride. They stay out of the spending total."""
     return {
-        "items": _session(request).ledger.watch,
+        "items": _ledger(request).watch,
         "note": "These stay out of the spending total. Marking them does not change S-Tili.",
     }
 
 
-@router.get("/loan/sketch")
+@router.get("/loan/sketch", tags=[SAMPLE])
 def loan(
     price_eur: int = 220_000,
     rate_percent: float = 4.0,
     years: int = 25,
     down_percent: float = 10.0,
 ) -> dict:
+    """Monthly payment and the 6% stress figure. Arithmetic, not a loan offer."""
     if years < 1 or years > 40:
         raise HTTPException(status_code=400, detail="years must be from 1 to 40")
     if not 0 <= rate_percent <= 20:
@@ -402,104 +346,6 @@ def loan(
     if not 0 <= down_percent <= 100:
         raise HTTPException(status_code=400, detail="down_percent must be from 0 to 100")
     return loan_sketch(price_eur, rate_percent, years, down_percent)
-
-
-@router.post("/coach/ask", response_model=CoachResponse)
-def coach_ask(body: AskRequest, request: Request) -> dict:
-    return _session(request).ask(body.text)
-
-
-@router.get("/thread")
-def export_thread(request: Request) -> dict:
-    return _session(request).export_thread()
-
-
-@router.delete("/thread", status_code=204)
-def delete_thread(request: Request) -> None:
-    _session(request).delete_thread()
-
-
-@router.get("/audit")
-def audit(request: Request) -> dict:
-    session = _session(request)
-    return {
-        "account": session.ledger.account,
-        "rows": session.audit,
-        "note": "The question text is not stored here and is not sent out as training data.",
-    }
-
-
-@router.get("/junction/status")
-def junction_status(request: Request) -> dict:
-    return _junction(request).status()
-
-
-@router.get("/junction/customers")
-def junction_customers(
-    request: Request,
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    postal_code: str | None = None,
-    q: str | None = None,
-) -> dict:
-    return _junction(request).list_customers(
-        limit=_clamp(limit),
-        offset=offset,
-        postal_code=postal_code,
-        q=q,
-    )
-
-
-@router.get("/junction/customers/{customer_id}")
-def junction_customer(customer_id: str, request: Request) -> dict:
-    row = _junction(request).customer(customer_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="No Junction customer with that id")
-    return row
-
-
-@router.get("/junction/customers/{customer_id}/transactions")
-def junction_transactions(
-    customer_id: str,
-    request: Request,
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    category: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
-) -> dict:
-    library = _junction(request)
-    if library.customer(customer_id) is None:
-        raise HTTPException(status_code=404, detail="No Junction customer with that id")
-    try:
-        return query_transactions(
-            customer_id,
-            limit=_clamp(limit),
-            offset=offset,
-            category=category,
-            date_from=date_from,
-            date_to=date_to,
-        )
-    except IndexNotReady as exc:
-        raise HTTPException(status_code=503, detail={"message": str(exc), "index": exc.status}) from exc
-
-
-@router.get("/junction/mortgages")
-def junction_mortgages(
-    request: Request,
-    limit: int = Query(50, ge=1, le=200),
-    offset: int = Query(0, ge=0),
-    decision: str | None = None,
-) -> dict:
-    return _junction(request).list_mortgages(limit=_clamp(limit), offset=offset, decision=decision)
-
-
-@router.get("/junction/mortgages/{mortgage_customer_id}")
-def junction_mortgage(mortgage_customer_id: str, request: Request) -> dict:
-    row = _junction(request).mortgage(mortgage_customer_id)
-    if row is None:
-        raise HTTPException(status_code=404, detail="No mortgage application with that id")
-    return row
 
 
 app = create_app()

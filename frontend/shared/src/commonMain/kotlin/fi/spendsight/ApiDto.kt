@@ -8,9 +8,10 @@ data class CustomerReadsDto(
     val today: String,
     val spending: String,
     val save: String,
-    val months: String,
-    val summary: String,
-    val transactions: String,
+    // A deployed service may only send the three paths the phone follows.
+    val months: String = "",
+    val summary: String = "",
+    val transactions: String = "",
 )
 
 @Serializable

@@ -1,6 +1,6 @@
 # SpendSight API image (OPS-02).
 # Plain HTTP on 0.0.0.0:8000; Caddy terminates TLS in front (OPS-03).
-# One worker only: app.store.Session keeps Aino's demo session in memory.
+# One worker only: Aino's demo ledger (effort setting, refiled payments) lives in memory.
 
 FROM python:3.12-slim
 

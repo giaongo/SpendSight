@@ -25,13 +25,15 @@ Loaded at startup from `Junction-2026-S-Pankki/`:
 | `tx_customers_junction.csv` | 5,100 customers: id, postal code, age |
 | `tx_junction_transactions.csv` | 3,626,755 transactions, 2024-10-01 through 2026-09-30 |
 | `mtg_tx_customer_link_and_final_mtg_infio.csv` | 200 mortgage applications and the final decision |
-| `mtg_negotiation_history.csv` | Negotiation events for those applications |
+
+The dataset also has `mtg_negotiation_history.csv`. The service does not read it.
 
 Transactions are indexed in `backend/.cache/junction.sqlite` (set `SPENDSIGHT_CACHE_DIR` to put it elsewhere, for example `/data/cache` on the server). A later start opens that file when it is newer than the CSV. Amounts in responses are integer cents. A display string such as `€4,723.58` uses a unicode minus for negative values.
 
-`/today`, `/spending`, and `/save` use the first customer, **CUST00001**. Every other customer is under `/customers/{customer_id}`.
+Every route the service exposes is called by the phone, except `/health` and `/healthz`. The routes fall into two worlds that never mix:
 
-`POST /coach/ask` is a separate call. It answers from the design sample, not from these transactions.
+- **Junction data:** `/customers/{customer_id}…`, the coach, coupons, and campaigns.
+- **Design sample:** Aino Korhonen's hard-coded ledger at `/settings/effort`, `/ledger/summary`, `/payments`, `/tools/*`, `/charts`, `/bonus`, `/purchase`, `/watch`, and `/loan/sketch`. These never read the Junction files.
 
 ## Container
 
@@ -47,31 +49,23 @@ docker run --rm -p 8000:8000 \
 
 The image sets `JUNCTION_DIR=/data/junction` and `SPENDSIGHT_CACHE_DIR=/data/cache`. The cache mount must be writable by UID 1000. `.dockerignore` keeps `.venv`, `.cache`, `.env`, and the CSVs out of the image.
 
-`GET /healthz` returns `200 {"ok": true, "index": {"status": "ready", ...}}` once the transaction index is open, and `503` otherwise. The container `HEALTHCHECK` uses it.
-
-## Database
-
-`GET /database` returns the whole index: customer count, mortgage counts by decision, transaction count, first and last date, category totals, and transaction-type totals.
-
-`GET /junction/status` is the same dataset with the index path and a note that a mortgage decision here is not the design sample's outcome.
-
-## Statistics Finland
-
-`GET /statistics/education-assets` queries Statistics Finland's public PxWeb API table `15jx.px` for listed shares, mutual funds, and deposits by level of education and sex. It returns the upstream JSON-stat2 response; a Statistics Finland request failure returns 502.
-
-## Customers
-
-`GET /junction/customers?limit=50&offset=0&postal_code=&q=` lists customers. `limit` is 1–200. `q` matches the customer id.
+## Health
 
 | Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/customers/{customer_id}` | Balance, dates, transaction count, and links |
+| GET | `/health` | `{"ok": true, "service": "spendsight", "customers": …, "transactions_rows": …}` |
+| GET | `/healthz` | `200 {"ok": true, "index": {"status": "ready", ...}}` once the transaction index is open, and `503` otherwise. The container `HEALTHCHECK`, CI, and `infra/smoke.sh` use it |
+
+## Customers
+
+The phone opens `GET /customers/{customer_id}` and follows the three paths in its `reads` object (`today`, `spending`, `save`).
+
+| Method | Path | Returns |
+| --- | --- | --- |
+| GET | `/customers/{customer_id}` | Balance, dates, transaction count, mortgage link, and `reads` |
 | GET | `/customers/{customer_id}/today` | Latest balance, latest salary, and the latest month |
 | GET | `/customers/{customer_id}/spending?month=YYYY-MM` | That month's categories and payments. Omit `month` for the latest month |
 | GET | `/customers/{customer_id}/save?years=1\|3\|5` | Recorded investment deposits in that window. Nothing is moved |
-| GET | `/customers/{customer_id}/months` | Every month, with money in and money out |
-| GET | `/junction/customers/{customer_id}` | Postal code, age, and mortgage link if one exists |
-| GET | `/junction/customers/{customer_id}/transactions` | Raw transactions. `limit` 1–200, plus `offset`, `category`, `date_from`, `date_to` |
 
 Unknown customer ids return 404. A `month` the customer does not have returns 400. `years` other than 1, 3, or 5 returns 400.
 
@@ -83,7 +77,7 @@ The answer uses the same language as the question. The service detects that lang
 
 A question about that customer's spending, balance, salary, bills, savings, or mortgage is answered from their transactions. The service computes the figures and sends them with the question. The model may phrase the answer. It does not choose the cents.
 
-A question falls into one of three groups. Personal finance uses this customer's transactions and a card counted here (`spending_breakdown`, `month_trend`, `balance`, or `savings`). Peer comparison uses Statistics Finland table 15jx, which is deposits and funds by age, not household spending. A general question is answered on its own. `uses_customer_data` is true for the personal and peer groups.
+A question falls into one of three groups. Personal finance uses this customer's transactions and a card counted here (`spending_breakdown`, `month_trend`, `balance`, or `savings`). Peer comparison uses Statistics Finland table 15jx (public PxWeb API, cached for six hours), which is deposits and funds by age, not household spending. A general question is answered on its own. `uses_customer_data` is true for the personal and peer groups.
 
 The response keeps `answer` as the model's text and adds `category`, `lead`, `detail`, `card`, `caption`, and `follow_ups`. The card's figures are counted here. The model only writes the lead and the detail. If Statistics Finland cannot be reached, a peer question returns no card and does not call the model.
 
@@ -117,17 +111,27 @@ A coupon is valid from `valid_from` through `valid_to`, compared with today's da
 
 Activations are kept in memory and are lost when the service restarts. An unknown customer or coupon returns 404, a coupon this customer does not qualify for returns 404, and a coupon outside its dates returns 409.
 
-## Mortgages
+## Design sample
+
+Aino Korhonen's ledger from the design (`app/ledger.py`). "Today" is 13 Nov and salary lands on 15 Nov. The figures must match the oracle table in `BACKLOG.md`, checked by `tests/test_oracle.py`. The effort setting and refiled payments are kept in memory, which is why the container runs one worker.
 
 | Method | Path | Returns |
 | --- | --- | --- |
-| GET | `/junction/mortgages?decision=&limit=&offset=` | Applications. `decision` filters the final decision |
-| GET | `/junction/mortgages/{mortgage_customer_id}` | One application and its events |
+| GET | `/settings/effort` | The save setting (`small`, `steady`, `big`) and what each sets aside |
+| PUT | `/settings/effort` | Body `{ "effort": "steady" }`. The settings plus the updated Today figures in `today` |
+| GET | `/ledger/summary` | Every oracle figure in one read |
+| GET | `/payments?month=oct\|nov` | Payments with category, basket, Bonus, and whether they recur. Omit `month` for both |
+| POST | `/payments/{payment_id}/filing` | Body `{ "category": "Groceries" }`. Refiles the line. Bonus stays with the place. An unknown category returns 400, an unknown id 404 |
+| GET | `/tools/week` | Safe to spend: balance − bills before payday − buffer |
+| GET | `/tools/spender` | October split into must-every-month, must-when-it-happens, and everyday |
+| GET | `/tools/dining` | A fifth less dining out, and one or two fewer meals a week |
+| GET | `/tools/impulse` | November dining, coffee, taxi, and shopping payments by day, and the peak day |
+| GET | `/tools/runway` | Days until the balance runs out at the November pace, rent left out |
+| GET | `/tools/subscriptions` | Three subscriptions to cancel, with month and year totals |
+| GET | `/charts` | November so far against the October pace, by category |
+| GET | `/bonus` | S-Group Bonus steps and the gap to the next one |
+| GET | `/purchase` | The jacket purchase: Bonus gained against net cost |
+| GET | `/watch` | Charges to check. They stay out of the spending total |
+| GET | `/loan/sketch?price_eur=&rate_percent=&years=&down_percent=` | Monthly payment and the 6% stress figure |
 
-`/loan/sketch` is arithmetic on a price and rate. It does not read these files and it does not approve a loan.
-
-## Coach
-
-`POST /coach/ask` with `{ "text": "..." }`. A customer id in the body is ignored. The card is the design sample. Refusals carry no ledger amounts.
-
-`GET /thread`, `DELETE /thread`, and `GET /audit` are that coach session. The audit stores the intent, the tool, the time, and the account. It does not store the question.
+`/loan/sketch` is arithmetic on a price and rate. It does not read the Junction mortgage files and it does not approve a loan. `years` is 1–40, `rate_percent` 0–20, and `down_percent` 0–100; anything else returns 400.

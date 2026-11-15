@@ -55,10 +55,6 @@ def main() -> None:
             links, HERE / "mtg_tx_customer_link_and_final_mtg_infio.csv",
             lambda r: r["mortgage_customer_id"] in mortgages,
         ),
-        "mtg_negotiation_history.csv": _copy(
-            source / "mtg_negotiation_history.csv", HERE / "mtg_negotiation_history.csv",
-            lambda r: r["mortgage_customer_id"] in mortgages,
-        ),
     }
     for name, n in counts.items():
         print(f"{n:6d} rows  {name}")
