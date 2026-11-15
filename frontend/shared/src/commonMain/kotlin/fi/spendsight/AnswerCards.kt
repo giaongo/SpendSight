@@ -299,8 +299,8 @@ private fun SafeWeekAnswer(safe: SafeToSpendDto, onAsk: (String) -> Unit, onOpen
 @Composable
 private fun InvestAnswer(message: CoachMessage, invest: InvestDto) {
     val card = message.card ?: return
-    message.lead?.let { Lead(it) }
-    message.detail?.let { Detail(it) }
+    message.lead?.let { Lead(presentMoneyIn(it)) }
+    message.detail?.let { Detail(presentMoneyIn(it)) }
     val max = invest.years.maxOfOrNull { it.totalCents }?.coerceAtLeast(1) ?: 1
     CardBox {
         Text(card.title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
@@ -370,7 +370,7 @@ private fun InvestAnswer(message: CoachMessage, invest: InvestDto) {
         if (invest.note.isNotBlank()) {
             Text(invest.note, color = Secondary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 12.dp))
         }
-        HowLine(card.how)
+        HowLine(card.how?.let { presentMoneyIn(it) })
     }
 }
 
