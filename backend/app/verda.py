@@ -628,6 +628,20 @@ def advice_question(question: str) -> bool:
     return bool(_ADVICE.search(question))
 
 
+FALLBACK_CAPTION = "Calculated from your transactions"
+_UNAVAILABLE_LEAD = "I can't answer that right now. Please try again in a moment."
+
+
+def fallback_lead(card: dict) -> tuple[str, str | None]:
+    """The sentence above a card when the model is unreachable: the card's own title and headline figure."""
+    title = card.get("title") or "Your answer"
+    head = card.get("headline")
+    if head and head.get("amount_cents") is not None:
+        label = head.get("label") or title
+        return f"{label}: {eur(head['amount_cents'])}.", card.get("verdict")
+    return f"{title}.", card.get("verdict")
+
+
 # The last topic each customer asked about, so a short follow-up ("Give a concrete example") has context.
 _LAST_TOPIC: dict[str, str] = {}
 
@@ -726,7 +740,10 @@ def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
     if category is None:
         if not key or not base:
             raise VerdaConfigError("Set VERDA_API_KEY and VERDA_BASE_URL in backend/.env")
-        category = _classify_group(key, base, model, question)
+        try:
+            category = _classify_group(key, base, model, question)
+        except VerdaError:
+            category = GENERAL
 
     if category == PEER:
         loaded = _load_peer(book, statistics)
@@ -747,61 +764,86 @@ def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
         card, peers = loaded
         if not key or not base:
             raise VerdaConfigError("Set VERDA_API_KEY and VERDA_BASE_URL in backend/.env")
-        raw, used_model = _complete(
-            key, base, model, _peer_messages(question, peers), temperature=0.2, max_tokens=None
-        )
-        text = guard_peer_spending(question, tidy_answer(raw, 2), language or "English")
-        lead, detail = split_answer(text)
-        return _reply(
+        try:
+            raw, used_model = _complete(
+                key, base, model, _peer_messages(question, peers), temperature=0.2, max_tokens=None
+            )
+            text = guard_peer_spending(question, tidy_answer(raw, 2), language or "English")
+            lead, detail = split_answer(text)
+            source = "verda"
+        except VerdaError:
+            used_model, source = "", "spendsight"
+            lead, detail = fallback_lead(card)
+            text = lead
+        reply = _reply(
             book,
             answer=text,
             lead=lead,
             detail=detail,
             model=used_model,
-            source="verda",
+            source=source,
             uses_data=True,
             language=language,
             category=PEER,
             card=card,
             follow_key=card["kind"],
         )
+        if source != "verda":
+            reply["caption"] = FALLBACK_CAPTION
+        return reply
 
     if category == PERSONAL:
         if not key or not base:
             raise VerdaConfigError("Set VERDA_API_KEY and VERDA_BASE_URL in backend/.env")
         card = enrich_card(book, question, personal_card(book, question))
-        raw, used_model = _complete(
-            key, base, model, _personal_messages(book, question, card), temperature=0.2, max_tokens=None
-        )
-        text = tidy_answer(raw, 2)
-        lead, detail = split_answer(text)
-        return _reply(
+        try:
+            raw, used_model = _complete(
+                key, base, model, _personal_messages(book, question, card), temperature=0.2, max_tokens=None
+            )
+            text = tidy_answer(raw, 2)
+            lead, detail = split_answer(text)
+            source = "verda"
+        except VerdaError:
+            # The card holds every figure; the model only words it. Keep the answer when it is unreachable.
+            used_model, source = "", "spendsight"
+            lead, detail = fallback_lead(card)
+            text = lead
+        reply = _reply(
             book,
             answer=text,
             lead=lead,
             detail=detail,
             model=used_model,
-            source="verda",
+            source=source,
             uses_data=True,
             language=language,
             category=PERSONAL,
             card=card,
             follow_key=card["kind"],
         )
+        if source != "verda":
+            reply["caption"] = FALLBACK_CAPTION
+        return reply
 
     if not key or not base:
         raise VerdaConfigError("Set VERDA_API_KEY and VERDA_BASE_URL in backend/.env")
     messages, _uses = _messages(book, question, "other")
-    raw, used_model = _complete(key, base, model, messages, temperature=0.2, max_tokens=None)
-    text = tidy_answer(raw, 1)
-    lead, detail = split_answer(text)
+    try:
+        raw, used_model = _complete(key, base, model, messages, temperature=0.2, max_tokens=None)
+        text = tidy_answer(raw, 1)
+        lead, detail = split_answer(text)
+        source = "verda"
+    except VerdaError:
+        used_model, source = "", "spendsight"
+        text = lead = _UNAVAILABLE_LEAD
+        detail = None
     return _reply(
         book,
         answer=text,
         lead=lead,
         detail=detail,
         model=used_model,
-        source="verda",
+        source=source,
         uses_data=False,
         language=language,
         category=GENERAL,

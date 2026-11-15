@@ -183,3 +183,21 @@ def test_the_invest_what_if_and_other_questions_are_not_declined_as_advice(quest
     from app.verda import advice_question
 
     assert not advice_question(question)
+
+
+@pytest.mark.parametrize("question", ["Where did my money go?", "How could I save more?", "How do my savings compare with people my age?", "What is the capital of Finland?"])
+def test_answers_survive_an_unreachable_model(client, monkeypatch, question):
+    """A rejected or missing Verda key must not break the demo or show a raw error."""
+    from app import verda
+
+    def broken(*args, **kwargs):
+        raise verda.VerdaError('Verda returned 401: {"error":"invalid bearer token"}')
+
+    monkeypatch.setenv("VERDA_API_KEY", "expired")
+    monkeypatch.setenv("VERDA_BASE_URL", "https://example.invalid")
+    monkeypatch.setattr(verda, "_complete", broken)
+    response = client.post("/customers/CUST00002/coach/ask", json={"text": question})
+    assert response.status_code == 200
+    body = response.json()
+    assert "401" not in body["lead"] and "bearer" not in body["answer"]
+    assert body["lead"]
