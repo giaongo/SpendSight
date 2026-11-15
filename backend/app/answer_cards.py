@@ -797,7 +797,7 @@ def invest_card(book, question: str) -> dict | None:
     monthly, source = picked
     rows = invest_growth(monthly)
     last = rows[-1]
-    where = "a month" if source == "question" else f"a month: what skipping 2 {source.lower()} visits saves"
+    where = "a month" if source == "question" else f"a month: what skipping 2 {source.lower().removesuffix('s')} visits saves"
     return {
         "kind": "invest_growth",
         "title": "What if I invest that money?",

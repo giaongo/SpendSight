@@ -206,7 +206,7 @@ fun QuestionChip(label: String, fill: Color, onClick: () -> Unit) {
             .padding(horizontal = 16.dp, vertical = 11.dp),
         contentAlignment = Alignment.CenterStart,
     ) {
-        Text(label, color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text(label, color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
     }
 }
 
