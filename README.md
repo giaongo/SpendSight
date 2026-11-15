@@ -56,12 +56,10 @@ A few of the things you can do with SpendSight:
 * **Multi-platform** — Seamless experience on iOS and Android with shared business logic
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=kpBkAon_OHk&time_continue=8">
-    <img alt="SpendSight Demo" title="Watch SpendSight Demo" src="https://img.shields.io/badge/▶️%20Watch%20Demo-YouTube-red?style=for-the-badge" width="200">
+  <a href="https://www.youtube.com/watch?v=kpBkAon_OHk&time_continue=8" target="_blank" rel="noopener noreferrer">
+    <img alt="SpendSight Demo Video" title="Click to watch SpendSight demo on YouTube" src="https://img.youtube.com/vi/kpBkAon_OHk/hqdefault.jpg" width="560" style="border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
   </a>
 </p>
-
-**[Watch the SpendSight demo video on YouTube](https://www.youtube.com/watch?v=kpBkAon_OHk&time_continue=8)** — See the app in action with real customer data, coach interactions, and financial insights.
 
 ## Tech Stack Icons
 
