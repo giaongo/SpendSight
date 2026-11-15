@@ -509,4 +509,5 @@
   <string name="T_basket_everyday_what">Eating out, shopping, fun</string>
   <string name="T_see_week_budget">See this week’s budget</string>
   <string name="T_ask_ate_out">What if I ate out less?</string>
+  <string name="T_skip_category">Skip %1$s of your %2$s purchases a month and save %3$s.</string>
 </resources>

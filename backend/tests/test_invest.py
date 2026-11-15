@@ -139,3 +139,23 @@ def test_own_money_questions_are_not_declined(question):
     from app.verda import third_party_question
 
     assert not third_party_question(question)
+
+
+def test_a_single_big_purchase_is_not_treated_as_a_monthly_saving(monkeypatch):
+    from app import answer_cards
+
+    monkeypatch.setattr(answer_cards, "_spending_card", lambda book, question: {"items": []})
+    one_off = {"category": "Travel", "visits": 1, "selected": 1,
+               "options": [{"skip": 1, "month_cents": 167_489, "year_cents": 0}]}
+    monkeypatch.setattr(answer_cards, "visit_cut", lambda items: one_off)
+    assert answer_cards._invest_monthly(None, "What if I invest that money?") == (10_000, "example")
+
+
+def test_a_repeating_habit_is_used_for_the_monthly_saving(monkeypatch):
+    from app import answer_cards
+
+    monkeypatch.setattr(answer_cards, "_spending_card", lambda book, question: {"items": []})
+    habit = {"category": "Restaurants", "visits": 10, "selected": 2,
+             "options": [{"skip": 2, "month_cents": 23_972, "year_cents": 0}]}
+    monkeypatch.setattr(answer_cards, "visit_cut", lambda items: habit)
+    assert answer_cards._invest_monthly(None, "What if I invest that money?") == (23_972, "Restaurants")

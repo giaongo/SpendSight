@@ -412,8 +412,10 @@ private fun SaveAnswer(message: CoachMessage) {
     var skip by remember(cut) { mutableIntStateOf(cut.selected.coerceIn(0, max)) }
     val option = cut.options.firstOrNull { it.skip == skip } ?: cut.options.first()
     val keep = (cut.visits - skip).coerceAtLeast(0)
+    val eatingOut = cut.category == "Restaurants"
     val lead = when {
         skip <= 0 -> t(R.string.T_keep_every_visit)
+        !eatingOut -> t(R.string.T_skip_category, skip, categoryLabel(cut.category).lowercase(), eur(option.monthCents))
         skip == 1 -> t(R.string.T_eat_less_one, eur(option.monthCents))
         else -> t(R.string.T_eat_less_many, skip, eur(option.monthCents))
     }

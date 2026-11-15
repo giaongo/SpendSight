@@ -752,6 +752,8 @@ _INVEST_Q = re.compile(
 )
 _PER_MONTH = re.compile(r"a month|per month|monthly|every month|each month", re.IGNORECASE)
 INVEST_MAX_MONTHLY_CENTS = 1_000_000  # 10 000 euros: keeps every total inside the app's Int cents
+INVEST_MIN_VISITS = 4  # a saving only counts when the habit repeats, not a single big purchase
+INVEST_EXAMPLE_CENTS = 10_000  # shown when the customer has no repeating habit to cut
 _INVEST_AMOUNT = re.compile(r"(\d[\d\s]*(?:[.,]\d{1,2})?)\s*(?:€|e\b|eur\b|euros?\b)", re.IGNORECASE)
 INVEST_RATE_PCT = 5
 INVEST_YEARS = (1, 5, 10, 20)
@@ -795,12 +797,11 @@ def _invest_monthly(book, question: str) -> tuple[int, str] | None:
         if 0 < cents <= INVEST_MAX_MONTHLY_CENTS:
             return cents, "question"
     cut = visit_cut(_spending_card(book, "restaurants").get("items") or [])
-    if cut is None:
-        return None
-    option = next((o for o in cut["options"] if o["skip"] == cut["selected"]), None)
-    if option is None or option["month_cents"] <= 0:
-        return None
-    return option["month_cents"], cut["category"]
+    if cut is not None and cut["visits"] >= INVEST_MIN_VISITS:
+        option = next((o for o in cut["options"] if o["skip"] == cut["selected"]), None)
+        if option is not None and 0 < option["month_cents"] <= INVEST_MAX_MONTHLY_CENTS:
+            return option["month_cents"], cut["category"]
+    return INVEST_EXAMPLE_CENTS, "example"
 
 
 def invest_card(book, question: str) -> dict | None:
@@ -810,7 +811,12 @@ def invest_card(book, question: str) -> dict | None:
     monthly, source = picked
     rows = invest_growth(monthly)
     last = rows[-1]
-    where = "a month" if source == "question" else f"a month: what skipping 2 {_VISIT_WORD.get(source, source.lower())} visits saves"
+    if source == "question":
+        where = "a month"
+    elif source == "example":
+        where = "a month, as an example amount"
+    else:
+        where = f"a month: what skipping 2 {_VISIT_WORD.get(source, source.lower())} visits saves"
     return {
         "kind": "invest_growth",
         "title": "What if I invest that money?",
