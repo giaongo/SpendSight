@@ -529,12 +529,12 @@ private fun GenericCardBody(card: AnswerCardDto) {
             Text(figure.label, color = Secondary, fontSize = 13.sp, modifier = Modifier.padding(top = 12.dp))
             Text(eur(figure.amountCents), color = Ink, fontSize = 28.sp, fontWeight = FontWeight.Bold, style = Tabular)
         }
-        card.verdict?.let { Text(it, color = Forest, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp)) }
-        card.verdictDetail?.let { Text(it, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp) }
+        card.verdict?.let { Text(presentMoneyIn(it), color = Forest, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp)) }
+        card.verdictDetail?.let { Text(presentMoneyIn(it), color = Secondary, fontSize = 14.sp, lineHeight = 20.sp) }
         card.items.forEach { item ->
             CompareBar(categoryLabel(item.label), item.amountCents, item.barPct ?: 0, item.highlight)
         }
-        HowLine(card.how)
+        HowLine(card.how?.let { presentMoneyIn(it) })
     }
 }
 
@@ -543,7 +543,7 @@ private fun Prose(message: CoachMessage) {
     val lead = message.lead
     if (!lead.isNullOrBlank()) MarkdownBody(presentMoneyIn(lead))
     else if (message.paragraphs.isNotEmpty()) message.paragraphs.forEach { MarkdownBody(presentMoneyIn(it)) }
-    message.detail?.let { Detail(it) }
+    message.detail?.let { Detail(presentMoneyIn(it)) }
 }
 
 @Composable
