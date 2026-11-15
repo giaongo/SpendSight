@@ -19,6 +19,7 @@ import threading
 from pathlib import Path
 
 from app.customer_data import CustomerBook
+from app.demo import demo_customer
 from app.money import parse_eur_cents
 
 log = logging.getLogger("spendsight.junction")
@@ -126,7 +127,8 @@ class JunctionLibrary:
         self.transactions = ensure_transaction_index()
         if not self.customers:
             raise RuntimeError("The customer file has no rows")
-        first = self.customers[0]
+        # The demo customer signs in; without them in the file, the first customer does.
+        first = self.customers_by_id.get(demo_customer()) or self.customers[0]
         self._books: dict[str, CustomerBook] = {}
         self.primary = CustomerBook(
             first,

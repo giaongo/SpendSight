@@ -373,7 +373,7 @@
   <string name="T_worth_a_look">Värt en titt</string>
   <string name="T_kind_of_spender">Vilken typ av spenderare är jag?</string>
   <string name="T_save_more">Hur skulle jag kunna spara mer?</string>
-  <string name="T_typical_household">Vad spenderar ett typiskt hushåll?</string>
+  <string name="T_typical_household">Hur står sig mitt sparande mot personer i min ålder?</string>
   <string name="T_where_go">Vart tog pengarna vägen?</string>
   <string name="T_where_question">Vart tog mina pengar vägen förra månaden?</string>
   <string name="T_overview">Översikt</string>
@@ -408,6 +408,17 @@
   <string name="T_see_when">Visa när</string>
   <string name="T_activate_in_offers">%1$s. Aktivera den under Erbjudanden.</string>
   <string name="T_coupon">Kupong</string>
+  <string name="T_safe_to_spend">Kvar att använda</string>
+  <string name="T_safe_line">kvar den här veckan · %1$s</string>
+  <string name="T_safe_on_track">enligt plan</string>
+  <string name="T_safe_tight">det är knappt</string>
+  <string name="T_safe_over">över budget</string>
+  <string name="T_friday_evenings">Fredagskvällar</string>
+  <string name="T_friday_visits">%1$s besök (%2$s) på fredagskvällar i %3$s</string>
+  <string name="T_fact_visits">Dina %1$s besök (%2$s) kostade %3$s i %4$s, men %5$s i %6$s.</string>
+  <string name="T_coupon_activated">%1$s aktiverad.</string>
+  <string name="T_coupon_turned_off">%1$s avstängd.</string>
+  <string name="T_stamps_used">%1$s av %2$s använda den här månaden. Visa ditt S-Etukortti för att använda en. Nya stämplar %3$s.</string>
   <string name="T_went_out">%1$s lämnade kontot i %2$s.</string>
   <string name="T_unexpected">Oväntat</string>
   <string name="T_everyday_top">Vardagsutgifter · fem största</string>
@@ -463,4 +474,24 @@
   <string name="T_you_short">Du</string>
   <string name="T_typical_deposits">Typiska insättningar</string>
   <string name="T_you_and_age">Du och personer i din ålder</string>
+  <string name="T_safe_week_label">Tryggt att använda den här veckan</string>
+  <string name="T_safe_header_sub">%1$s · kvar av %2$s den här veckan</string>
+  <string name="T_safe_lead">%1$s kvar att använda den här veckan.</string>
+  <string name="T_safe_sub">Din veckobudget är %1$s. %2$s har gått ut sedan måndag.</string>
+  <string name="T_safe_this_week">den här veckan</string>
+  <string name="T_safe_of_week"> · kvar av %1$s</string>
+  <string name="T_wf_income">Din vanliga inkomst</string>
+  <string name="T_wf_income_note">Snittlön, senaste %1$s månaderna</string>
+  <string name="T_wf_essentials">Nödvändiga utgifter</string>
+  <string name="T_wf_essentials_note">Hyra, räkningar och resor den här månaden</string>
+  <string name="T_wf_free">Fritt att använda per månad</string>
+  <string name="T_wf_weekly">Som veckobudget (× 12 ÷ 52)</string>
+  <string name="T_wf_spent">Använt den här veckan</string>
+  <string name="T_wf_left">Kvar den här veckan</string>
+  <string name="T_wf_per_day">%1$s ÷ %2$s dagar kvar = cirka %3$s per dag.</string>
+  <string name="T_safe_how">Din snittinkomst minus månadens nödvändiga utgifter ger ett belopp som är fritt att använda per månad. SpendSight gör om det till en veckobudget och drar av det som gått ut sedan måndag. Räknat av SpendSights verktyg, inte gissat av AI.</string>
+  <string name="T_want_to_try">Vill du prova?</string>
+  <string name="T_pause_eating_out">Pausa restaurangbesöken den här veckan</string>
+  <string name="T_hide_details">Dölj detaljer</string>
+  <string name="T_demo_offers">Demoerbjudanden för Junction: S-gruppens varumärken, påhittade rabatter.</string>
 </resources>

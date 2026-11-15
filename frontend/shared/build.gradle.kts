@@ -97,9 +97,9 @@ val generateStringTable by tasks.registering {
         fun requireSameKeys(label: String, other: Map<String, String>) {
             val missing = en.keys - other.keys
             val extra = other.keys - en.keys
-            require(missing.isEmpty() && extra.isEmpty()) {
-                "Translation keys differ. Missing in $label: $missing. Extra in $label: $extra."
-            }
+            require(extra.isEmpty()) { "Translation keys differ. Extra in $label: $extra." }
+            // English-only for now: a key missing here shows the English text (see StringTable.get).
+            if (missing.isNotEmpty()) logger.warn("Not yet translated to $label, shown in English: $missing")
         }
         requireSameKeys("Finnish", fi)
         requireSameKeys("Swedish", sv)
@@ -126,11 +126,11 @@ val generateStringTable by tasks.registering {
                 appendLine("    }")
                 appendLine()
                 appendLine("    private val fi: Map<String, String> = buildMap {")
-                for (key in keys) appendLine("        put(${kotlinString(key)}, ${kotlinString(fi.getValue(key))})")
+                for (key in keys) fi[key]?.let { appendLine("        put(${kotlinString(key)}, ${kotlinString(it)})") }
                 appendLine("    }")
                 appendLine()
                 appendLine("    private val sv: Map<String, String> = buildMap {")
-                for (key in keys) appendLine("        put(${kotlinString(key)}, ${kotlinString(sv.getValue(key))})")
+                for (key in keys) sv[key]?.let { appendLine("        put(${kotlinString(key)}, ${kotlinString(it)})") }
                 appendLine("    }")
                 appendLine("}")
                 appendLine()

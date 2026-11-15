@@ -17,6 +17,10 @@ import pytest
 
 FULL_DATA = os.environ.get("SPENDSIGHT_TEST_FULL_DATA") == "1"
 
+# The tests sign in the first customer, CUST00001, and use the demo day, with any data.
+os.environ["SPENDSIGHT_CUSTOMER"] = "CUST00001"
+os.environ.pop("SPENDSIGHT_TODAY", None)
+
 # app.main builds the app at import time, so the data folders are set before that import.
 if not FULL_DATA:
     os.environ["JUNCTION_DIR"] = str(Path(__file__).resolve().parent / "fixtures" / "junction")

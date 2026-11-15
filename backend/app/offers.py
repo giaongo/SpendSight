@@ -1,7 +1,7 @@
-"""S-Pankki coupons and campaigns.
+"""Demo coupons and campaigns from S Group brands.
 
-Every coupon and campaign here is made-up demo data. S-Pankki is the only
-issuer: no partner or merchant offers. Nothing here is a real S-Pankki offer.
+Every offer here is invented for the Junction demo: S Group brand names with
+made-up discounts. Nothing here is a real S Group or S-Pankki offer.
 
 A coupon is offered to a customer by a rule over facts the Junction data
 already holds for them: age, the categories they paid in during their last
@@ -17,11 +17,13 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, timezone
 
 from app.customer_data import CustomerBook
+from app.demo import demo_today
 from app.money import eur
 
-ISSUER = "S-Pankki"
-SAMPLE_NOTE = "Sample offers for the demo. They are not real S-Pankki offers."
+ISSUER = "S Group"
+SAMPLE_NOTE = "Demo offers for Junction: S Group brands, invented discounts."
 RECENT_MONTHS = 3
+FITS_TAG = "Fits your everyday spending"
 
 
 @dataclass(frozen=True)
@@ -39,10 +41,12 @@ class Rule:
 class Coupon:
     coupon_id: str
     campaign_id: str | None
+    brand: str
     title: str
+    line: str  # the one line under the title on the coupon card
     description: str
-    kind: str  # bonus_boost | cashback | fee_waiver | rate_boost | service
-    benefit: str
+    kind: str  # discount | cashback
+    benefit: str  # the stub on the coupon card, such as "−15 %"
     product: str
     valid_from: date
     valid_to: date
@@ -51,11 +55,14 @@ class Coupon:
     value_cents: int | None = None
     percent: float | None = None
     min_spend_cents: int | None = None
+    uses_per_month: int | None = None  # a stamp card: this many discounted visits a month
+    renews_monthly: bool = False
 
 
 @dataclass(frozen=True)
 class Campaign:
     campaign_id: str
+    brand: str
     title: str
     description: str
     starts_on: date
@@ -65,194 +72,93 @@ class Campaign:
 
 CAMPAIGNS: tuple[Campaign, ...] = (
     Campaign(
-        campaign_id="CMP-WINTER-2026",
-        title="Winter Bonus Weeks",
-        description="Extra Bonus and cashback on everyday card payments through the holiday season.",
-        starts_on=date(2026, 11, 1),
-        ends_on=date(2026, 12, 31),
-        terms="Pay with an S-Pankki card. Activate each coupon in the app before you pay.",
+        campaign_id="CMP-PRISMA-HOME-2026",
+        brand="Prisma",
+        title="Prisma autumn home week",
+        description=(
+            "Home goods, kitchen and electronics in Prisma stores and at Prisma.fi. "
+            "Pay with your S-Bank card and collect Bonus as usual."
+        ),
+        starts_on=date(2026, 9, 28),
+        ends_on=date(2026, 10, 11),
+        terms="Demo campaign. The discounts are invented.",
     ),
     Campaign(
-        campaign_id="CMP-SAVER-AUTUMN-2026",
-        title="Saver's Autumn",
-        description="Start or grow your saving with S-Pankki accounts and funds.",
-        starts_on=date(2026, 10, 15),
-        ends_on=date(2026, 12, 15),
-        terms="For S-Pankki customers with an S-Tili. One coupon of each kind per customer.",
-    ),
-    Campaign(
-        campaign_id="CMP-TRAVEL-2026",
-        title="Travel Light",
-        description="Card benefits for trips abroad over the winter holidays.",
-        starts_on=date(2026, 11, 10),
-        ends_on=date(2027, 1, 31),
-        terms="Applies to S-Pankki Visa Debit and S-Etukortti Visa payments outside Finland.",
+        campaign_id="CMP-SOKOS-WEEKENDS-2026",
+        brand="Sokos Hotels",
+        title="Sokos Hotels autumn weekends",
+        description="Weekend stays around Finland. Book with your S-Bank card and collect Bonus.",
+        starts_on=date(2026, 9, 1),
+        ends_on=date(2026, 10, 31),
+        terms="Demo campaign. The discounts are invented.",
     ),
     Campaign(
         campaign_id="CMP-SUMMER-2026",
+        brand="S-market",
         title="Summer Cashback",
         description="Cashback on summer card payments.",
         starts_on=date(2026, 6, 1),
         ends_on=date(2026, 8, 31),
         terms="Ended 31 Aug 2026.",
     ),
-    Campaign(
-        campaign_id="CMP-SPRING-2027",
-        title="Spring Saving Start",
-        description="A fresh start for monthly fund saving.",
-        starts_on=date(2027, 3, 1),
-        ends_on=date(2027, 4, 30),
-        terms="Starts 1 Mar 2027.",
-    ),
 )
 
 
 COUPONS: tuple[Coupon, ...] = (
     Coupon(
-        coupon_id="CPN-RESTO-BONUS",
-        campaign_id="CMP-WINTER-2026",
-        title="2% extra Bonus at restaurants",
-        description="Get 2% extra Bonus on restaurant and café payments with your S-Etukortti Visa.",
-        kind="bonus_boost",
-        benefit="+2% Bonus",
-        product="S-Etukortti Visa",
-        percent=2.0,
-        valid_from=date(2026, 11, 1),
+        coupon_id="CPN-ROSSO",
+        campaign_id=None,
+        brand="Rosso",
+        title="Rosso coupon",
+        line="−15 % on your next 4 visits · renews monthly",
+        description="15 % off your next 4 visits to Rosso. Show your S-Etukortti when you pay. It renews every month.",
+        kind="discount",
+        benefit="−15 %",
+        product="S-Etukortti",
+        percent=15.0,
+        uses_per_month=4,
+        renews_monthly=True,
+        valid_from=date(2026, 9, 1),
         valid_to=date(2026, 12, 31),
-        terms="Extra Bonus up to €20 in total. Paid with the next monthly Bonus.",
+        terms="4 discounted visits each calendar month. Unused visits do not carry over.",
         rule=Rule(categories=("Restaurants",)),
     ),
     Coupon(
-        coupon_id="CPN-GROCERY-5",
-        campaign_id="CMP-WINTER-2026",
-        title="€5 back on groceries",
-        description="Pay €200 or more for groceries with an S-Pankki card in one calendar month and get €5 back.",
-        kind="cashback",
-        benefit="€5 back",
-        product="S-Pankki Visa Debit",
-        value_cents=500,
-        min_spend_cents=20_000,
-        valid_from=date(2026, 11, 1),
-        valid_to=date(2026, 12, 31),
-        terms="Once per customer. Paid to your S-Tili within 14 days of the month end.",
-        rule=Rule(categories=("Groceries",)),
-    ),
-    Coupon(
-        coupon_id="CPN-TRANSPORT-3",
-        campaign_id="CMP-WINTER-2026",
-        title="€3 back on travel cards and fuel",
-        description="Pay €60 or more for transport with an S-Pankki card in December and get €3 back.",
-        kind="cashback",
-        benefit="€3 back",
-        product="S-Pankki Visa Debit",
-        value_cents=300,
-        min_spend_cents=6_000,
-        valid_from=date(2026, 12, 1),
-        valid_to=date(2026, 12, 31),
-        terms="Once per customer. Paid to your S-Tili in January 2027.",
-        rule=Rule(categories=("Transportation",)),
-    ),
-    Coupon(
-        coupon_id="CPN-FUND-NOFEE",
-        campaign_id="CMP-SAVER-AUTUMN-2026",
-        title="No fee on your first fund saving",
-        description="Start a monthly saving plan in an S-Pankki fund with no subscription fee for 12 months.",
-        kind="fee_waiver",
-        benefit="0% subscription fee",
-        product="S-Pankki funds",
-        percent=0.0,
-        valid_from=date(2026, 10, 15),
-        valid_to=date(2026, 12, 15),
-        terms="For customers with no fund saving yet. Funds can lose value. This is not investment advice.",
-        rule=Rule(has_investments=False),
-    ),
-    Coupon(
-        coupon_id="CPN-FUND-TOPUP",
-        campaign_id="CMP-SAVER-AUTUMN-2026",
-        title="€10 on top of a fund deposit",
-        description="Make a one-off deposit of €500 or more to an S-Pankki fund and S-Pankki adds €10.",
-        kind="cashback",
-        benefit="€10 added",
-        product="S-Pankki funds",
-        value_cents=1_000,
-        min_spend_cents=50_000,
-        valid_from=date(2026, 10, 15),
-        valid_to=date(2026, 12, 15),
-        terms="For customers who already save in funds. Funds can lose value. This is not investment advice.",
-        rule=Rule(has_investments=True),
-    ),
-    Coupon(
-        coupon_id="CPN-SAVINGS-RATE",
-        campaign_id="CMP-SAVER-AUTUMN-2026",
-        title="+0.50% on the S-Pankki savings account",
-        description="Earn 0.50 percentage points more interest on new money in your savings account for 3 months.",
-        kind="rate_boost",
-        benefit="+0.50% interest",
-        product="S-Pankki savings account",
-        percent=0.5,
-        valid_from=date(2026, 10, 15),
-        valid_to=date(2026, 12, 15),
-        terms="On new deposits up to €10,000. The boost runs for 3 months from activation.",
-    ),
-    Coupon(
-        coupon_id="CPN-TRAVEL-FX",
-        campaign_id="CMP-TRAVEL-2026",
-        title="No currency fee abroad",
-        description="Pay abroad in any currency with no exchange fee for 30 days.",
-        kind="fee_waiver",
-        benefit="0% currency fee",
-        product="S-Pankki Visa Debit",
-        percent=0.0,
-        valid_from=date(2026, 11, 10),
-        valid_to=date(2027, 1, 31),
-        terms="The 30 days start when you activate. Cash withdrawals are not included.",
-        rule=Rule(categories=("Travel",)),
-    ),
-    Coupon(
-        coupon_id="CPN-YOUNG-CARD",
+        coupon_id="CPN-SMARKET-FRUIT",
         campaign_id=None,
-        title="First year of S-Etukortti Visa free",
-        description="No annual card fee for the first year of a new S-Etukortti Visa.",
-        kind="fee_waiver",
-        benefit="€0 card fee",
-        product="S-Etukortti Visa",
-        value_cents=0,
-        valid_from=date(2026, 9, 1),
-        valid_to=date(2027, 6, 30),
-        terms="For customers aged 18–29 who apply for a new card. Credit is subject to approval.",
-        rule=Rule(min_age=18, max_age=29),
+        brand="S-market",
+        title="S-market: fruit and vegetables",
+        line="Until 11 Oct",
+        description="10 % off fruit and vegetables at S-market. Show your S-Etukortti when you pay.",
+        kind="discount",
+        benefit="−10 %",
+        product="S-Etukortti",
+        percent=10.0,
+        valid_from=date(2026, 9, 28),
+        valid_to=date(2026, 10, 11),
+        terms="Once per visit.",
     ),
     Coupon(
-        coupon_id="CPN-MONEY-REVIEW",
+        coupon_id="CPN-ALEPA-SALAD",
         campaign_id=None,
-        title="Free money review with an adviser",
-        description="Book a 45-minute call with an S-Pankki adviser about saving, pensions, and everyday banking.",
-        kind="service",
-        benefit="Free 45-min call",
-        product="S-Pankki advice",
-        valid_from=date(2026, 9, 1),
-        valid_to=date(2027, 3, 31),
-        terms="For customers aged 55 and over. Book by phone or in the app after you activate.",
-        rule=Rule(min_age=55),
-    ),
-    Coupon(
-        coupon_id="CPN-HOME-EXTRA",
-        campaign_id=None,
-        title="No fee on an extra home loan payment",
-        description="Make one extra repayment on your S-Pankki home loan with no handling fee.",
-        kind="fee_waiver",
-        benefit="€0 handling fee",
-        product="S-Pankki home loan",
-        value_cents=0,
-        valid_from=date(2026, 11, 1),
-        valid_to=date(2027, 2, 28),
-        terms="For customers with a home loan application at S-Pankki. One extra repayment.",
-        rule=Rule(has_mortgage=True),
+        brand="Alepa",
+        title="Alepa: lunch salads",
+        line="Until 15 Oct",
+        description="15 % off lunch salads at Alepa. Show your S-Etukortti when you pay.",
+        kind="discount",
+        benefit="−15 %",
+        product="S-Etukortti",
+        percent=15.0,
+        valid_from=date(2026, 9, 28),
+        valid_to=date(2026, 10, 15),
+        terms="Once per visit.",
     ),
     Coupon(
         coupon_id="CPN-SUMMER-ICE",
         campaign_id="CMP-SUMMER-2026",
+        brand="S-market",
         title="€2 back on summer treats",
+        line="Ended",
         description="Ended. Shown only to check that expired coupons stay out.",
         kind="cashback",
         benefit="€2 back",
@@ -261,19 +167,6 @@ COUPONS: tuple[Coupon, ...] = (
         valid_from=date(2026, 6, 1),
         valid_to=date(2026, 8, 31),
         terms="Ended 31 Aug 2026.",
-    ),
-    Coupon(
-        coupon_id="CPN-SPRING-FUND",
-        campaign_id="CMP-SPRING-2027",
-        title="Double first month of fund saving",
-        description="Not started yet. S-Pankki matches your first monthly fund saving up to €25.",
-        kind="cashback",
-        benefit="Up to €25 matched",
-        product="S-Pankki funds",
-        value_cents=2_500,
-        valid_from=date(2027, 3, 1),
-        valid_to=date(2027, 4, 30),
-        terms="Starts 1 Mar 2027. Funds can lose value. This is not investment advice.",
     ),
 )
 
@@ -288,6 +181,10 @@ class CouponNotOffered(LookupError):
 
 class CouponNotActive(ValueError):
     pass
+
+
+def _next_month_start(today: date) -> date:
+    return date(today.year + (today.month == 12), today.month % 12 + 1, 1)
 
 
 def _now() -> str:
@@ -344,7 +241,7 @@ def _reason(rule: Rule, book: CustomerBook, recent: set[str]) -> str | None:
 class OfferBook:
     """The catalog plus the activations made while the process runs."""
 
-    def __init__(self, today: Callable[[], date] = date.today) -> None:
+    def __init__(self, today: Callable[[], date] = demo_today) -> None:
         self.today = today
         self.coupons = {coupon.coupon_id: coupon for coupon in COUPONS}
         self.campaigns = {campaign.campaign_id: campaign for campaign in CAMPAIGNS}
@@ -401,11 +298,28 @@ class OfferBook:
             self._activations.setdefault((book.customer_id, coupon_id), _now())
         return self._coupon(coupon, book.customer_id, today, reason)
 
+    def deactivate(self, book: CustomerBook, coupon_id: str) -> dict:
+        coupon = self.coupons.get(coupon_id)
+        if coupon is None:
+            raise CouponNotFound(coupon_id)
+        reason = _reason(coupon.rule, book, _recent_categories(book))
+        if reason is None:
+            raise CouponNotOffered(coupon_id)
+        with self._lock:
+            self._activations.pop((book.customer_id, coupon_id), None)
+        return self._coupon(coupon, book.customer_id, self.today(), reason)
+
+    def reset(self) -> None:
+        """Forget every activation, for a fresh demo run."""
+        with self._lock:
+            self._activations.clear()
+
     def _campaign(self, campaign: Campaign, today: date) -> dict:
         coupon_ids = [coupon.coupon_id for coupon in COUPONS if coupon.campaign_id == campaign.campaign_id]
         return {
             "campaign_id": campaign.campaign_id,
             "issuer": ISSUER,
+            "brand": campaign.brand,
             "title": campaign.title,
             "description": campaign.description,
             "starts_on": campaign.starts_on.isoformat(),
@@ -424,7 +338,10 @@ class OfferBook:
             "issuer": ISSUER,
             "campaign_id": coupon.campaign_id,
             "campaign_title": None if campaign is None else campaign.title,
+            "brand": coupon.brand,
             "title": coupon.title,
+            "line": coupon.line,
+            "tag": FITS_TAG if coupon.rule.categories else None,
             "description": coupon.description,
             "kind": coupon.kind,
             "benefit": coupon.benefit,
@@ -441,5 +358,11 @@ class OfferBook:
             "reason": reason,
             "activated": activated_at is not None,
             "activated_at": activated_at,
+            "uses_per_month": coupon.uses_per_month,
+            # Uses happen at the till, which the Junction data does not record, so none are used yet.
+            "used_this_month": 0 if coupon.uses_per_month else None,
+            "renews_monthly": coupon.renews_monthly,
+            "renews_on": _next_month_start(today).isoformat() if coupon.renews_monthly else None,
             "activate": f"/customers/{customer_id}/coupons/{coupon.coupon_id}/activate",
+            "deactivate": f"/customers/{customer_id}/coupons/{coupon.coupon_id}/deactivate",
         }

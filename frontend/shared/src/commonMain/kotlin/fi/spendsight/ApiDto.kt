@@ -40,6 +40,8 @@ data class CustomerTodayDto(
     @SerialName("mortgage_customer_id") val mortgageCustomerId: String? = null,
     @SerialName("mortgage_decision") val mortgageDecision: String? = null,
     @SerialName("as_of") val asOf: String,
+    /** The demo's "today", the day after the last transaction. */
+    val today: String? = null,
     @SerialName("balance_cents") val balanceCents: Int,
     val balance: String,
     @SerialName("latest_salary_cents") val latestSalaryCents: Int? = null,
@@ -49,7 +51,25 @@ data class CustomerTodayDto(
     @SerialName("month_out_cents") val monthOutCents: Int,
     @SerialName("transaction_count") val transactionCount: Int,
     @SerialName("first_date") val firstDate: String,
+    @SerialName("safe_to_spend") val safeToSpend: SafeToSpendDto? = null,
     val note: String,
+)
+
+/** This week's budget left, computed by the service. */
+@Serializable
+data class SafeToSpendDto(
+    @SerialName("left_cents") val leftCents: Int,
+    @SerialName("weekly_cents") val weeklyCents: Int,
+    @SerialName("spent_week_cents") val spentWeekCents: Int,
+    @SerialName("days_left") val daysLeft: Int,
+    @SerialName("per_day_cents") val perDayCents: Int,
+    /** on_track, tight or overdraft_risk. */
+    val status: String,
+    @SerialName("income_months") val incomeMonths: Int? = null,
+    @SerialName("income_cents") val incomeCents: Int? = null,
+    @SerialName("essentials_cents") val essentialsCents: Int? = null,
+    @SerialName("free_month_cents") val freeMonthCents: Int? = null,
+    @SerialName("spent_week_count") val spentWeekCount: Int? = null,
 )
 
 @Serializable
@@ -85,7 +105,44 @@ data class SpendingDto(
     @SerialName("line_count") val lineCount: Int,
     val categories: List<SpendCategoryDto>,
     val transactions: List<SpendTxDto>,
+    val highlights: HighlightsDto? = null,
+    val baskets: BasketsDto? = null,
     val note: String,
+)
+
+/** Money out in the design's three baskets. The service decides what is essential. */
+@Serializable
+data class BasketsDto(
+    @SerialName("essentials_cents") val essentialsCents: Int,
+    @SerialName("unexpected_cents") val unexpectedCents: Int = 0,
+    @SerialName("everyday_cents") val everydayCents: Int,
+)
+
+/** The Home carousel figures. The service computes them; the app only shows them. */
+@Serializable
+data class HighlightsDto(
+    @SerialName("spending_change") val spendingChange: SpendingChangeDto? = null,
+    @SerialName("friday_evenings") val fridayEvenings: FridayEveningsDto? = null,
+)
+
+@Serializable
+data class SpendingChangeDto(
+    val category: String,
+    val month: String,
+    @SerialName("prior_month") val priorMonth: String,
+    val count: Int,
+    @SerialName("amount_cents") val amountCents: Int,
+    @SerialName("prior_count") val priorCount: Int,
+    @SerialName("prior_cents") val priorCents: Int,
+    @SerialName("delta_cents") val deltaCents: Int,
+)
+
+@Serializable
+data class FridayEveningsDto(
+    val category: String,
+    val month: String,
+    val count: Int,
+    @SerialName("amount_cents") val amountCents: Int,
 )
 
 @Serializable
@@ -103,7 +160,23 @@ data class CustomerSaveDto(
     @SerialName("latest_deposit_cents") val latestDepositCents: Int? = null,
     @SerialName("latest_deposit_date") val latestDepositDate: String? = null,
     @SerialName("balance_cents") val balanceCents: Int,
+    @SerialName("savings_accounts") val savingsAccounts: List<SavingsAccountDto> = emptyList(),
+    @SerialName("savings_total_cents") val savingsTotalCents: Int = 0,
     val note: String,
+)
+
+/** A savings account with its goal progress, as the service sends it. */
+@Serializable
+data class SavingsAccountDto(
+    @SerialName("account_id") val accountId: String,
+    val kind: String,
+    val name: String,
+    val subtitle: String = "",
+    @SerialName("balance_cents") val balanceCents: Int,
+    @SerialName("goal_cents") val goalCents: Int? = null,
+    @SerialName("goal_for") val goalFor: String? = null,
+    @SerialName("goal_share") val goalShare: Double? = null,
+    @SerialName("goal_percent") val goalPercent: Int? = null,
 )
 
 @Serializable
@@ -123,6 +196,14 @@ data class CouponDto(
     val terms: String = "",
     val activated: Boolean = false,
     val activate: String = "",
+    val deactivate: String = "",
+    val brand: String = "",
+    /** The one line under the title, such as "−15 % on your next 4 visits · renews monthly". */
+    val line: String = "",
+    val tag: String? = null,
+    @SerialName("uses_per_month") val usesPerMonth: Int? = null,
+    @SerialName("used_this_month") val usedThisMonth: Int? = null,
+    @SerialName("renews_on") val renewsOn: String? = null,
     @SerialName("campaign_title") val campaignTitle: String? = null,
     @SerialName("valid_from") val validFrom: String = "",
     @SerialName("valid_to") val validTo: String = "",
@@ -141,6 +222,7 @@ data class CouponsDto(
 data class CampaignDto(
     @SerialName("campaign_id") val campaignId: String,
     val title: String,
+    val brand: String = "",
     val description: String = "",
     @SerialName("days_left") val daysLeft: Int = 0,
     @SerialName("coupon_count") val couponCount: Int = 0,
@@ -481,6 +563,7 @@ data class AnswerCardDto(
     val verdict: String? = null,
     @SerialName("verdict_detail") val verdictDetail: String? = null,
     val items: List<CardItemDto> = emptyList(),
+    val baskets: BasketsDto? = null,
     val options: CardOptionsDto? = null,
     val how: String? = null,
     val screen: String? = null,

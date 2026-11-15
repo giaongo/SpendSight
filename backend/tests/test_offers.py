@@ -2,101 +2,104 @@ from datetime import date
 
 import pytest
 
-from app.offers import CAMPAIGNS, COUPONS, ISSUER
+from app.offers import CAMPAIGNS, COUPONS, ISSUER, SAMPLE_NOTE
+
+DEMO_IDS = ["CPN-ROSSO", "CPN-SMARKET-FRUIT", "CPN-ALEPA-SALAD"]
 
 
 @pytest.fixture
 def offers_client(client):
-    client.app.state.offers.today = lambda: date(2026, 11, 14)
+    client.app.state.offers.today = lambda: date(2026, 9, 30)
     return client
 
 
-def _ids(body: dict) -> set[str]:
-    return {row["coupon_id"] for row in body["coupons"]}
+def _ids(body: dict) -> list[str]:
+    return [row["coupon_id"] for row in body["coupons"]]
 
 
-def test_every_offer_is_from_s_pankki():
-    assert ISSUER == "S-Pankki"
+def test_every_offer_is_an_invented_s_group_offer():
+    assert ISSUER == "S Group"
+    assert SAMPLE_NOTE == "Demo offers for Junction: S Group brands, invented discounts."
     campaign_ids = {campaign.campaign_id for campaign in CAMPAIGNS}
     for coupon in COUPONS:
         assert coupon.campaign_id is None or coupon.campaign_id in campaign_ids
 
 
+def test_the_offers_default_to_the_demo_day(client):
+    assert client.get("/campaigns").json()["as_of"] == "2026-09-30"
+
+
 def test_campaigns_list_only_the_running_ones(offers_client):
     body = offers_client.get("/campaigns").json()
-    ids = [row["campaign_id"] for row in body["campaigns"]]
-    assert ids == ["CMP-WINTER-2026", "CMP-SAVER-AUTUMN-2026", "CMP-TRAVEL-2026"]
+    assert [row["title"] for row in body["campaigns"]] == [
+        "Prisma autumn home week",
+        "Sokos Hotels autumn weekends",
+    ]
+    assert [row["brand"] for row in body["campaigns"]] == ["Prisma", "Sokos Hotels"]
+    assert body["campaigns"][0]["ends_on"] == "2026-10-11"
+    assert body["campaigns"][0]["days_left"] == 11
+
+
+def test_the_demo_coupons_in_order(offers_client):
+    body = offers_client.get("/customers/CUST00001/coupons").json()
+    assert _ids(body) == DEMO_IDS
     assert body["count"] == 3
-    assert body["as_of"] == "2026-11-14"
-    assert all(row["issuer"] == "S-Pankki" for row in body["campaigns"])
-    winter = body["campaigns"][0]
-    assert winter["days_left"] == 47
-    assert winter["coupon_ids"] == ["CPN-RESTO-BONUS", "CPN-GROCERY-5", "CPN-TRANSPORT-3"]
-
-
-def test_coupons_follow_what_the_customer_data_says(offers_client):
-    first = offers_client.get("/customers/CUST00001/coupons").json()
-    assert first["customer_id"] == "CUST00001"
-    # Age 63 and already saving in funds.
-    assert _ids(first) == {
-        "CPN-RESTO-BONUS",
-        "CPN-GROCERY-5",
-        "CPN-FUND-TOPUP",
-        "CPN-SAVINGS-RATE",
-        "CPN-MONEY-REVIEW",
-    }
-
-    second = offers_client.get("/customers/CUST00002/coupons").json()
-    # No investment deposits, so the starter fund coupon instead of the top-up.
-    assert "CPN-FUND-NOFEE" in _ids(second)
-    assert "CPN-FUND-TOPUP" not in _ids(second)
-
-    borrower = offers_client.get("/customers/CUST04457/coupons").json()
-    assert "CPN-HOME-EXTRA" in _ids(borrower)
-    home = next(row for row in borrower["coupons"] if row["coupon_id"] == "CPN-HOME-EXTRA")
-    assert home["reason"] == "Offered because you have a home loan application."
+    assert body["activated_count"] == 0
+    rosso, smarket, alepa = body["coupons"]
+    assert rosso["title"] == "Rosso coupon"
+    assert rosso["benefit"] == "−15 %"
+    assert rosso["line"] == "−15 % on your next 4 visits · renews monthly"
+    assert rosso["tag"] == "Fits your everyday spending"
+    assert rosso["uses_per_month"] == 4
+    assert rosso["used_this_month"] == 0
+    assert rosso["renews_on"] == "2026-10-01"
+    assert rosso["activate"] == "/customers/CUST00001/coupons/CPN-ROSSO/activate"
+    assert rosso["deactivate"] == "/customers/CUST00001/coupons/CPN-ROSSO/deactivate"
+    assert (smarket["title"], smarket["benefit"], smarket["line"]) == (
+        "S-market: fruit and vegetables",
+        "−10 %",
+        "Until 11 Oct",
+    )
+    assert (alepa["title"], alepa["benefit"], alepa["line"]) == (
+        "Alepa: lunch salads",
+        "−15 %",
+        "Until 15 Oct",
+    )
+    assert smarket["tag"] is None and smarket["uses_per_month"] is None
 
 
 def test_coupons_outside_their_dates_stay_out(offers_client):
-    for customer_id in ("CUST00001", "CUST00002", "CUST04457"):
-        ids = _ids(offers_client.get(f"/customers/{customer_id}/coupons").json())
-        assert "CPN-SUMMER-ICE" not in ids  # ended
-        assert "CPN-SPRING-FUND" not in ids  # not started
-        assert "CPN-TRANSPORT-3" not in ids  # starts 1 Dec
+    assert "CPN-SUMMER-ICE" not in _ids(offers_client.get("/customers/CUST00001/coupons").json())
+    offers_client.app.state.offers.today = lambda: date(2026, 10, 12)
+    assert _ids(offers_client.get("/customers/CUST00001/coupons").json()) == ["CPN-ROSSO", "CPN-ALEPA-SALAD"]
 
 
-def test_coupon_money_is_cents_with_display_strings(offers_client):
-    body = offers_client.get("/customers/CUST00001/coupons").json()
-    grocery = next(row for row in body["coupons"] if row["coupon_id"] == "CPN-GROCERY-5")
-    assert grocery["value_cents"] == 500
-    assert grocery["value"] == "€5.00"
-    assert grocery["min_spend_cents"] == 20_000
-    assert grocery["min_spend"] == "€200.00"
-    assert grocery["activated"] is False
-    assert grocery["activate"] == "/customers/CUST00001/coupons/CPN-GROCERY-5/activate"
-
-
-def test_activating_a_coupon_is_kept_per_customer(offers_client):
-    response = offers_client.post("/customers/CUST00001/coupons/CPN-SAVINGS-RATE/activate")
-    assert response.status_code == 200
-    first = response.json()
+def test_activating_and_turning_off_a_coupon(offers_client):
+    post = offers_client.post
+    first = post("/customers/CUST00001/coupons/CPN-ROSSO/activate").json()
     assert first["activated"] is True
     assert first["activated_at"]
-
-    again = offers_client.post("/customers/CUST00001/coupons/CPN-SAVINGS-RATE/activate").json()
+    again = post("/customers/CUST00001/coupons/CPN-ROSSO/activate").json()
     assert again["activated_at"] == first["activated_at"]
+    assert offers_client.get("/customers/CUST00001/coupons").json()["activated_count"] == 1
+    assert offers_client.get("/customers/CUST00002/coupons").json()["activated_count"] == 0
 
-    listed = offers_client.get("/customers/CUST00001/coupons").json()
-    assert listed["activated_count"] == 1
-    other = offers_client.get("/customers/CUST00002/coupons").json()
-    assert other["activated_count"] == 0
+    off = post("/customers/CUST00001/coupons/CPN-ROSSO/deactivate").json()
+    assert off["activated"] is False
+    assert offers_client.get("/customers/CUST00001/coupons").json()["activated_count"] == 0
+
+
+def test_demo_reset_turns_every_coupon_off(offers_client):
+    offers_client.post("/customers/CUST00001/coupons/CPN-ROSSO/activate")
+    offers_client.post("/customers/CUST00001/coupons/CPN-ALEPA-SALAD/activate")
+    assert offers_client.post("/demo/reset").json() == {"ok": True}
+    assert offers_client.get("/customers/CUST00001/coupons").json()["activated_count"] == 0
 
 
 def test_activation_errors(offers_client):
     post = offers_client.post
     assert post("/customers/CUST00001/coupons/CPN-NOPE/activate").status_code == 404
-    # Under 30 only, and CUST00001 is 63.
-    assert post("/customers/CUST00001/coupons/CPN-YOUNG-CARD/activate").status_code == 404
+    assert post("/customers/CUST00001/coupons/CPN-NOPE/deactivate").status_code == 404
     assert post("/customers/CUST00001/coupons/CPN-SUMMER-ICE/activate").status_code == 409
-    assert post("/customers/CUST99999/coupons/CPN-SAVINGS-RATE/activate").status_code == 404
+    assert post("/customers/CUST99999/coupons/CPN-ROSSO/activate").status_code == 404
     assert offers_client.get("/customers/CUST99999/coupons").status_code == 404

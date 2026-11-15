@@ -80,6 +80,16 @@ fun monthName(isoMonth: String, lang: Lang): String {
     return t(lang, monthKey(month))
 }
 
+/** A day and a short month, such as "1 Oct" (Finnish: "1.10."). */
+fun formatDayMonth(iso: String, lang: Lang): String {
+    val parts = iso.split("-")
+    if (parts.size != 3) return iso
+    val month = parts[1].toIntOrNull() ?: return iso
+    val day = parts[2].toIntOrNull() ?: return iso
+    if (month !in 1..12) return iso
+    return if (lang == Lang.Fi) "$day.$month." else "$day ${t(lang, monthKey(month)).take(3)}"
+}
+
 fun formatAsOf(iso: String, lang: Lang): String {
     val parts = iso.split("-")
     if (parts.size != 3) return iso

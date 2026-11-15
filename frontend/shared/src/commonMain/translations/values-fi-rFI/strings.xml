@@ -373,7 +373,7 @@
   <string name="T_worth_a_look">Kannattaa katsoa</string>
   <string name="T_kind_of_spender">Millainen rahankäyttäjä olen?</string>
   <string name="T_save_more">Miten voisin säästää enemmän?</string>
-  <string name="T_typical_household">Mitä tyypillinen kotitalous kuluttaa?</string>
+  <string name="T_typical_household">Miten säästöni vertautuvat ikäisiini?</string>
   <string name="T_where_go">Mihin rahani menivät?</string>
   <string name="T_where_question">Mihin rahani menivät viime kuussa?</string>
   <string name="T_overview">Yleiskatsaus</string>
@@ -408,6 +408,17 @@
   <string name="T_see_when">Näytä milloin</string>
   <string name="T_activate_in_offers">%1$s. Aktivoi se Eduista.</string>
   <string name="T_coupon">Kuponki</string>
+  <string name="T_safe_to_spend">Käytettävissä</string>
+  <string name="T_safe_line">jäljellä tällä viikolla · %1$s</string>
+  <string name="T_safe_on_track">hyvin menee</string>
+  <string name="T_safe_tight">tiukkaa</string>
+  <string name="T_safe_over">budjetti ylittyy</string>
+  <string name="T_friday_evenings">Perjantai-illat</string>
+  <string name="T_friday_visits">%1$s käyntiä (%2$s) perjantai-iltaisin, %3$s</string>
+  <string name="T_fact_visits">%1$s käyntiäsi (%2$s) maksoivat %3$s (%4$s), mutta %5$s (%6$s).</string>
+  <string name="T_coupon_activated">%1$s aktivoitu.</string>
+  <string name="T_coupon_turned_off">%1$s poistettu käytöstä.</string>
+  <string name="T_stamps_used">%1$s / %2$s käytetty tässä kuussa. Näytä S-Etukortti käyttääksesi. Uudet leimat %3$s.</string>
   <string name="T_went_out">%1$s lähti tililtä, %2$s.</string>
   <string name="T_unexpected">Yllättävät</string>
   <string name="T_everyday_top">Arjen kulut · viisi suurinta</string>
@@ -463,4 +474,24 @@
   <string name="T_you_short">Sinä</string>
   <string name="T_typical_deposits">Tyypilliset talletukset</string>
   <string name="T_you_and_age">Sinä ja ikäisesi</string>
+  <string name="T_safe_week_label">Käytettävissä tällä viikolla</string>
+  <string name="T_safe_header_sub">%1$s · jäljellä %2$s viikkobudjetista</string>
+  <string name="T_safe_lead">%1$s käytettävissä tällä viikolla.</string>
+  <string name="T_safe_sub">Viikkobudjettisi on %1$s. Maanantaista lähtien on kulunut %2$s.</string>
+  <string name="T_safe_this_week">tällä viikolla</string>
+  <string name="T_safe_of_week"> · %1$s viikkobudjetista</string>
+  <string name="T_wf_income">Tavalliset tulosi</string>
+  <string name="T_wf_income_note">Keskipalkka, viimeiset %1$s kuukautta</string>
+  <string name="T_wf_essentials">Välttämättömät menot</string>
+  <string name="T_wf_essentials_note">Vuokra, laskut ja liikkuminen tässä kuussa</string>
+  <string name="T_wf_free">Vapaasti käytettävissä kuukaudessa</string>
+  <string name="T_wf_weekly">Viikkobudjettina (× 12 ÷ 52)</string>
+  <string name="T_wf_spent">Käytetty tällä viikolla</string>
+  <string name="T_wf_left">Jäljellä tällä viikolla</string>
+  <string name="T_wf_per_day">%1$s ÷ %2$s päivää jäljellä = noin %3$s päivässä.</string>
+  <string name="T_safe_how">Keskitulosi miinus tämän kuun välttämättömät menot on summa, joka on kuukaudessa vapaasti käytettävissä. SpendSight muuttaa sen viikkobudjetiksi ja vähentää maanantain jälkeen kuluneet rahat. Laskettu SpendSightin työkaluilla, ei tekoälyn arvaama.</string>
+  <string name="T_want_to_try">Haluatko kokeilla?</string>
+  <string name="T_pause_eating_out">Pidä tauko ulkona syömisestä tällä viikolla</string>
+  <string name="T_hide_details">Piilota tiedot</string>
+  <string name="T_demo_offers">Junctionin demotarjoukset: S-ryhmän brändit, keksityt alennukset.</string>
 </resources>

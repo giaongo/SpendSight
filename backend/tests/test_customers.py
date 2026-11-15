@@ -50,3 +50,56 @@ def test_any_customer_can_be_read(client):
 def test_the_default_reads_stay_on_the_first_customer(client):
     assert client.get("/today").json()["customer_id"] == "CUST00001"
     assert client.get("/customers/CUST00001/today").json()["balance_cents"] == 472_358
+
+
+def test_spending_highlights_are_the_biggest_rise_and_its_friday_evenings(client):
+    body = client.get("/customers/CUST00001/spending").json()
+    change = body["highlights"]["spending_change"]
+    assert change["month"] == body["month"]
+    assert change["delta_cents"] == change["amount_cents"] - change["prior_cents"] > 0
+    friday = body["highlights"]["friday_evenings"]
+    if friday is not None:
+        assert friday["category"] == change["category"]
+        assert 0 < friday["amount_cents"] <= change["amount_cents"]
+
+
+def test_safe_to_spend_is_the_weekly_budget_less_this_weeks_spending(client):
+    safe = client.get("/customers/CUST00001/today").json()["safe_to_spend"]
+    assert safe["today"] == "2026-09-30"
+    assert safe["week_start"] == "2026-09-28"
+    assert safe["days_left"] == 5
+    assert safe["free_month_cents"] == safe["income_cents"] - safe["essentials_cents"]
+    assert abs(safe["weekly_cents"] - safe["free_month_cents"] * 12 / 52) <= 0.5
+    assert safe["left_cents"] == safe["weekly_cents"] - safe["spent_week_cents"]
+    assert safe["status"] in {"on_track", "tight", "overdraft_risk"}
+
+
+def test_demo_savings_accounts_only_for_the_demo_customer(client, monkeypatch):
+    from app import demo
+
+    assert client.get("/customers/CUST00001/save").json()["savings_accounts"] == []
+    monkeypatch.setitem(demo.DEMO_SAVINGS, "CUST00001", demo.DEMO_SAVINGS["CUST00007"])
+    body = client.get("/customers/CUST00001/save").json()
+    asp, tuotto = body["savings_accounts"]
+    assert body["savings_total_cents"] == 139_000
+    assert (asp["name"], asp["balance_cents"], asp["goal_cents"], asp["goal_percent"]) == ("ASP account", 124_000, 2_000_000, 6)
+    assert asp["goal_share"] == 0.062
+    assert (tuotto["name"], tuotto["balance_cents"], tuotto["goal_cents"]) == ("S-Tuottotili", 15_000, None)
+
+
+def test_baskets_split_money_out_and_count_taxis_as_everyday(client):
+    from app.customer_data import baskets
+
+    rows = [
+        {"category": "Transportation", "mcc_code": "4121", "amount_cents": -3359, "transaction_type": "purchase"},
+        {"category": "Transportation", "mcc_code": "5542", "amount_cents": -5000, "transaction_type": "purchase"},
+        {"category": "Housing", "mcc_code": None, "amount_cents": -98031, "transaction_type": "housing_payment"},
+        {"category": "Restaurants", "mcc_code": "5812", "amount_cents": -2000, "transaction_type": "purchase"},
+        {"category": "Salary", "mcc_code": None, "amount_cents": 300000, "transaction_type": "salary"},
+    ]
+    split = baskets(rows)
+    assert (split["essentials_cents"], split["everyday_cents"]) == (103031, 5359)
+
+    body = client.get("/customers/CUST00001/spending").json()
+    split = body["baskets"]
+    assert split["essentials_cents"] + split["everyday_cents"] <= body["total_out_cents"]

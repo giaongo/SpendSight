@@ -228,7 +228,7 @@ private fun CustomerCategory(store: SpendSightStore, name: String) {
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
                             Text(
-                                "${formatAsOf(row.txDate, store.language)} · ${row.merchantId ?: typeLabel(row.transactionType)}",
+                                listOfNotNull(formatAsOf(row.txDate, store.language), clockTime(row.txTimestamp)).joinToString(" · "),
                                 color = Graphite,
                                 fontSize = 15.sp,
                                 modifier = Modifier.weight(1f),
@@ -256,6 +256,10 @@ private fun TimeBucket.label(): String = when (this) {
 
 /** Matches the hour in `03OCT24:09:04:04` and in `2024-10-03T09:04:04`. */
 private val HourPattern = Regex("[T :]([0-9]{2}):[0-9]{2}")
+
+/** "18:42" from `03OCT24:18:42:04` or `2024-10-03T18:42:04`; null when there is no time. */
+internal fun clockTime(timestamp: String): String? =
+    Regex("[T :]([0-9]{2}):([0-9]{2})").find(timestamp)?.let { "${it.groupValues[1]}:${it.groupValues[2]}" }
 
 internal fun timeBucket(row: SpendTxDto): TimeBucket {
     val parts = row.txDate.split("-").mapNotNull { it.toIntOrNull() }
@@ -748,6 +752,7 @@ private fun CoachScreen(store: SpendSightStore, modifier: Modifier) {
                 onAction = { action -> if (action != null) store.push(action) },
                 onEdit = { store.draft = it },
                 onAsk = { store.ask(it) },
+                safe = store.customer.safeToSpend,
             )
         }
         if (store.asking) {
@@ -787,6 +792,7 @@ private fun Bubble(
     onAction: (Screen?) -> Unit,
     onEdit: (String) -> Unit,
     onAsk: (String) -> Unit,
+    safe: SafeToSpendDto? = null,
 ) {
     val mine = message.role == "user"
     val paragraphs = message.paragraphs.ifEmpty { listOfNotNull(message.text) }
@@ -815,7 +821,7 @@ private fun Bubble(
         return
     }
     if (message.homeAsk != null || message.card != null) {
-        CoachAnswer(message, onAsk) { onAction(it) }
+        CoachAnswer(message, onAsk, { onAction(it) }, safe)
         return
     }
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {

@@ -166,7 +166,7 @@ SPENDING_DISCLAIMER = (
 OTHER_DISCLAIMER = "This answer is not based on the customer's transactions. It can be wrong."
 
 _PERSONAL = re.compile(
-    r"\b(i|i'm|i've|i’ve|my|mine|our|minun|minulla|minua|mun|tilini|palkkani|"
+    r"\b(i|i'm|i've|i’ve|my|mine|our|minun|minulla|minua|mun|haluan|tilini|palkkani|"
     r"saldoni|menoni|tuloni|käytin|kulutin|maksoin|ostin|säästin|talletin|"
     r"ich|mein|meine|mir|jag|mitt|mina|mon|ma|mes|je|mi|mis|mio|mia|miei)\b",
     re.IGNORECASE,
@@ -178,9 +178,9 @@ _MONEY = re.compile(
     r"coffee|restaurant|dining|taxi|subscription|budget|afford|euro|euros|"
     r"money|cost|costs|withdraw|withdrawal|transfer|loan|"
     r"saldo|saldoni|palkka|palkkani|tili|tilini|tilillä|rahaa|rahat|menot|tulot|"
-    r"kulut|kulutin|käytin|säästö|säästin|laina|vuokra|maksu|maksoin|ostos|ostin|"
+    r"kulut|kulutin|käytin|säästö|säästin|säästää|säästä|laina|vuokra|maksu|maksoin|ostos|ostin|"
     r"talletus|talletin|tilisiirto|lasku|laskut|budjetti|"
-    r"kontostand|gehalt|ausgaben|konto|kontot|geld|lön|pengar|"
+    r"kontostand|gehalt|ausgaben|konto|kontot|geld|lön|pengar|spara|"
     r"solde|compte|salaire|dépenses|cuenta|salario|gasto|conto|stipendio)\b",
     re.IGNORECASE,
 )
@@ -452,6 +452,21 @@ _PERSONAL_PHRASES = (
     "spara mer",
     "har jag sparat",
     "mina utgifter",
+    # What-if questions about eating out answer with the visit cut on the spending card.
+    "eat out",
+    "eating out",
+    "ate out",
+    "what if i eat",
+    "what if i ate",
+    "what if i skip",
+    "what if i cut",
+    "syö ulkona",
+    "söisin ulkona",
+    "mitä jos söisin",
+    "mitä jos jättäisin",
+    "ät ute",
+    "åt ute",
+    "tänk om jag",
 )
 _PEER_RE = re.compile(
     r"typical household|average household|people my age|than other people|"

@@ -63,6 +63,8 @@ class SpendSightStore(
     var offersError by mutableStateOf<String?>(null)
     var offersLoading by mutableStateOf(false)
     var activatingId by mutableStateOf<String?>(null)
+    /** The last coupon change, such as "Rosso coupon activated.", shown in the Offers status line. */
+    var couponStatus by mutableStateOf<String?>(null)
     var priorSpending by mutableStateOf<SpendingDto?>(null)
     var cutPercent by mutableStateOf(20)
     var homeEuro by mutableStateOf(220_000)
@@ -253,8 +255,15 @@ class SpendSightStore(
         sheet = null
     }
 
+    /** Where each tab was left, so switching tabs keeps the conversation and drill-downs. */
+    private val tabStacks = mutableMapOf<Tab, List<Screen>>()
+
     fun jump(screen: Screen) {
-        stack = listOf(screen)
+        val from = current.tab()
+        tabStacks[from] = stack
+        val to = screen.tab()
+        val saved = tabStacks[to]
+        stack = if (to != from && screen == to.root && saved != null) saved else listOf(screen)
         closeOverlays()
     }
 
@@ -387,15 +396,22 @@ class SpendSightStore(
         }
     }
 
-    fun activateCoupon(coupon: CouponDto) {
-        if (coupon.activated || coupon.activate.isBlank() || activatingId != null) return
+    /** Activates a coupon, or turns it off again when it is already on. */
+    fun toggleCoupon(coupon: CouponDto) {
+        val path = if (coupon.activated) coupon.deactivate else coupon.activate
+        if (path.isBlank() || activatingId != null) return
         activatingId = coupon.couponId
         scope.launch {
             try {
-                val updated = api.activateCoupon(coupon.activate)
+                val updated = api.postCoupon(path)
                 val current = coupons ?: return@launch
                 val rows = current.coupons.map { if (it.couponId == updated.couponId) updated else it }
                 coupons = current.copy(coupons = rows, activatedCount = rows.count { it.activated })
+                couponStatus = t(
+                    language,
+                    if (updated.activated) R.string.T_coupon_activated else R.string.T_coupon_turned_off,
+                    updated.title,
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

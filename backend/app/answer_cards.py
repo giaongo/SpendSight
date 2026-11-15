@@ -54,6 +54,10 @@ FOLLOW_UPS: dict[str, list[tuple[str, str]]] = {
         ("How do my savings compare with people my age?", PEER),
         ("Where did my money go?", PERSONAL),
     ],
+    "savings_goal": [
+        ("Where did my money go?", PERSONAL),
+        ("How much have I saved?", PERSONAL),
+    ],
     "peer_compare": [
         ("Where did my money go?", PERSONAL),
         ("How much have I saved?", PERSONAL),
@@ -79,8 +83,11 @@ def personal_kind(question: str) -> str:
     """Which card answers a question about the customer's own money.
 
     "How could I save more?" is about where the money goes, so only past savings
-    ("saved", "savings", deposits) open the savings card.
+    ("saved", "savings", deposits) open the savings card. A target with an amount
+    and a time ("save €500 in 3 months") opens the savings goal card.
     """
+    if savings_goal(question) is not None:
+        return "savings_goal"
     if _SAVINGS.search(question):
         return "savings"
     if _BALANCE.search(question):
@@ -92,6 +99,10 @@ def personal_kind(question: str) -> str:
 
 def personal_card(book, question: str) -> dict:
     kind = personal_kind(question)
+    if kind == "savings_goal":
+        goal = savings_goal(question)
+        assert goal is not None
+        return _savings_goal_card(book, *goal)
     if kind == "savings":
         return _savings_card(book)
     if kind == "balance":
@@ -339,6 +350,7 @@ def _spending_card(book, question: str = "") -> dict:
         "verdict": verdict,
         "verdict_detail": verdict_detail,
         "items": _with_bars(items),
+        "baskets": view["baskets"],
         "options": None,
         "how": (
             f"From your S-Bank transactions in {month_name(month)}, grouped by category. "
@@ -470,6 +482,150 @@ def _savings_card(book, years: int = 5) -> dict:
     }
 
 
+# Savings goal ----------------------------------------------------------------
+
+_GOAL_VERB = re.compile(
+    r"\bsave\b|\bsave up\b|\bsaving\b|put aside|set aside|put away|collect|"
+    r"säästä|säästää|säästäisin|spara|sparar",
+    re.IGNORECASE,
+)
+# "€500", "500 €", "500e", "500 eur", "1 500 euros", "1,500€", "500 euroa".
+_GOAL_AMOUNT = re.compile(
+    r"€\s*(\d[\d\s.,]*\d|\d)|(\d[\d\s.,]*\d|\d)\s*(?:€|e\b|eur\b|euros?\b|euroa\b|euro\b)",
+    re.IGNORECASE,
+)
+_NUMBER_WORDS = {
+    "a": 1, "an": 1, "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6,
+    "seven": 7, "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12,
+    "yks": 1, "yhd": 1, "kah": 2, "kak": 2, "kol": 3, "nel": 4, "vii": 5, "kuu": 6,
+    "en": 1, "ett": 1, "två": 2, "tre": 3, "fyra": 4, "fem": 5, "sex": 6,
+}
+_GOAL_SPAN = re.compile(
+    r"(\d{1,3}|[a-zåäö]+)\s+(months?|kuukau\w*|kk\b|månad\w*|years?|vuo\w*|år\b|åren\b)",
+    re.IGNORECASE,
+)
+_HALF_YEAR = re.compile(r"half a year|puoli vuotta|puolessa vuodessa|ett halvår|halvår", re.IGNORECASE)
+
+
+def _goal_cents(text: str) -> int | None:
+    found = _GOAL_AMOUNT.search(text)
+    if found is None:
+        return None
+    raw = re.sub(r"\s", "", found.group(1) or found.group(2))
+    # A comma or dot followed by exactly three digits groups thousands; otherwise it is the decimal mark.
+    raw = re.sub(r"[.,](?=\d{3}(?!\d))", "", raw).replace(",", ".")
+    try:
+        cents = js_round(float(raw) * 100)
+    except ValueError:
+        return None
+    return cents if 0 < cents <= 100_000_000 else None
+
+
+def _goal_months(text: str) -> int | None:
+    if _HALF_YEAR.search(text):
+        return 6
+    for found in _GOAL_SPAN.finditer(text):
+        word, unit = found.group(1).lower(), found.group(2).lower()
+        if word.isdigit():
+            count = int(word)
+        else:
+            count = next((value for key, value in _NUMBER_WORDS.items() if word.startswith(key) and (len(key) >= 3 or word == key)), None)
+            if count is None:
+                continue
+        months = count * 12 if unit.startswith(("year", "vuo", "år")) else count
+        if 1 <= months <= 120:
+            return months
+    if re.search(r"next month|this month|ensi kuussa|nästa månad", text, re.IGNORECASE):
+        return 1
+    return None
+
+
+def savings_goal(question: str) -> tuple[int, int] | None:
+    """``(goal_cents, months)`` when the question sets a savings target with a time, else None."""
+    if not _GOAL_VERB.search(question):
+        return None
+    cents = _goal_cents(question)
+    months = _goal_months(question)
+    if cents is None or months is None:
+        return None
+    return cents, months
+
+
+def _usual_left(book) -> tuple[int | None, int]:
+    """Median of money in minus money out over up to six whole months before the latest one."""
+    months = book.months_view()["months"]
+    whole = [row for row in months if row["month"] < book.latest_month][-6:]
+    return _median([row["in_cents"] - row["out_cents"] for row in whole]), len(whole)
+
+
+def _savings_goal_card(book, goal_cents: int, months: int) -> dict:
+    # Round up, so the months add up to at least the goal; the last month takes what is left.
+    per_month = -(-goal_cents // months)
+    last_month = goal_cents - per_month * (months - 1)
+    usual, months_used = _usual_left(book)
+    span = "1 month" if months == 1 else f"{months} months"
+
+    items = [
+        _item("goal", "Your goal", goal_cents),
+        _item("per_month", "To put aside each month", per_month, highlight=True),
+    ]
+    verdict = verdict_detail = None
+    if usual is not None:
+        items.append(_item("usual_left", f"Usually left at month end, median of {months_used}", usual))
+        if usual >= per_month:
+            verdict = "Fits what you usually have left"
+            verdict_detail = f"{eur(usual - per_month)} would still be left in a usual month"
+        elif usual > 0:
+            verdict = "More than you usually have left"
+            verdict_detail = f"{eur(per_month - usual)} a month more than your usual month leaves"
+        else:
+            verdict = "Your usual month leaves nothing over"
+            verdict_detail = f"The goal needs {eur(per_month)} a month from somewhere in your spending"
+        if usual < per_month:
+            spending = _spending_card(book)
+            latest = book.spending_view(None)["month"]
+            flexible = [
+                item for item in spending["items"] if item["key"] not in _ESSENTIAL and item["key"] not in _SKIP
+            ]
+            if flexible:
+                top = flexible[0]
+                items.append(
+                    _item(
+                        top["key"],
+                        f"{top['label']}, {month_name(latest)}",
+                        top["amount_cents"],
+                        detail="Your largest flexible category",
+                    )
+                )
+
+    rows = []
+    total = 0
+    for number in range(1, months + 1):
+        amount = last_month if number == months else per_month
+        total += amount
+        rows.append([f"Month {number}", eur(amount), eur(total)])
+
+    return {
+        "kind": "savings_goal",
+        "title": f"Saving {eur(goal_cents)} in {span}",
+        "context": f"Goal {eur(goal_cents)} · {span}",
+        "headline": _figure("To put aside each month", per_month),
+        "reference": _figure(f"Usually left at month end, median of {months_used}", usual),
+        "verdict": verdict,
+        "verdict_detail": verdict_detail,
+        "items": _with_bars(items),
+        "options": None,
+        "how": (
+            f"The goal split over {span}, rounded up to the cent so the months reach it. "
+            f"What is usually left is money in minus money out, the median of the {months_used} "
+            "whole months before this one, from your S-Bank transactions. Money out includes investment deposits. "
+            "Nothing here moves money. The AI only wrote the sentence."
+        ),
+        "table": _table("Your plan", ["Month", "Put aside", "Saved so far"], rows),
+        "screen": "save",
+    }
+
+
 # Extra blocks for the five fixed questions. They do not change the shared card keys.
 _ESSENTIAL = {
     "Housing",
@@ -486,7 +642,9 @@ _SKIP = {"Salary", "Invest Deposit"}
 _BIG_CENTS = 10_000
 _SPENDER_Q = re.compile(r"spender|rahankäyttäjä|spenderare", re.IGNORECASE)
 _SAVE_Q = re.compile(
-    r"save more|säästää enemmän|spara mer|eat out|eating out|syö ulkona|ät ute",
+    r"save more|säästää enemmän|spara mer|eat out|eating out|ate out|syö ulkona|ät ute|"
+    r"what if i (?:eat|ate|skip|cut|spend less)|skip(?:ped)? (?:\d+ )?(?:restaurant|visit|meal)|cut back|"
+    r"mitä jos (?:söisin|syön|jättäisin)|tänk om jag (?:åt|äter|hoppade)",
     re.IGNORECASE,
 )
 _PAYMENTS = re.compile(r"(\d+)\s+payments?")

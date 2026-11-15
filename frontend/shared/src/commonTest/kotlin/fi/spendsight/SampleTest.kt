@@ -224,7 +224,7 @@ class ApiContractTest {
         assertEquals(23972, message.card?.cut?.options?.single()?.monthCents)
         assertTrue(message.paragraphs.isEmpty())
         assertEquals("Money went out in September.", message.lead)
-        assertEquals(HomeAsk.Household, homeAsk("Mitä tyypillinen kotitalous kuluttaa?"))
+        assertEquals(HomeAsk.Household, homeAsk("Miten säästöni vertautuvat ikäisiini?"))
         assertEquals(HomeAsk.Save, homeAsk("Hur skulle jag kunna spara mer?"))
         assertEquals(HomeAsk.Week, homeAsk("What can I safely spend this week?"))
         assertNull(homeAsk("What is my balance?"))
@@ -355,6 +355,46 @@ class ApiContractTest {
         )
         assertNull(tx.merchantId)
         assertEquals("−€24.14", tx.amount)
+    }
+
+    @Test
+    fun decodesTheRossoCouponAndTheCarouselHighlights() {
+        val rosso = ApiJson.decodeFromString<CouponDto>(
+            """
+            {
+              "coupon_id": "CPN-ROSSO",
+              "brand": "Rosso",
+              "title": "Rosso coupon",
+              "line": "−15 % on your next 4 visits · renews monthly",
+              "tag": "Fits your everyday spending",
+              "benefit": "−15 %",
+              "uses_per_month": 4,
+              "used_this_month": 0,
+              "renews_on": "2026-10-01",
+              "activated": true,
+              "activate": "/customers/CUST00007/coupons/CPN-ROSSO/activate",
+              "deactivate": "/customers/CUST00007/coupons/CPN-ROSSO/deactivate"
+            }
+            """.trimIndent(),
+        )
+        assertEquals("Rosso coupon", rosso.title)
+        assertEquals(4, rosso.usesPerMonth)
+        assertEquals("/customers/CUST00007/coupons/CPN-ROSSO/deactivate", rosso.deactivate)
+        assertEquals("1 Oct", formatDayMonth(rosso.renewsOn!!, Lang.En))
+        assertEquals("1.10.", formatDayMonth(rosso.renewsOn!!, Lang.Fi))
+
+        val highlights = ApiJson.decodeFromString<HighlightsDto>(
+            """
+            {
+              "spending_change": {"category": "Restaurants", "month": "2026-09", "prior_month": "2026-08",
+                "count": 10, "amount_cents": 119859, "prior_count": 10, "prior_cents": 28940, "delta_cents": 90919},
+              "friday_evenings": {"category": "Restaurants", "month": "2026-09", "count": 4, "amount_cents": 51073}
+            }
+            """.trimIndent(),
+        )
+        assertEquals("1 198,59 €", eur(highlights.spendingChange!!.amountCents, Lang.En))
+        assertEquals("909,19 €", eur(highlights.spendingChange!!.deltaCents, Lang.En))
+        assertEquals("510,73 €", eur(highlights.fridayEvenings!!.amountCents, Lang.En))
     }
 
     @Test

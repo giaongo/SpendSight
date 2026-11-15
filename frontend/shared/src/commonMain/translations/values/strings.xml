@@ -373,7 +373,7 @@
   <string name="T_worth_a_look">Worth a look</string>
   <string name="T_kind_of_spender">What kind of spender am I?</string>
   <string name="T_save_more">How could I save more?</string>
-  <string name="T_typical_household">What does a typical household spend?</string>
+  <string name="T_typical_household">How do my savings compare with people my age?</string>
   <string name="T_where_go">Where did my money go?</string>
   <string name="T_where_question">Where did my money go last month?</string>
   <string name="T_overview">Overview</string>
@@ -408,6 +408,22 @@
   <string name="T_see_when">See when</string>
   <string name="T_activate_in_offers">%1$s. Activate it in Offers.</string>
   <string name="T_coupon">Coupon</string>
+  <string name="T_in_savings_accounts">In %1$s savings accounts</string>
+  <string name="T_goal_for">Goal: %1$s for %2$s</string>
+  <string name="T_goal_there">%1$s there</string>
+  <string name="T_no_goal_yet">No goal yet.</string>
+  <string name="T_set_a_goal">Set a goal</string>
+  <string name="T_safe_to_spend">Safe to spend</string>
+  <string name="T_safe_line">left this week · %1$s</string>
+  <string name="T_safe_on_track">on track</string>
+  <string name="T_safe_tight">it’s tight</string>
+  <string name="T_safe_over">over budget</string>
+  <string name="T_friday_evenings">Friday evenings</string>
+  <string name="T_friday_visits">%1$s %2$s visits on Friday evenings in %3$s</string>
+  <string name="T_fact_visits">Your %1$s %2$s visits cost %3$s in %4$s, but %5$s in %6$s.</string>
+  <string name="T_coupon_activated">%1$s activated.</string>
+  <string name="T_coupon_turned_off">%1$s turned off.</string>
+  <string name="T_stamps_used">%1$s of %2$s used this month. Show your S-Etukortti to use one. New stamps on %3$s.</string>
   <string name="T_went_out">%1$s went out in %2$s.</string>
   <string name="T_unexpected">Unexpected</string>
   <string name="T_everyday_top">Everyday spending · top 5</string>
@@ -463,4 +479,24 @@
   <string name="T_you_short">You</string>
   <string name="T_typical_deposits">Typical deposits</string>
   <string name="T_you_and_age">You and people your age</string>
+  <string name="T_safe_week_label">Safe to spend this week</string>
+  <string name="T_safe_header_sub">%1$s · left of %2$s this week</string>
+  <string name="T_safe_lead">%1$s left to spend this week.</string>
+  <string name="T_safe_sub">Your weekly budget is %1$s. %2$s has gone out since Monday.</string>
+  <string name="T_safe_this_week">this week</string>
+  <string name="T_safe_of_week"> · left of %1$s</string>
+  <string name="T_wf_income">Your usual income</string>
+  <string name="T_wf_income_note">Average salary, last %1$s months</string>
+  <string name="T_wf_essentials">Essentials</string>
+  <string name="T_wf_essentials_note">Rent, bills and transport this month</string>
+  <string name="T_wf_free">Free to spend a month</string>
+  <string name="T_wf_weekly">As a weekly budget (× 12 ÷ 52)</string>
+  <string name="T_wf_spent">Spent this week</string>
+  <string name="T_wf_left">Left this week</string>
+  <string name="T_wf_per_day">%1$s ÷ %2$s days left = about %3$s a day.</string>
+  <string name="T_safe_how">Your average income minus this month’s essentials gives a monthly amount that is free to spend. SpendSight turns it into a weekly budget and subtracts what has gone out since Monday. Calculated by SpendSight’s tools, not guessed by AI.</string>
+  <string name="T_want_to_try">Want to try?</string>
+  <string name="T_pause_eating_out">Pause eating out this week</string>
+  <string name="T_hide_details">Hide details</string>
+  <string name="T_demo_offers">Demo offers for Junction: S Group brands, invented discounts.</string>
 </resources>

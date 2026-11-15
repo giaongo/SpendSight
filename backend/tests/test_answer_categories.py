@@ -4,7 +4,14 @@ import json
 
 import pytest
 
-from app.answer_cards import FOLLOW_UPS, guard_peer_spending, personal_kind, split_answer, tidy_answer
+from app.answer_cards import (
+    FOLLOW_UPS,
+    guard_peer_spending,
+    personal_kind,
+    savings_goal,
+    split_answer,
+    tidy_answer,
+)
 from app.money import eur as spending_eur
 from app.peers import AssetTable, age_group
 from app.statfi import StatisticsApiError, StatisticsCache
@@ -345,3 +352,69 @@ def test_the_statistics_cache_keeps_a_response_and_retries_a_failure():
     assert cache.education_assets() == {"ok": 2}
     now[0] = 11
     assert cache.education_assets() == {"ok": 3}
+
+
+@pytest.mark.parametrize(
+    ("question", "goal"),
+    [
+        ("I want to save up 500e in next 3 months", (50000, 3)),
+        ("How can I save €1,500 in six months?", (150000, 6)),
+        ("Can I put aside 250 euros in a year?", (25000, 12)),
+        ("Haluan säästää 500 € kolmessa kuukaudessa", (50000, 3)),
+        ("Jag vill spara 900 € på 3 månader", (90000, 3)),
+    ],
+)
+def test_a_savings_target_is_read_from_the_question(question, goal):
+    assert savings_goal(question) == goal
+    assert personal_kind(question) == "savings_goal"
+    assert question_category(question) == "personal_finance"
+
+
+def test_a_question_without_a_target_keeps_its_card():
+    assert savings_goal("How could I save more?") is None
+    assert savings_goal("How much have I saved?") is None
+    assert savings_goal("I want to save 500e") is None
+
+
+def test_a_savings_goal_gets_a_monthly_plan(client, verda):
+    model = verda("Put aside **€166.67** a month.\n\nThat fits what your usual month leaves.")
+    response = client.post(
+        "/customers/CUST00002/coach/ask", json={"text": "I want to save up 500e in next 3 months"}
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["category"] == "personal_finance"
+    card = body["card"]
+    assert card["kind"] == "savings_goal"
+    assert card["title"] == "Saving €500.00 in 3 months"
+    assert card["headline"]["amount_cents"] == 16667
+    assert [row[1] for row in card["table"]["rows"]] == ["€166.67", "€166.67", "€166.66"]
+    assert card["table"]["rows"][-1][2] == "€500.00"
+    assert card["verdict"] is not None
+    # The model is handed the monthly figure, so it never has to divide.
+    assert "€166.67" in model.requests[-1]["messages"][1]["content"]
+
+
+WHAT_IF = [
+    "What if I ate out less?",
+    "What if I skip 2 restaurant visits?",
+    "What if I eat out less often?",
+    "Mitä jos söisin vähemmän ulkona?",
+    "Tänk om jag åt ute mindre?",
+]
+
+
+@pytest.mark.parametrize("question", WHAT_IF)
+def test_eating_out_what_if_opens_the_visit_cut(question):
+    from app.answer_cards import _SAVE_Q
+
+    assert question_category(question) == "personal_finance"
+    assert personal_kind(question) == "spending_breakdown"
+    assert _SAVE_Q.search(question)
+
+
+def test_other_what_if_questions_do_not_get_the_visit_cut():
+    from app.answer_cards import _SAVE_Q
+
+    assert not _SAVE_Q.search("What if I invest 100 euros a month?")
+    assert not _SAVE_Q.search("What if interest rates rise?")

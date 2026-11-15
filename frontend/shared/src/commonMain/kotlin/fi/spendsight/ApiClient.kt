@@ -161,7 +161,8 @@ class SpendSightApi(
 
     suspend fun campaigns(): CampaignsDto = get("/campaigns")
 
-    suspend fun activateCoupon(path: String): CouponDto = client.post(endpoint(path)).body()
+    /** Posts to a coupon's activate or deactivate path, as the service gave it. */
+    suspend fun postCoupon(path: String): CouponDto = client.post(endpoint(path)).body()
 
     suspend fun loan(priceEur: Int, ratePercent: String): LoanDto =
         client.get(endpoint("/loan/sketch")) {

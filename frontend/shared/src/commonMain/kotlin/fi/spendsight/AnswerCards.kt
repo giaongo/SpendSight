@@ -41,15 +41,21 @@ import kotlin.math.roundToInt
  * the service counted them.
  */
 @Composable
-fun CoachAnswer(message: CoachMessage, onAsk: (String) -> Unit, onOpen: (Screen) -> Unit) {
+fun CoachAnswer(
+    message: CoachMessage,
+    onAsk: (String) -> Unit,
+    onOpen: (Screen) -> Unit,
+    safe: SafeToSpendDto? = null,
+) {
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         when (message.homeAsk) {
             HomeAsk.Where -> WhereAnswer(message, onOpen)
             HomeAsk.Spender -> SpenderAnswer(message, onAsk)
-            HomeAsk.Week -> WeekAnswer(message, onOpen)
+            HomeAsk.Week -> if (safe != null) SafeWeekAnswer(safe, onAsk, onOpen) else WeekAnswer(message, onOpen)
             HomeAsk.Save -> SaveAnswer(message)
             HomeAsk.Household -> HouseholdAnswer(message)
-            null -> GenericAnswer(message)
+            // A typed question ("What if I ate out less?") can still come back with the visit cut.
+            null -> if (message.card?.cut?.options?.isNotEmpty() == true) SaveAnswer(message) else GenericAnswer(message)
         }
         CaptionLine(message)
         AskNext(message, onAsk)
@@ -64,12 +70,13 @@ private fun WhereAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
         Prose(message)
         return
     }
-    val (essentials, unexpected, everyday) = buckets(card.items)
+    val (essentials, unexpected, everyday) = card.baskets?.let { Triple(it.essentialsCents, it.unexpectedCents, it.everydayCents) }
+        ?: buckets(card.items)
     val rows = everydayRows(card.items)
     val total = essentials + unexpected + everyday
     Lead(t(R.string.T_went_out, eur(headline.amountCents), monthLabel(card.context)))
     val summary = buildList {
-        if (total > 0) add(t(R.string.T_essentials_share, pct(essentials * 100 / total)))
+        if (total > 0) add(t(R.string.T_essentials_share, pct((essentials * 100 + total / 2) / total)))
         rows.firstOrNull()?.let { add(t(R.string.T_biggest_everyday, categoryLabel(it.label))) }
     }.joinToString(" ")
     if (summary.isNotEmpty()) Detail(summary)
@@ -205,6 +212,96 @@ private fun WeekAnswer(message: CoachMessage, onOpen: (Screen) -> Unit) {
             Text(card.how, color = Secondary, fontSize = 14.sp, lineHeight = 20.sp)
         }
     }
+}
+
+/** The design's Q3: this week's budget left, as the service counted it, and how it was worked out. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SafeWeekAnswer(safe: SafeToSpendDto, onAsk: (String) -> Unit, onOpen: (Screen) -> Unit) {
+    val left = eur(safe.leftCents)
+    Lead(t(R.string.T_safe_lead, left))
+    Detail(t(R.string.T_safe_sub, eur(safe.weeklyCents), eur(safe.spentWeekCents)))
+    var breakdown by remember(safe) { mutableStateOf(false) }
+    var how by remember(safe) { mutableStateOf(false) }
+    val (statusColor, statusText) = when (safe.status) {
+        "overdraft_risk" -> Color(0xFFB3261E) to t(R.string.T_safe_over)
+        "tight" -> Color(0xFF8A5A00) to t(R.string.T_safe_tight)
+        else -> Forest to t(R.string.T_safe_on_track)
+    }
+    val pauseEatingOut = t(R.string.T_save_more)
+    val whereQuestion = t(R.string.T_where_question)
+    CardBox {
+        Text(t(R.string.T_safe_week), color = Ink, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+        Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.Bottom) {
+            Text(left, color = if (safe.leftCents < 0) statusColor else Ink, fontSize = 44.sp, fontWeight = FontWeight.Bold, style = Tabular)
+            Spacer(Modifier.width(8.dp))
+            Text(t(R.string.T_safe_this_week), color = Secondary, fontSize = 17.sp, modifier = Modifier.padding(bottom = 6.dp))
+        }
+        Row(Modifier.padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(statusColor))
+            Spacer(Modifier.width(8.dp))
+            Text(statusText.replaceFirstChar { it.uppercase() }, color = statusColor, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            Text(t(R.string.T_safe_of_week, eur(safe.weeklyCents)), color = Secondary, fontSize = 15.sp)
+        }
+        TextLink(if (breakdown) t(R.string.T_hide_details) else t(R.string.T_how_worked)) { breakdown = !breakdown }
+        if (breakdown) {
+            val income = safe.incomeCents
+            val essentials = safe.essentialsCents
+            val free = safe.freeMonthCents
+            if (income != null) {
+                WaterfallRow(t(R.string.T_wf_income), eur(income), safe.incomeMonths?.let { t(R.string.T_wf_income_note, it.toString()) })
+            }
+            if (essentials != null) {
+                WaterfallRow(t(R.string.T_wf_essentials), "− " + eur(essentials), t(R.string.T_wf_essentials_note))
+            }
+            if (free != null) WaterfallRow(t(R.string.T_wf_free), eur(free), null, strong = true)
+            WaterfallRow(t(R.string.T_wf_weekly), eur(safe.weeklyCents), null)
+            WaterfallRow(t(R.string.T_wf_spent), "− " + eur(safe.spentWeekCents), null)
+            WaterfallRow(t(R.string.T_wf_left), left, null, strong = true, last = true)
+            if (safe.daysLeft > 0 && safe.leftCents > 0) {
+                Text(
+                    t(R.string.T_wf_per_day, left, safe.daysLeft.toString(), eur(safe.perDayCents)),
+                    color = Secondary,
+                    fontSize = 13.sp,
+                    lineHeight = 18.sp,
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
+        }
+        if (safe.status != "on_track") {
+            Text(t(R.string.T_want_to_try), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp, bottom = 8.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                QuestionChip(t(R.string.T_pause_eating_out), Fill) { onAsk(pauseEatingOut) }
+                QuestionChip(whereQuestion, Fill) { onAsk(whereQuestion) }
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+            TextLink(if (how) t(R.string.T_hide_details) else t(R.string.T_how_i_got)) { how = !how }
+            TextLink(t(R.string.T_show_transactions)) { onOpen(Screen.Spending) }
+        }
+        if (how) {
+            Text(
+                t(R.string.T_safe_how),
+                color = Graphite,
+                fontSize = 15.sp,
+                lineHeight = 21.sp,
+                modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Bg).padding(horizontal = 14.dp, vertical = 12.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun WaterfallRow(label: String, amount: String, note: String?, strong: Boolean = false, last: Boolean = false) {
+    Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            val weight = if (strong) FontWeight.Bold else FontWeight.Normal
+            Text(label, color = Ink, fontSize = 15.sp, fontWeight = weight, modifier = Modifier.weight(1f))
+            Text(amount, color = Ink, fontSize = 15.sp, fontWeight = weight, style = Tabular)
+        }
+        note?.let { Text(it, color = Secondary, fontSize = 13.sp) }
+    }
+    if (!last) Hairline(0.dp)
 }
 
 @Composable

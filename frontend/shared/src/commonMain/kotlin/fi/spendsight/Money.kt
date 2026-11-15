@@ -73,14 +73,12 @@ fun formatPct(pct: Double, lang: Lang): String {
 @Composable
 fun formatPct(pct: Double): String = formatPct(pct, LocalLang.current)
 
+/** The design writes a percent with a non-breaking space in every language: 63 %. */
 @Composable
-fun pct(value: Int): String = if (LocalLang.current.nordic()) "$value %" else "$value%"
+fun pct(value: Int): String = "$value %"
 
 @Composable
-fun pct(value: Double): String {
-    val number = formatPct(value, LocalLang.current)
-    return if (LocalLang.current.nordic()) "$number %" else "$number%"
-}
+fun pct(value: Double): String = "${formatPct(value, LocalLang.current)} %"
 
 @Composable
 fun rateLabel(tenths: Int): String {

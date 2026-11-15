@@ -47,7 +47,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.graphics.Color
@@ -157,6 +162,7 @@ fun HomeRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
     val prior = store.priorSpending
     val look = worthALook(spending.categories, prior?.categories)
     val hidden = store.balanceHidden
+    val safeWeek = t(R.string.T_safe_week)
     LaunchedEffect(store.ledger?.session?.customerId) {
         if (store.coupons == null) store.loadOffers()
     }
@@ -175,7 +181,7 @@ fun HomeRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
                 }
             },
         ) {
-            Text(formatAsOf(today.asOf, store.language), color = HeroMuted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
+            Text(formatAsOf(today.today ?: today.asOf, store.language), color = HeroMuted, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 LanguageMenu(store, onDark = true)
                 Row(
@@ -200,13 +206,52 @@ fun HomeRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
         }
         RootBody {
             val slides = buildList {
-                add(
-                    Slide(
-                        t(R.string.T_left_the_account), Mint, Deep, Color(0xFF00A651),
-                        masked(hidden, today.monthOutCents), month, t(R.string.T_see_how),
-                    ) { store.jump(Screen.Insight) },
-                )
-                if (look != null) {
+                // The design's first card: what is left of this week's budget.
+                val safe = today.safeToSpend
+                if (safe != null) {
+                    val status = when (safe.status) {
+                        "overdraft_risk" -> t(R.string.T_safe_over)
+                        "tight" -> t(R.string.T_safe_tight)
+                        else -> t(R.string.T_safe_on_track)
+                    }
+                    add(
+                        Slide(
+                            t(R.string.T_safe_to_spend), Mint, Deep, Color(0xFF00A651),
+                            masked(hidden, safe.leftCents), t(R.string.T_safe_line, status), t(R.string.T_see_how),
+                        ) { store.ask(safeWeek) },
+                    )
+                } else {
+                    add(
+                        Slide(
+                            t(R.string.T_left_the_account), Mint, Deep, Color(0xFF00A651),
+                            masked(hidden, today.monthOutCents), month, t(R.string.T_see_how),
+                        ) { store.jump(Screen.Insight) },
+                    )
+                }
+                // The design's order: spending change, its Friday evenings, then the coupon that fits it.
+                val highlights = spending.highlights
+                highlights?.spendingChange?.let { change ->
+                    val name = categoryLabel(change.category)
+                    add(
+                        Slide(
+                            t(R.string.T_spending_change), Mist, Color(0xFF1F4E99), EverydayBlue,
+                            if (hidden) masked(true, 0) else "+" + eur(change.deltaCents),
+                            t(R.string.T_more_on, name.lowercase(), monthName(change.priorMonth, store.language)),
+                            t(R.string.T_see_named, name.lowercase()),
+                        ) { store.push(Screen.Category(change.category)) },
+                    )
+                }
+                highlights?.fridayEvenings?.let { friday ->
+                    add(
+                        Slide(
+                            t(R.string.T_friday_evenings), Cream, Color(0xFF6B4A00), Color(0xFF8A6A1F),
+                            masked(hidden, friday.amountCents),
+                            t(R.string.T_friday_visits, friday.count, visitNoun(store.language, friday.category), month),
+                            t(R.string.T_see_when),
+                        ) { store.push(Screen.Category(friday.category)) },
+                    )
+                }
+                if (highlights?.spendingChange == null && look != null) {
                     val delta = look.deltaCents
                     val name = categoryLabel(look.name)
                     val change = delta != null && prior != null && delta != 0
@@ -226,26 +271,15 @@ fun HomeRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
                             t(R.string.T_see_named, name.lowercase()),
                         ) { store.push(Screen.Category(look.name)) },
                     )
-                    val evenings = spending.transactions.filter {
-                        it.category == look.name && it.amountCents < 0 && timeBucket(it) == TimeBucket.WeekdayEvening
-                    }
-                    if (evenings.isNotEmpty()) {
-                        add(
-                            Slide(
-                                t(R.string.T_weekday_evening), Cream, Color(0xFF6B4A00), Color(0xFF8A6A1F),
-                                masked(hidden, -evenings.sumOf { it.amountCents }),
-                                t(R.string.T_evening_visits, evenings.size, name.lowercase(), month),
-                                t(R.string.T_see_when),
-                            ) { store.push(Screen.Category(look.name)) },
-                        )
-                    }
                 }
-                store.coupons?.coupons?.let { list -> list.firstOrNull { !it.activated } ?: list.firstOrNull() }?.let { coupon ->
+                // The coupon that fits this customer's spending comes first (the Rosso coupon in the demo).
+                store.coupons?.coupons?.let { list -> list.firstOrNull { it.tag != null } ?: list.firstOrNull() }?.let { coupon ->
+                    val line = if (coupon.line.isNotBlank()) "${coupon.title}: ${coupon.line.substringBefore(" · ")}" else coupon.title
                     add(
                         Slide(
-                            coupon.campaignTitle?.takeIf { it.isNotBlank() } ?: t(R.string.T_coupon), Lilac, Color(0xFF4B3A8C), Color(0xFF6B4FA0),
+                            t(R.string.T_coupon), Lilac, Color(0xFF4B3A8C), Color(0xFF6B4FA0),
                             coupon.benefit.ifBlank { coupon.title },
-                            t(R.string.T_activate_in_offers, coupon.title),
+                            t(R.string.T_activate_in_offers, line),
                             if (coupon.activated) t(R.string.T_activated) else t(R.string.T_activate),
                         ) { store.jump(Screen.Offers) },
                     )
@@ -260,6 +294,12 @@ fun HomeRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
             MainAccount(store, today, spending, hidden)
         }
     }
+}
+
+/** "restaurant" in "4 restaurant visits": the category label, singular in English. */
+private fun visitNoun(lang: Lang, category: String): String {
+    val label = categoryLabel(lang, category).lowercase()
+    return if (lang == Lang.En && label.endsWith("s")) label.dropLast(1) else label
 }
 
 /** Card width 300, gap 12: one snap step, as in the design's carousel. */
@@ -392,7 +432,18 @@ private fun Modifier.bleed(inset: Dp): Modifier = layout { measurable, constrain
 @Composable
 private fun FunFact(store: SpendSightStore, spending: SpendingDto, look: Look?, hidden: Boolean) {
     val prior = store.priorSpending
-    val line = if (look == null) {
+    val change = spending.highlights?.spendingChange
+    val line = if (change != null) {
+        t(
+            R.string.T_fact_visits,
+            change.count,
+            visitNoun(store.language, change.category),
+            masked(hidden, change.priorCents),
+            monthName(change.priorMonth, store.language),
+            masked(hidden, change.amountCents),
+            monthName(change.month, store.language),
+        )
+    } else if (look == null) {
         if (hidden) t(R.string.T_none_here) else knownNote(spending.note)
     } else if (prior == null) {
         t(R.string.T_largest_share, categoryLabel(look.name), masked(hidden, look.nowCents))
@@ -528,18 +579,31 @@ private fun MiniStat(label: String, value: String, color: Color, modifier: Modif
 fun InsightRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
     val spending = store.spendingView
     val month = monthName(spending.month, store.language)
-    val essentials = essentialsCents(spending.categories)
-    val everyday = everydayCents(spending.categories)
+    // The service splits the baskets (taxis are everyday, not transport essentials).
+    val essentials = spending.baskets?.essentialsCents ?: essentialsCents(spending.categories)
+    val everyday = spending.baskets?.everydayCents ?: everydayCents(spending.categories)
     val prior = store.priorSpending
     val look = worthALook(spending.categories, prior?.categories)
     val whereQuestion = t(R.string.T_where_question)
     val safeWeek = t(R.string.T_safe_week)
+    // The design's header is this week's safe-to-spend; customers with no salary keep the month's total.
+    val safe = store.customer.safeToSpend
+    val safeStatus = when (safe?.status) {
+        "overdraft_risk" -> t(R.string.T_safe_over)
+        "tight" -> t(R.string.T_safe_tight)
+        else -> t(R.string.T_safe_on_track)
+    }.replaceFirstChar { it.uppercase() }
     Column(modifier) {
         RootHeader(
             title = "SpendSight",
-            keyLabel = t(R.string.T_left_the_account),
-            keyNumber = eur(spending.totalOutCents),
-            keySub = { KeySubText(month.replaceFirstChar { it.uppercase() }) },
+            keyLabel = if (safe != null) t(R.string.T_safe_week_label) else t(R.string.T_left_the_account),
+            keyNumber = if (safe != null) eur(safe.leftCents) else eur(spending.totalOutCents),
+            keySub = {
+                KeySubText(
+                    if (safe != null) t(R.string.T_safe_header_sub, safeStatus, eur(safe.weeklyCents))
+                    else month.replaceFirstChar { it.uppercase() },
+                )
+            },
         ) {
             Spacer(Modifier.width(1.dp))
             LanguageMenu(store, onDark = true)
@@ -617,6 +681,10 @@ fun InsightRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
 @Composable
 fun SavingsRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
     val save = store.customerSave
+    if (save.savingsAccounts.isNotEmpty()) {
+        SavingsAccountsRoot(store, save, modifier)
+        return
+    }
     val countLine = when (save.deposits) {
         0 -> t(R.string.T_no_deposit_in_window)
         1 -> t(R.string.T_one_deposit)
@@ -691,6 +759,94 @@ fun SavingsRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
     }
 }
 
+/** The design's Savings tab: the customer's savings accounts and their goals. */
+@Composable
+private fun SavingsAccountsRoot(store: SpendSightStore, save: CustomerSaveDto, modifier: Modifier) {
+    val accounts = save.savingsAccounts
+    Column(modifier) {
+        RootHeader(
+            title = t(R.string.T_savings),
+            keyLabel = t(R.string.T_saved_in_total),
+            keyNumber = eur(save.savingsTotalCents),
+            keySub = { KeySubText(t(R.string.T_in_savings_accounts, accounts.size)) },
+        ) {
+            Spacer(Modifier.width(1.dp))
+            LanguageMenu(store, onDark = true)
+        }
+        RootBody {
+            DesignSection {
+                SectionHead(t(R.string.T_your_savings_accounts))
+                accounts.forEach { account -> SavingsAccountCard(store, account) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SavingsAccountCard(store: SpendSightStore, account: SavingsAccountDto) {
+    val (icon, fill, ink) = if (account.kind == "asp") Triple(Icon.House, Mint, Deep) else Triple(Icon.Coin, Mist, Color(0xFF1F4E99))
+    CardBox {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconTile(icon, fill, ink)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(account.name, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+                if (account.subtitle.isNotBlank()) {
+                    Text(account.subtitle, color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+            }
+            Text(eur(account.balanceCents), color = Ink, fontSize = 20.sp, fontWeight = FontWeight.Bold, style = Tabular)
+        }
+        val goal = account.goalCents
+        if (goal != null && goal > 0) {
+            val amount = eur(goal)
+            val line = t(R.string.T_goal_for, amount, account.goalFor ?: "")
+            val at = line.indexOf(amount)
+            Text(
+                buildAnnotatedString {
+                    append(line)
+                    if (at >= 0) addStyle(SpanStyle(fontWeight = FontWeight.Bold), at, at + amount.length)
+                },
+                color = Ink,
+                fontSize = 17.sp,
+                lineHeight = 24.sp,
+                modifier = Modifier.padding(top = 14.dp),
+            )
+            Box(
+                Modifier.padding(top = 10.dp).fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Fill),
+            ) {
+                Box(
+                    Modifier
+                        .fillMaxWidth((account.goalShare ?: 0.0).toFloat().coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .clip(RoundedCornerShape(5.dp))
+                        .background(Color(0xFF00A651)),
+                )
+            }
+            Text(
+                t(R.string.T_goal_there, "${account.goalPercent ?: 0}\u00A0%"),
+                color = Secondary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+        } else {
+            Text(
+                t(R.string.T_no_goal_yet),
+                color = Secondary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(top = 10.dp),
+            )
+            // As in the design, "Set a goal" opens the save-more answer.
+            val question = t(R.string.T_save_more)
+            Box(Modifier.heightIn(min = 44.dp).clickable { store.ask(question) }, contentAlignment = Alignment.CenterStart) {
+                Text(t(R.string.T_set_a_goal), color = Green, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    }
+}
+
 @Composable
 private fun IconTile(icon: Icon, fill: Color, ink: Color) {
     Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(fill), contentAlignment = Alignment.Center) {
@@ -749,21 +905,35 @@ fun OffersRoot(store: SpendSightStore, modifier: Modifier = Modifier) {
                     ) { segment = it }
                     if (segment == 0) {
                         if (loaded.coupons.isEmpty()) {
-                            Note(loaded.note.ifBlank { t(R.string.T_none_here) })
+                            Note(t(R.string.T_none_here))
                         } else {
                             loaded.coupons.forEachIndexed { index, coupon ->
                                 CouponCard(store, coupon, StubTints[index % StubTints.size]) { peek = OfferPeek.Coupon(coupon.couponId) }
                             }
                         }
                     } else if (campaigns == null || campaigns.campaigns.isEmpty()) {
-                        Note(campaigns?.note?.ifBlank { t(R.string.T_none_here) } ?: t(R.string.T_none_here))
+                        Note(t(R.string.T_none_here))
                     } else {
                         campaigns.campaigns.forEach { campaign ->
                             CampaignCard(campaign) { peek = OfferPeek.Campaign(campaign.campaignId) }
                         }
                     }
-                    if (loaded.note.isNotBlank()) {
-                        Text(loaded.note, color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+                    Text(
+                        t(R.string.T_demo_offers),
+                        color = Secondary,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.padding(start = 4.dp, end = 4.dp, top = 4.dp),
+                    )
+                    // The design's status line: under the list, so it never covers the header or a coupon.
+                    store.couponStatus?.let { status ->
+                        Text(
+                            status,
+                            color = Deep,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(start = 4.dp).semantics { liveRegion = LiveRegionMode.Polite },
+                        )
                     }
                 }
             }
@@ -837,11 +1007,21 @@ private fun CouponCard(store: SpendSightStore, coupon: CouponDto, tint: Pair<Col
             Modifier.weight(1f).padding(horizontal = 14.dp, vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
+            coupon.tag?.takeIf { it.isNotBlank() }?.let { tag ->
+                Box(
+                    Modifier.heightIn(min = 28.dp).clip(RoundedCornerShape(14.dp)).background(Mint).padding(horizontal = 10.dp, vertical = 4.dp),
+                    contentAlignment = Alignment.CenterStart,
+                ) {
+                    Text(tag, color = Green, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+            }
             Text(coupon.title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold, lineHeight = 22.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
-            if (coupon.description.isNotBlank()) {
-                Text(coupon.description, color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, lineHeight = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            val sub = coupon.line.ifBlank { coupon.description }
+            if (sub.isNotBlank()) {
+                Text(sub, color = Secondary, fontSize = 13.sp, fontWeight = FontWeight.Medium, lineHeight = 18.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
             ActivatePill(store, coupon)
+            if (coupon.activated) StampRow(store, coupon)
         }
     }
 }
@@ -862,7 +1042,7 @@ private fun CampaignCard(campaign: CampaignDto, onOpen: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                "${campaign.couponCount} ${t(R.string.T_coupons)}",
+                campaign.brand.ifBlank { "${campaign.couponCount} ${t(R.string.T_coupons)}" },
                 color = Green,
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
@@ -892,7 +1072,7 @@ private fun ActivatePill(store: SpendSightStore, coupon: CouponDto) {
             .clip(RoundedCornerShape(22.dp))
             .background(if (on) Card else Green)
             .border(2.dp, Green, RoundedCornerShape(22.dp))
-            .clickable(enabled = !on && !busy) { store.activateCoupon(coupon) }
+            .clickable(enabled = !busy) { store.toggleCoupon(coupon) }
             .padding(horizontal = 18.dp, vertical = 10.dp),
         contentAlignment = Alignment.Center,
     ) {
@@ -903,6 +1083,44 @@ private fun ActivatePill(store: SpendSightStore, coupon: CouponDto) {
             fontWeight = FontWeight.SemiBold,
         )
     }
+}
+
+/** The stamp card under an activated coupon with monthly uses: one circle per discounted visit. */
+@Composable
+private fun StampRow(store: SpendSightStore, coupon: CouponDto) {
+    val total = coupon.usesPerMonth ?: return
+    val used = (coupon.usedThisMonth ?: 0).coerceIn(0, total)
+    Column(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Bg).padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            repeat(total) { index ->
+                val filled = index < used
+                Box(
+                    Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(if (filled) Deep else Card)
+                        .then(if (filled) Modifier else Modifier.dashedCircle(Tertiary)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Glyph(Icon.Ticket, if (filled) Color.White else Tertiary, 18.dp)
+                }
+            }
+        }
+        val renews = coupon.renewsOn?.let { formatDayMonth(it, store.language) } ?: ""
+        Text(t(R.string.T_stamps_used, used, total, renews), color = CardText, fontSize = 13.sp, lineHeight = 18.sp)
+    }
+}
+
+private fun Modifier.dashedCircle(color: Color): Modifier = drawBehind {
+    val stroke = 2.dp.toPx()
+    drawCircle(
+        color,
+        radius = size.minDimension / 2 - stroke / 2,
+        style = Stroke(width = stroke, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 5f))),
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

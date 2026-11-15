@@ -197,13 +197,13 @@ def _offers(request: Request) -> OfferBook:
 
 @router.get("/campaigns", tags=["Offers"])
 def campaigns(request: Request) -> dict:
-    """S-Pankki campaigns running today. Sample data, not real offers."""
+    """Demo campaigns running today. Invented offers, not real ones."""
     return _offers(request).campaigns_view()
 
 
 @router.get("/customers/{customer_id}/coupons", tags=["Offers"])
 def customer_coupons(customer_id: str, request: Request) -> dict:
-    """S-Pankki coupons valid today that this customer qualifies for, with activation state."""
+    """Demo coupons valid today that this customer qualifies for, with activation state."""
     return _offers(request).coupons_view(_book(request, customer_id))
 
 
@@ -219,6 +219,25 @@ def activate_coupon(customer_id: str, coupon_id: str, request: Request) -> dict:
         raise HTTPException(status_code=404, detail="That coupon is not offered to this customer") from None
     except CouponNotActive:
         raise HTTPException(status_code=409, detail="That coupon is not valid today") from None
+
+
+@router.post("/customers/{customer_id}/coupons/{coupon_id}/deactivate", tags=["Offers"])
+def deactivate_coupon(customer_id: str, coupon_id: str, request: Request) -> dict:
+    """Turn one coupon off again. Turning off a coupon that is not on returns it unchanged."""
+    book = _book(request, customer_id)
+    try:
+        return _offers(request).deactivate(book, coupon_id)
+    except CouponNotFound:
+        raise HTTPException(status_code=404, detail="No coupon with that id") from None
+    except CouponNotOffered:
+        raise HTTPException(status_code=404, detail="That coupon is not offered to this customer") from None
+
+
+@router.post("/demo/reset", tags=["Offers"])
+def demo_reset(request: Request) -> dict:
+    """Turn every coupon off again, for a fresh demo run."""
+    _offers(request).reset()
+    return {"ok": True}
 
 
 @router.post(
