@@ -17,12 +17,14 @@
 - [Features](#features)
 - [At a glance](#at-a-glance)
 - [Data boundaries](#data-boundaries)
+- [Verda Compute Track](#verda-compute-track)
+- [How we used the dataset](#how-we-used-the-dataset)
 - [Repository map](#repository-map)
 - [Quick start](#quick-start)
 - [Verification](#verification)
 - [Core contributor rules](#core-contributor-rules)
 - [Feedback](#feedback)
-- [Acknowledgments](#acknowledgments)
+- [Contributors](#contributors)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -47,7 +49,7 @@ A few of the things you can do with SpendSight:
 
 * **Transaction Overview** — View your spending patterns and transaction history at a glance
 * **Smart Categorization** — Automatic merchant-based spending classification with basket sorting
-* **Financial Coach** — AI-powered assistant that answers money questions using your ledger data
+* **Financial Coach** — AI-powered assistant that answers money questions from your own transactions, in plain words, and declines investment, tax and legal advice
 * **Savings Tracker** — Monitor savings goals and safe-to-spend calculations
 * **Budget Insights** — Charts and analytics for understanding your financial behavior
 * **Promotions and Coupons** — Transparent Bonus earning and redemption display from S-group
@@ -117,10 +119,43 @@ The backend returns integer cents and display strings; the app presents them. Ba
 
 | Data world | Source | Used for | Must not be presented as |
 | --- | --- | --- | --- |
-| Junction customers | Gitignored CSV files, indexed in `backend/.cache/junction.sqlite` | Customer Today, Spending, and Save views | Aino Korhonen's sample ledger |
+| Junction customers | Gitignored CSV files, indexed in `backend/.cache/junction.sqlite` | Customer Today, Spending, and Save views, the coach, and the sample coupons | Aino Korhonen's sample ledger |
 | Design sample | `backend/app/ledger.py` | Sample tools, payments, charts, Bonus, purchase, watch, effort, and loan sketch | The selected Junction customer's activity |
 
 Sample-backed screens carry a **Design sample** disclosure in the app. The sample's date and figures are fixed by the product design, not by the current date.
+
+## Verda Compute Track
+
+SpendSight is our entry for the Junction 2026 **S-Pankki challenge**. The **Verda Compute Track** is the tech challenge we built it on: run an open-weight model for a banking coach on European infrastructure we control, instead of sending customer data to someone else's API.
+
+### What runs on Verda
+
+| Verda product | What we run on it | Why this one |
+| --- | --- | --- |
+| Inference / auto-scaling container (vLLM) | `Qwen/Qwen2.5-1.5B-Instruct` behind an OpenAI-compatible endpoint (`containers.verda.com`), called from `backend/app/verda.py` | A bank customer's transactions never go to a third-party AI API. The container scales with load and costs little when idle. |
+| CPU instance (`CPU-TURIN.4V.16G`, Finland) | The FastAPI service, Caddy for TLS, and the SQLite transaction index, deployed with Docker Compose | The service needs RAM and a disk for the 3.6M-row index, not a GPU. A CPU instance is the cheapest fit. Terraform (`infra/terraform`) creates it, with an optional spot setting. |
+
+Both sit in Verda's European data centers, so customer figures stay in the EU.
+
+### How the judging criteria map
+
+- **Ambition.** The coach reasons over a real customer's transaction history and answers in plain language, with cards for spending change, impulse spending, runway, subscriptions and invest-growth. A 1.5B open model served on managed compute makes that possible without a closed API. The service does the arithmetic and hands the model finished euro strings, so a small model is enough.
+- **Fit.** The model goes on a serving product (an auto-scaling inference container) and the API goes on a CPU instance, rather than putting everything on one GPU box. We did not need GPU training, batch jobs or a cluster, so we did not use them.
+- **Working prototype.** The whole stack runs: `infra/terraform` builds the VM, `infra/docker-compose.yml` runs the service, `infra/smoke.sh` checks it, and CI runs lint and tests. The [quick start](#quick-start) and [Verification](#verification) sections document the process. The coach needs `VERDA_API_KEY` and `VERDA_BASE_URL` (see [backend/README.md](backend/README.md)). Without them it returns 503 and the other screens still work.
+- **Path to scale.**
+  - **Model:** the inference container scales out on its own. Moving to a larger model, or a fine-tune on Verda GPU instances, is a `VERDA_MODEL` change.
+  - **Service:** today it runs one worker, because Aino's sample ledger lives in memory. To scale, move that state out, run several workers behind Caddy or a load balancer, and replace the SQLite index with Postgres.
+  - **Data:** the customer index is built once from CSVs. A real bank would feed the same views from its live transaction store.
+
+## How we used the dataset
+
+The S-Pankki challenge gave us the Junction 2026 dataset (`Junction-2026-S-pankki/`): 5,100 customers, 3.6 million transactions, and 200 mortgage applications with their event histories and final outcomes. This is how SpendSight uses it:
+
+- **Transactions become the three customer screens.** The service indexes the transaction CSV once into SQLite. Today (safe to spend this week), Spending (where the money went, by category and basket), and Save (what a steady habit builds) are all computed in Python from one customer's rows. The app only shows the figures it is given.
+- **The coach answers from the customer's own data.** A question about spending is sent to a small open model (Qwen 2.5 1.5B, served on Verda) together with that customer's figures as euro strings, so the model never does the arithmetic. Questions are normalised first, and the coach declines investment, tax and legal advice, questions about other people's money, and anything that would move money. Fixed cards (spending change, impulse, runway, subscriptions, invest-growth) sit under the prose answer.
+- **Mortgage data stays context, not a verdict.** The customer summary shows whether a customer has a mortgage application and its recorded outcome. We never present that outcome as a prediction or promise for anyone. The file shows refusals most often came down to collateral, income, equity and existing debt, which is why the coach does not say yes or no to a loan.
+- **Only the data we were given.** No figure is invented. Peer comparisons and education-asset context come from the dataset and public Statistics Finland tables. The Aino Korhonen design sample is kept apart so a real customer's figures are never mixed with it.
+- **Privacy by design.** The service ignores any customer id in a request body, and questions are cleaned before they reach the model. The dataset stays out of Git; tests use a small committed fixture of three whole customers.
 
 ## Repository map
 
@@ -235,7 +270,7 @@ For iOS-facing changes, also build the `iosApp` scheme in Xcode or with `xcodebu
 - Keep APIs, persistence, data access, and financial math in Python under `backend/`.
 - Represent money as integer `*_cents` fields and use the backend's euro formatting rules.
 - Keep `frontend/shared/src/commonMain/kotlin/fi/spendsight/ApiDto.kt` aligned with backend response shapes.
-- Use the `reads` paths returned by `GET /session`; do not construct customer routes from an assumed identity.
+- Use the `reads` paths returned by `GET /customers/{CUSTOMER_ID}`; do not construct customer routes from an assumed identity.
 - Preserve explicit preview and confirmation boundaries. The coach cannot transfer money, open accounts, block cards, or approve loans.
 - Treat `design/my-money/index.html`, `BACKLOG.md`, and `backend/tests/test_oracle.py` as the exact oracle for design-sample figures.
 - Read the root and nearest nested `AGENTS.md` before making changes.
@@ -250,9 +285,5 @@ This project is brought to you by these awesome contributors:
 
 - Son Dinh
 - Giao Ngo
-- Ngan Nguyen
+- Ngan Tran
 - Hong Phan
-
-## Acknowledgments
-
-Thanks to the Junction 2026 organizers and all contributors who made SpendSight possible. This hackathon project showcases the power of Kotlin Multiplatform, FastAPI, and modern financial technology.
