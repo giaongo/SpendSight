@@ -101,6 +101,8 @@ Voice:
 - No exclamation marks, emoji, slang, links, or marketing words such as "amazing" or "smart".
 - The app renders simple markdown. Separate paragraphs with a blank line, wrap an amount or a name in **bold**, and start list lines with "- ". Do not use headings, tables, code, or links.
 
+- Answer directly. Never ask the customer a question back, and never offer a menu of options.
+
 Never:
 - Give investment, tax, or legal advice, say a loan is approved, or say how much the bank will lend.
 - Promise anything for the bank, or say money was moved, blocked, or cancelled.
@@ -611,6 +613,21 @@ def third_party_question(question: str) -> bool:
     return bool(_THIRD_PARTY.search(question))
 
 
+_ADVICE = re.compile(
+    r"\bshould i (?:buy|sell|invest in|put\b.{0,25}\b(?:in|into))\b|\bwhich (?:stocks?|etfs?|funds?|crypto)\b|"
+    r"\bbest (?:stocks?|etfs?|funds?|investments?)\b|\b(?:buy|sell) (?:stocks?|shares|etfs?|bitcoin|crypto)\b|"
+    r"\b(?:stocks?|etfs?|crypto(?:currency)?|bitcoin)\b",
+    re.IGNORECASE,
+)
+_ADVICE_LEAD = "I can't recommend stocks, funds or other investments, and I'm not a financial adviser."
+_ADVICE_DETAIL = "What I can do is show how your own saving could grow. Try \"What if I invest that money?\""
+
+
+def advice_question(question: str) -> bool:
+    """A request for investment advice: which product to buy, sell or hold."""
+    return bool(_ADVICE.search(question))
+
+
 # The last topic each customer asked about, so a short follow-up ("Give a concrete example") has context.
 _LAST_TOPIC: dict[str, str] = {}
 
@@ -666,6 +683,24 @@ def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
             )
             reply["caption"] = "Example · numbers come from your transactions"
             return reply
+
+    # Investment advice is out of scope: fixed words, so the model never improvises on it.
+    if advice_question(question):
+        reply = _reply(
+            book,
+            answer=f"{_ADVICE_LEAD} {_ADVICE_DETAIL}",
+            lead=_ADVICE_LEAD,
+            detail=_ADVICE_DETAIL,
+            model="",
+            source="spendsight",
+            uses_data=False,
+            language=language,
+            category=GENERAL,
+            card=None,
+            follow_key="general_invest",
+        )
+        reply["caption"] = "Not financial advice"
+        return reply
 
     # Impulse spending, runway and subscriptions: counted from the transactions, no model call.
     insight = insight_answer(book, question)

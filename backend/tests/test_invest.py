@@ -159,3 +159,27 @@ def test_a_repeating_habit_is_used_for_the_monthly_saving(monkeypatch):
              "options": [{"skip": 2, "month_cents": 23_972, "year_cents": 0}]}
     monkeypatch.setattr(answer_cards, "visit_cut", lambda items: habit)
     assert answer_cards._invest_monthly(None, "What if I invest that money?") == (23_972, "Restaurants")
+
+
+ADVICE = ["Should I buy stocks or an ETF?", "ETF", "Which fund is best for me?", "Is bitcoin a good idea?"]
+NOT_ADVICE = ["What if I invest that money?", "Whats a snowball effect?", "Where did my money go?"]
+
+
+@pytest.mark.parametrize("question", ADVICE)
+def test_investment_advice_gets_a_fixed_decline_with_the_invest_what_if(client, monkeypatch, question):
+    from app.verda import advice_question
+
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    assert advice_question(question)
+    body = _ask(client, question)
+    assert body["card"] is None
+    assert "not a financial adviser" in body["lead"]
+    assert body["caption"] == "Not financial advice"
+    assert body["follow_ups"][0]["text"] == "What if I invest that money?"
+
+
+@pytest.mark.parametrize("question", NOT_ADVICE)
+def test_the_invest_what_if_and_other_questions_are_not_declined_as_advice(question):
+    from app.verda import advice_question
+
+    assert not advice_question(question)
