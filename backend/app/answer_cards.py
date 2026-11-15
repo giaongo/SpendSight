@@ -763,7 +763,7 @@ INVEST_KID = (
     "more. The longer it rolls, the bigger it gets."
 )
 INVEST_NOTE = (
-    "This is just an example, not advice or a promise. It uses 5 % a year. "
+    "This is just an example, not advice or a promise. It uses 5 % a year. "
     "Real investments go up and down, and you can get back less than you put in."
 )
 
