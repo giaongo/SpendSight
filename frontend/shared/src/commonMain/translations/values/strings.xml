@@ -499,4 +499,9 @@
   <string name="T_pause_eating_out">Pause eating out this week</string>
   <string name="T_hide_details">Hide details</string>
   <string name="T_demo_offers">Demo offers for Junction: S Group brands, invented discounts.</string>
+  <string name="T_invest_year">In 1 year</string>
+  <string name="T_invest_years">In %1$s years</string>
+  <string name="T_invest_put_in">You put in</string>
+  <string name="T_invest_growth">Growth</string>
+  <string name="T_invest_kid">Explained like you’re 5: the snowball effect</string>
 </resources>

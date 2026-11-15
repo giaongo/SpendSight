@@ -569,6 +569,26 @@ data class AnswerCardDto(
     val screen: String? = null,
     val profile: SpenderProfileDto? = null,
     val cut: VisitCutDto? = null,
+    val invest: InvestDto? = null,
+)
+
+/** "What if I invest that money?": the service's growth of a monthly amount at an example return. */
+@Serializable
+data class InvestDto(
+    @SerialName("monthly_cents") val monthlyCents: Int,
+    @SerialName("monthly_from") val monthlyFrom: String = "",
+    @SerialName("rate_pct") val ratePct: Int = 0,
+    val years: List<InvestYearDto> = emptyList(),
+    val kid: String = "",
+    val note: String = "",
+)
+
+@Serializable
+data class InvestYearDto(
+    val years: Int,
+    @SerialName("put_in_cents") val putInCents: Int,
+    @SerialName("growth_cents") val growthCents: Int,
+    @SerialName("total_cents") val totalCents: Int,
 )
 
 @Serializable

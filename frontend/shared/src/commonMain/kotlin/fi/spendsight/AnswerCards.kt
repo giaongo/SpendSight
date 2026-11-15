@@ -55,7 +55,11 @@ fun CoachAnswer(
             HomeAsk.Save -> SaveAnswer(message)
             HomeAsk.Household -> HouseholdAnswer(message)
             // A typed question ("What if I ate out less?") can still come back with the visit cut.
-            null -> if (message.card?.cut?.options?.isNotEmpty() == true) SaveAnswer(message) else GenericAnswer(message)
+            null -> when {
+                message.card?.invest != null -> InvestAnswer(message, message.card.invest)
+                message.card?.cut?.options?.isNotEmpty() == true -> SaveAnswer(message)
+                else -> GenericAnswer(message)
+            }
         }
         CaptionLine(message)
         AskNext(message, onAsk)
@@ -288,6 +292,85 @@ private fun SafeWeekAnswer(safe: SafeToSpendDto, onAsk: (String) -> Unit, onOpen
                 modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Bg).padding(horizontal = 14.dp, vertical = 12.dp),
             )
         }
+    }
+}
+
+/** The snowball: what a monthly amount grows to, split into what you put in and what it earned. */
+@Composable
+private fun InvestAnswer(message: CoachMessage, invest: InvestDto) {
+    val card = message.card ?: return
+    message.lead?.let { Lead(it) }
+    message.detail?.let { Detail(it) }
+    val max = invest.years.maxOfOrNull { it.totalCents }?.coerceAtLeast(1) ?: 1
+    CardBox {
+        Text(card.title, color = Ink, fontSize = 17.sp, fontWeight = FontWeight.Bold)
+        card.context?.let {
+            Text(
+                it,
+                color = Forest,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Mint)
+                    .padding(horizontal = 10.dp, vertical = 4.dp),
+            )
+        }
+        Text(
+            "${eur(invest.monthlyCents)} ${invest.monthlyFrom}",
+            color = Secondary,
+            fontSize = 14.sp,
+            lineHeight = 20.sp,
+            modifier = Modifier.padding(top = 10.dp),
+        )
+        invest.years.forEach { row ->
+            Column(Modifier.padding(top = 14.dp).fillMaxWidth()) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        if (row.years == 1) t(R.string.T_invest_year) else t(R.string.T_invest_years, row.years.toString()),
+                        color = Ink,
+                        fontSize = 15.sp,
+                    )
+                    Text(eur(row.totalCents), color = Ink, fontSize = 15.sp, fontWeight = FontWeight.Bold, style = Tabular)
+                }
+                Row(
+                    Modifier.padding(top = 6.dp).fillMaxWidth().height(12.dp).clip(RoundedCornerShape(6.dp)).background(Fill),
+                ) {
+                    val share = row.totalCents.toFloat() / max
+                    Row(Modifier.fillMaxWidth(share.coerceIn(0.02f, 1f)).fillMaxHeight()) {
+                        if (row.putInCents > 0) Box(Modifier.weight(row.putInCents.toFloat()).fillMaxHeight().background(Forest))
+                        if (row.growthCents > 0) Box(Modifier.weight(row.growthCents.toFloat()).fillMaxHeight().background(Color(0xFF00A651)))
+                    }
+                }
+            }
+        }
+        Row(Modifier.padding(top = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(10.dp).clip(CircleShape).background(Forest))
+            Spacer(Modifier.width(6.dp))
+            Text(t(R.string.T_invest_put_in), color = Secondary, fontSize = 13.sp)
+            Spacer(Modifier.width(16.dp))
+            Box(Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF00A651)))
+            Spacer(Modifier.width(6.dp))
+            Text(t(R.string.T_invest_growth), color = Secondary, fontSize = 13.sp)
+        }
+        if (invest.kid.isNotBlank()) {
+            Column(
+                Modifier.padding(top = 14.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Mint).padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Glyph(Icon.Bulb, Forest, 20.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text(t(R.string.T_invest_kid), color = Forest, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                }
+                Text(invest.kid, color = Ink, fontSize = 15.sp, lineHeight = 22.sp)
+            }
+        }
+        if (invest.note.isNotBlank()) {
+            Text(invest.note, color = Secondary, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 12.dp))
+        }
+        HowLine(card.how)
     }
 }
 
