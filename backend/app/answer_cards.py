@@ -742,7 +742,12 @@ def visit_cut(items: list[dict]) -> dict | None:
 
 
 # "What if I invest that money?": the monthly saving from the visit cut, grown at an example return.
-_INVEST_Q = re.compile(r"\b(?:what if|if) i invest|\binvest (?:that|this|it|the)\b", re.IGNORECASE)
+_INVEST_Q = re.compile(
+    r"\b(?:what if|if) i invest|\binvest (?:that|this) (?:money|surplus|saving|savings|amount)\b",
+    re.IGNORECASE,
+)
+_PER_MONTH = re.compile(r"a month|per month|monthly|every month|each month", re.IGNORECASE)
+INVEST_MAX_MONTHLY_CENTS = 1_000_000  # 10 000 euros: keeps every total inside the app's Int cents
 _INVEST_AMOUNT = re.compile(r"(\d[\d\s]*(?:[.,]\d{1,2})?)\s*(?:€|e\b|eur\b|euros?\b)", re.IGNORECASE)
 INVEST_RATE_PCT = 5
 INVEST_YEARS = (1, 5, 10, 20)
@@ -781,10 +786,11 @@ def invest_growth(monthly_cents: int, rate_pct: float = INVEST_RATE_PCT, years=I
 def _invest_monthly(book, question: str) -> tuple[int, str] | None:
     """The amount to invest: an amount named in the question, else the visit cut's monthly saving."""
     found = _INVEST_AMOUNT.search(question)
-    if found:
+    if found and _PER_MONTH.search(question):
         number = found.group(1).replace(" ", "").replace(",", ".")
         cents = js_round(float(number) * 100)
-        return (cents, "question") if cents > 0 else None
+        if 0 < cents <= INVEST_MAX_MONTHLY_CENTS:
+            return cents, "question"
     cut = visit_cut(_spending_card(book, "restaurants").get("items") or [])
     if cut is None:
         return None
@@ -826,7 +832,10 @@ def invest_card(book, question: str) -> dict | None:
 def invest_lead(card: dict) -> tuple[str, str]:
     data = card["invest"]
     last = data["years"][-1]
-    lead = f"Invest {eur(data['monthly_cents'])} a month and in {last['years']} years you could have {eur(last['total_cents'])}."
+    lead = (
+        f"Invest {eur(data['monthly_cents'])} a month and in {last['years']} years you could have "
+        f"{eur(last['total_cents'])}, at an example {data['rate_pct']} % a year."
+    )
     detail = (
         f"You would put in {eur(last['put_in_cents'])}. The other {eur(last['growth_cents'])} is growth: "
         "the snowball effect."

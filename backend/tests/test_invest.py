@@ -48,3 +48,20 @@ def test_zero_amount_does_not_make_an_empty_card(client, monkeypatch):
     body = client.post("/customers/CUST00002/coach/ask", json={"text": "What if I invest 0 euros a month?"}).json()
     card = body.get("card") or {}
     assert card.get("kind") != "invest_growth" or card["invest"]["monthly_cents"] > 0
+
+
+def test_loose_phrases_and_big_or_one_off_amounts_are_not_taken_as_monthly(client, monkeypatch):
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    assert not invest_question("Should I invest the money in ETFs?")
+    assert not invest_question("How much did I invest the last year?")
+    ask = lambda text: client.post("/customers/CUST00002/coach/ask", json={"text": text}).json()["card"]  # noqa: E731
+    # A one-off sum is not a monthly deposit, and a huge one would overflow the app's Int cents.
+    assert ask("What if I invest 1000 euros?")["invest"]["monthly_cents"] != 100_000
+    assert ask("What if I invest 100000 euros a month?")["invest"]["monthly_cents"] < 1_000_000
+    assert ask("What if I invest 100 euros a month?")["invest"]["monthly_cents"] == 10_000
+
+
+def test_lead_says_it_is_an_example(client, monkeypatch):
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    body = client.post("/customers/CUST00002/coach/ask", json={"text": "What if I invest that money?"}).json()
+    assert "at an example 5 % a year" in body["lead"]
