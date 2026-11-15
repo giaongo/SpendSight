@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,7 +32,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlin.math.roundToInt
 
 /**
  * The five home questions each draw their own card. Figures come from the coach card.
@@ -374,6 +372,21 @@ private fun InvestAnswer(message: CoachMessage, invest: InvestDto) {
     }
 }
 
+/** A large round plus or minus button, easy to hit with a thumb. */
+@Composable
+private fun StepButton(symbol: String, enabled: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(56.dp)
+            .clip(CircleShape)
+            .background(if (enabled) Forest else Fill)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(symbol, color = if (enabled) Color.White else Tertiary, fontSize = 30.sp, fontWeight = FontWeight.Bold)
+    }
+}
+
 @Composable
 private fun WaterfallRow(label: String, amount: String, note: String?, strong: Boolean = false, last: Boolean = false) {
     Column(Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
@@ -422,12 +435,20 @@ private fun SaveAnswer(message: CoachMessage) {
                 fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.padding(top = 14.dp),
             )
-            Slider(
-                value = skip.toFloat(),
-                onValueChange = { skip = it.roundToInt().coerceIn(0, max) },
-                valueRange = 0f..max.toFloat(),
-                steps = (max - 1).coerceAtLeast(0),
-            )
+            Row(
+                Modifier.padding(top = 10.dp, bottom = 6.dp).fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                StepButton("−", skip > 0) { skip = (skip - 1).coerceAtLeast(0) }
+                Text(
+                    if (skip == 1) t(R.string.T_one_visit) else t(R.string.T_n_visits, skip),
+                    color = Ink,
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                StepButton("+", skip < max) { skip = (skip + 1).coerceAtMost(max) }
+            }
             Text(t(R.string.T_you_keep_skip, keep, skip), color = Secondary, fontSize = 13.sp)
             if (cut.visits > 0) {
                 Row(
