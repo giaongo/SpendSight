@@ -242,6 +242,18 @@ xcodebuild \
 
 The Android emulator reaches the host backend at `https://10.0.2.2:8000`; the iOS Simulator uses `https://127.0.0.1:8000`. See the [frontend guide](frontend/README.md#service-addresses) for deployed URLs and physical-device notes.
 
+### 4. Install the Android APK
+
+To try the app without building it, [download the APK](https://raw.githubusercontent.com/minhson0506/SpendSight/master/release/SpendSight_android.apk) and open it on an Android phone. It is a debug build, so Android may ask you to allow installs from this source. It calls the deployed service at `https://api.95-133-254-29.sslip.io`, so the phone needs an internet connection and no local backend.
+
+To build the same APK yourself:
+
+```bash
+cd frontend
+./gradlew :androidApp:assembleDebug -Pspendsight.apiUrl=https://api.95-133-254-29.sslip.io
+# output: frontend/androidApp/build/outputs/apk/debug/androidApp-debug.apk
+```
+
 ## Verification
 
 Run the checks for the area you changed.
