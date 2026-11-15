@@ -1,0 +1,62 @@
+{
+  "2025-10": {
+    "customers": 5100,
+    "median_extras_cents": 78805,
+    "median_share_pct": 47
+  },
+  "2025-11": {
+    "customers": 5100,
+    "median_extras_cents": 78247,
+    "median_share_pct": 47
+  },
+  "2025-12": {
+    "customers": 5099,
+    "median_extras_cents": 79665,
+    "median_share_pct": 47
+  },
+  "2026-01": {
+    "customers": 5099,
+    "median_extras_cents": 76987,
+    "median_share_pct": 46
+  },
+  "2026-02": {
+    "customers": 5100,
+    "median_extras_cents": 75758,
+    "median_share_pct": 45
+  },
+  "2026-03": {
+    "customers": 5100,
+    "median_extras_cents": 75393,
+    "median_share_pct": 45
+  },
+  "2026-04": {
+    "customers": 5100,
+    "median_extras_cents": 77921,
+    "median_share_pct": 46
+  },
+  "2026-05": {
+    "customers": 5099,
+    "median_extras_cents": 78204,
+    "median_share_pct": 48
+  },
+  "2026-06": {
+    "customers": 5100,
+    "median_extras_cents": 77238,
+    "median_share_pct": 47
+  },
+  "2026-07": {
+    "customers": 5100,
+    "median_extras_cents": 77003,
+    "median_share_pct": 48
+  },
+  "2026-08": {
+    "customers": 5099,
+    "median_extras_cents": 77599,
+    "median_share_pct": 48
+  },
+  "2026-09": {
+    "customers": 5100,
+    "median_extras_cents": 74351,
+    "median_share_pct": 45
+  }
+}

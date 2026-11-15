@@ -7,6 +7,12 @@ import pytest
 from app.customer_data import CustomerBook
 from app.insight_cards import insight_answer, insight_kind
 
+@pytest.fixture(autouse=True)
+def no_benchmark(monkeypatch):
+    """The own-history wording is tested without the dataset's typical-customer table."""
+    monkeypatch.setattr("app.insight_cards._benchmark", lambda month: None)
+
+
 QUESTIONS = {
     "impulse": ["When do I tend to impulse spend?", "Do I impulse buy a lot?"],
     "runway": [
@@ -72,23 +78,35 @@ def test_runway_lasts_balance_over_daily_pace():
     assert f"about {290_000 // pace} days" in lead
 
 
-def test_impulse_counts_weekend_and_late_share():
-    rows = []
-    for i in range(12):
-        day = date(2026, 9, 1) + timedelta(days=i)  # 1 Sep 2026 is a Tuesday
-        rows.append(_row(day, -2000, hour=22 if day.weekday() >= 4 else 12))
+def test_impulse_compares_with_the_customers_usual_month():
+    rows = [_row(date(2026, 8, 3 + 7 * i), -3000, category="Restaurants", hour=12) for i in range(4)]
+    # September: 6 dinners at 120 EUR, four of them on a Friday or Saturday evening.
+    for day in (4, 5, 11, 12, 15, 22):
+        rows.append(_row(date(2026, 9, day), -12_000, category="Restaurants", hour=20))
+    rows.append(_row(date(2026, 9, 28), 300_000, kind="salary", category="Salary"))
     rows.sort(key=lambda r: r["tx_date"])
-    card, lead, _ = insight_answer(_book(rows), "when do I impulse spend")
+    card, lead, detail = insight_answer(_book(rows), "when do I impulse spend")
     assert card["kind"] == "impulse_pattern"
-    assert "from Friday to Sunday" in lead and "% of" in lead
+    assert lead.startswith("Yes, quite a lot")
+    assert "times your usual" in lead
+    assert "Friday to Sunday evenings" in detail
     assert len(card["items"]) == 7
 
 
-def test_too_few_small_purchases_is_honest():
-    rows = [_row(date(2026, 9, 1), -2000), _row(date(2026, 9, 2), -2000)]
+def test_impulse_rent_bills_and_groceries_do_not_count():
+    rows = [_row(date(2026, 9, d), -9000, category="Groceries", hour=19) for d in range(1, 9)]
+    rows += [_row(date(2026, 9, 9), -90_000, category="Housing", hour=9)]
     card, lead, _ = insight_answer(_book(rows), "when do I impulse spend")
     assert "can't see an impulse pattern" in lead
     assert card["items"] == []
+
+
+def test_impulse_calm_month_is_not_called_a_problem():
+    rows = [_row(date(2026, 8, 3 + 7 * i), -12_000, category="Restaurants", hour=12) for i in range(4)]
+    rows += [_row(date(2026, 9, 1 + 7 * i), -3000, category="Restaurants", hour=12) for i in range(5)]
+    rows.sort(key=lambda r: r["tx_date"])
+    _, lead, _ = insight_answer(_book(rows), "when do I impulse spend")
+    assert lead.startswith("Not much lately")
 
 
 @pytest.mark.parametrize("question", [q for qs in QUESTIONS.values() for q in qs])
@@ -99,3 +117,30 @@ def test_endpoint_answers_without_the_model(client, monkeypatch, question):
     body = response.json()
     assert body["card"]["kind"] in {"impulse_pattern", "runway", "subscriptions"}
     assert body["caption"] == "Calculated from your transactions"
+
+
+def test_impulse_names_a_typical_customer_when_a_benchmark_exists(monkeypatch):
+    monkeypatch.setattr(
+        "app.insight_cards._benchmark",
+        lambda month: {"customers": 100, "median_extras_cents": 30_000, "median_share_pct": 40},
+    )
+    # Every month is as expensive as this one, so the customer is "usual" but still above typical.
+    rows = []
+    for month in (7, 8, 9):
+        for day in (3, 7, 10, 14, 17, 24):
+            rows.append(_row(date(2026, month, day), -12_500, category="Restaurants", hour=20))
+    rows.append(_row(date(2026, 9, 28), 300_000, kind="salary", category="Salary"))
+    rows.sort(key=lambda r: r["tx_date"])
+    card, lead, detail = insight_answer(_book(rows), "when do I impulse spend")
+    assert lead.startswith("Yes, more than a typical customer")
+    assert "against about" in lead
+    assert "typical customer" in detail and "outside rent" in detail
+    assert "usual level, month after month" in detail
+    assert card["reference"] is not None
+
+
+def test_the_benchmark_file_covers_the_demo_month():
+    from app.insight_cards import _load_benchmarks
+
+    bench = _load_benchmarks().get("2026-09")
+    assert bench and bench["customers"] > 1000 and bench["median_extras_cents"] > 0

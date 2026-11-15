@@ -12,11 +12,14 @@ subscriptions, too few small purchases) the card says so instead of inventing on
 from __future__ import annotations
 
 import re
+import json
 from collections import defaultdict
+from functools import lru_cache
+from pathlib import Path
 from datetime import date, timedelta
 from statistics import median
 
-from app.answer_cards import _figure, _item, _with_bars
+from app.answer_cards import _figure, _item, _with_bars, month_name
 from app.customer_data import is_essential
 from app.demo import demo_today
 from app.money import eur, js_round
@@ -29,9 +32,11 @@ _RUNWAY = re.compile(
 )
 _SUBS = re.compile(r"subscription|recurring (?:payment|charge|cost)|cancel .{0,30}(?:top|least)", re.IGNORECASE)
 
-SMALL_CENTS = 5_000  # a small purchase: under 50 EUR
-LATE_HOUR = 20
-MIN_SMALL = 10
+EVENING_HOUR = 17
+MIN_IMPULSE = 5
+_NOT_IMPULSE = {"Groceries", "Salary", "Invest Deposit"}
+_OUTSIDE = ("Housing", "Salary", "Invest Deposit")  # not counted in "what you spend outside rent"
+_BENCHMARKS = Path(__file__).with_name("benchmarks.json")
 WEEKDAYS = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 _HOUR = re.compile(r"[T :]([0-9]{2}):[0-9]{2}")
 NOTE = "Calculated from your transactions by SpendSight's tools, not guessed by AI."
@@ -64,42 +69,118 @@ def _pct(part: int, whole: int) -> int:
     return js_round(part * 100 / whole) if whole else 0
 
 
+@lru_cache(maxsize=1)
+def _load_benchmarks() -> dict:
+    """Typical-customer figures per month, built by scripts/make_benchmarks.py."""
+    try:
+        return json.loads(_BENCHMARKS.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _benchmark(month: str) -> dict | None:
+    return _load_benchmarks().get(month)
+
+
+def _discretionary(row: dict) -> bool:
+    """Spending you choose: not rent, bills, health, transport or groceries."""
+    return row["amount_cents"] < 0 and not is_essential(row) and row["category"] not in _NOT_IMPULSE
+
+
 def impulse(book) -> tuple[dict, str, str]:
-    """Small everyday purchases by day of the week and time of day, over the last three months."""
-    last = date.fromisoformat(book.last_date)
-    since = (last - timedelta(days=90)).isoformat()
-    small = [
-        row
-        for row in book.rows
-        if -SMALL_CENTS < row["amount_cents"] < 0 and row["tx_date"] >= since and not is_essential(row)
-    ]
+    """Discretionary spending this month against the customer's own usual month, and when it happens.
+
+    Any size counts: a 120 EUR dinner is the kind of purchase that makes a month jump, so a small-purchase
+    filter would miss it.
+    """
+    month = book.latest_month
+    rows = [row for row in book.months.get(month, []) if _discretionary(row)]
+    prior = sorted(m for m in book.months if m < month)[-6:]
+    totals = [t for m in prior if (t := sum(-r["amount_cents"] for r in book.months[m] if _discretionary(r))) > 0]
+    usual = js_round(median(totals)) if totals else None
     card = {
         "kind": "impulse_pattern",
-        "title": "When you spend on impulse",
-        "context": "Small purchases under 50 €, last 3 months",
+        "title": "Your impulse spending",
+        "context": f"{month_name(month)}: eating out, shopping and fun",
         "options": None,
         "how": (
-            f"Every purchase under {eur(SMALL_CENTS)} outside rent, bills, health and transport, from the "
-            f"last 90 days of your S-Bank transactions. {NOTE}"
+            f"Every purchase in {month_name(month)} outside rent, bills, health, transport and groceries. "
+            "Your usual month is the median of your earlier months. Friday to Sunday evenings are purchases "
+            f"from {EVENING_HOUR}:00. {NOTE}"
         ),
         "screen": "spending",
     }
-    if len(small) < MIN_SMALL:
-        card.update(items=[], headline=None, verdict="Not enough small purchases to see a pattern.")
-        return card, "I can't see an impulse pattern yet.", f"You made {len(small)} small purchases in the last 3 months."
+    if len(rows) < MIN_IMPULSE:
+        card.update(items=[], headline=None, verdict="Not enough purchases to see a pattern.")
+        return card, "I can't see an impulse pattern yet.", f"You made {len(rows)} everyday purchases in {month_name(month)}."
     by_day = [0] * 7
     count_day = [0] * 7
-    late = weekend = 0
-    for row in small:
+    by_category: dict[str, int] = defaultdict(int)
+    evening = []
+    for row in rows:
         day = date.fromisoformat(row["tx_date"]).weekday()
         by_day[day] += -row["amount_cents"]
         count_day[day] += 1
-        weekend += day >= 4
+        by_category[row["category"]] += -row["amount_cents"]
         hour = _hour(row)
-        late += hour is not None and hour >= LATE_HOUR
-    n = len(small)
-    weekend_pct, late_pct = _pct(weekend, n), _pct(late, n)
+        if day >= 4 and hour is not None and hour >= EVENING_HOUR:
+            evening.append(row)
+    total = sum(by_day)
+    top = max(by_category, key=by_category.get)
+    evening_total = -sum(row["amount_cents"] for row in evening)
     peak = max(range(7), key=lambda d: by_day[d])
+    shown = month_name(month)
+    bench = _benchmark(month)
+    own = total / usual if usual else None
+    if bench:
+        typical = bench["median_extras_cents"]
+        ratio = total / typical
+        if ratio >= 1.3:
+            lead = (
+                f"Yes, more than a typical customer. In {shown} you spent {eur(total)} on {top.lower()} and "
+                f"other extras, against about {eur(typical)} for a typical customer."
+            )
+        elif ratio <= 0.75:
+            lead = (
+                f"Less than a typical customer. In {shown} you spent {eur(total)} on extras, against about "
+                f"{eur(typical)} for a typical customer."
+            )
+        else:
+            lead = (
+                f"About the same as a typical customer. In {shown} you spent {eur(total)} on extras, "
+                f"and a typical customer spends about {eur(typical)}."
+            )
+    elif own is not None:
+        times = f"{own:.0f}" if own >= 10 else f"{own:.1f}".rstrip("0").rstrip(".")
+        if own >= 1.5:
+            lead = (
+                f"Yes, quite a lot. In {shown} you spent {eur(total)} on {top.lower()} and other extras, "
+                f"about {times} times your usual {eur(usual)}."
+            )
+        elif own <= 0.75:
+            lead = f"Not much lately. In {shown} you spent {eur(total)} on extras, less than your usual {eur(usual)}."
+        else:
+            lead = f"About as usual. In {shown} you spent {eur(total)} on extras, close to your usual {eur(usual)}."
+    else:
+        lead = f"In {shown} you spent {eur(total)} on {top.lower()} and other extras."
+    parts = []
+    base = -sum(r["amount_cents"] for r in book.months.get(month, []) if r["amount_cents"] < 0 and r["category"] not in _OUTSIDE)
+    if bench and base > 0:
+        parts.append(
+            f"That is {_pct(total, base)} % of what you spend outside rent, against {bench['median_share_pct']} % "
+            "for a typical customer."
+        )
+    if own is not None and 0.75 < own < 1.3 and bench and total / bench["median_extras_cents"] >= 1.3:
+        parts.append("It is your usual level, month after month.")
+    elif own is not None and own >= 1.5:
+        parts.append(f"It is also well above your own usual month of {eur(usual)}.")
+    if evening:
+        parts.append(
+            f"{len(evening)} of your {len(rows)} purchases were on Friday to Sunday evenings, together {eur(evening_total)}."
+        )
+    if len(evening) >= 3 or _pct(len(evening), len(rows)) >= 40:
+        parts.append("A small budget for weekend evenings, set before you go out, could help.")
+    detail = " ".join(parts) or "Nothing stands out."
     items = [
         _item(
             WEEKDAYS[d],
@@ -110,27 +191,14 @@ def impulse(book) -> tuple[dict, str, str]:
         )
         for d in range(7)
     ]
-    if late_pct >= 50 or weekend_pct >= 50:
-        tip = "Try a small cap for weekend evenings, or wait until the next morning before buying."
-    else:
-        tip = "Your small purchases are spread fairly evenly through the week."
-    if late_pct >= 50 or weekend_pct >= 50:
-        lead = (
-            f"Your small purchases tend to pile up from Friday to Sunday: {weekend_pct} % of them, "
-            f"and {late_pct} % come after 8 pm."
-        )
-    else:
-        lead = (
-            f"No strong impulse pattern here: {weekend_pct} % of your small purchases happen from Friday to Sunday "
-            f"and {late_pct} % after 8 pm."
-        )
     card.update(
-        headline=_figure(f"Spent on small purchases ({n})", sum(by_day)),
-        verdict=f"Busiest day: {WEEKDAYS[peak]}",
-        verdict_detail=tip,
+        headline=_figure(f"Extras in {shown} ({len(rows)} purchases)", total),
+        reference=_figure("Your usual month", usual) if usual else None,
+        verdict=f"Biggest day: {WEEKDAYS[peak]}",
+        verdict_detail=detail,
         items=_with_bars(items),
     )
-    return card, lead, tip
+    return card, lead, detail
 
 
 def _next_payday(book, today: date) -> date | None:
