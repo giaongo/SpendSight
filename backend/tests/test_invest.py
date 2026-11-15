@@ -32,7 +32,7 @@ def test_coach_answers_invest_without_the_model(client, monkeypatch):
     assert [row["years"] for row in invest["years"]] == [1, 5, 10, 20]
     assert invest["monthly_cents"] > 0
     assert "snowball" in invest["kid"].lower()
-    assert "not a promise" in invest["note"]
+    assert "not advice or a promise" in invest["note"]
     assert body["lead"].startswith("If you put that ")
     assert body["caption"].startswith("Example")
 
@@ -84,7 +84,7 @@ def test_example_follow_up_continues_the_invest_topic(client, monkeypatch):
     _ask(client, "What if I invest that money?")
     body = _ask(client, "Give a concrete example")
     assert body["card"]["kind"] == "invest_growth"
-    assert body["lead"].startswith("Here's a real example")
+    assert body["lead"].startswith("Here's an example")
 
 
 def test_short_english_is_not_guessed_as_another_language():
