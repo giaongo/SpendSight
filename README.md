@@ -43,6 +43,9 @@ SpendSight is a Junction 2026 mobile-banking prototype that turns transaction da
 > [!IMPORTANT]
 > SpendSight contains two intentionally separate data worlds: a Junction customer dataset and Aino Korhonen's fixed design-sample ledger. Never combine their identities or figures.
 
+Experience our solution!
+https://appetize.io/app/b_zyzwkf2r5ap7vvbeb3xwdjyija
+
 ## Features
 
 A few of the things you can do with SpendSight:
