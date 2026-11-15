@@ -28,6 +28,9 @@ from app.answer_cards import (
     enrich_card,
     follow_ups,
     guard_peer_spending,
+    invest_card,
+    invest_lead,
+    invest_question,
     personal_card,
     split_answer,
     tidy_answer,
@@ -697,6 +700,27 @@ def _load_peer(book: CustomerBook, statistics) -> tuple[dict, dict] | None:
 def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
     key, base, model = settings()
     language = answer_language(question)
+    # "What if I invest that money?": fixed copy and service figures, so no model call.
+    if invest_question(question):
+        card = invest_card(book, question)
+        if card is not None:
+            lead, detail = invest_lead(card)
+            reply = _reply(
+                book,
+                answer=f"{lead} {detail}",
+                lead=lead,
+                detail=detail,
+                model="",
+                source="spendsight",
+                uses_data=True,
+                language=language,
+                category=PERSONAL,
+                card=card,
+                follow_key="spending_breakdown",
+            )
+            reply["caption"] = "Example · numbers come from your transactions"
+            return reply
+
     category = question_category(question)
     if category is None:
         if not key or not base:

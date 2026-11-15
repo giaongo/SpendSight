@@ -739,3 +739,92 @@ def visit_cut(items: list[dict]) -> dict | None:
             for n in range(span + 1)
         ],
     }
+
+
+# "What if I invest that money?": the monthly saving from the visit cut, grown at an example return.
+_INVEST_Q = re.compile(r"\b(?:what if|if) i invest|\binvest (?:that|this|it|the)\b", re.IGNORECASE)
+_INVEST_AMOUNT = re.compile(r"(\d[\d\s]*(?:[.,]\d{1,2})?)\s*(?:€|e\b|eur\b|euros?\b)", re.IGNORECASE)
+INVEST_RATE_PCT = 5
+INVEST_YEARS = (1, 5, 10, 20)
+INVEST_KID = (
+    "Think of a snowball. You roll a small ball of snow down a hill. As it rolls, it picks up more snow, "
+    "so it gets bigger. And a bigger ball picks up even more snow each time it turns. "
+    "Money can work the same way: the money you put in earns a little extra, and next year that extra "
+    "earns extra too. That is the snowball effect. The longer it rolls, the bigger it gets."
+)
+INVEST_NOTE = (
+    "This is an example, not a promise or advice. It uses 5 % a year. "
+    "Real investments go up and down, and you can get back less than you put in."
+)
+
+
+def invest_question(question: str) -> bool:
+    """A what-if about investing money (not a question about past savings)."""
+    return bool(_INVEST_Q.search(question))
+
+
+def invest_growth(monthly_cents: int, rate_pct: float = INVEST_RATE_PCT, years=INVEST_YEARS) -> list[dict]:
+    """Monthly deposits at the end of each month, compounded monthly at rate_pct a year."""
+    rate = rate_pct / 100 / 12
+    rows = []
+    for year in years:
+        months = year * 12
+        total = js_round(monthly_cents * ((1 + rate) ** months - 1) / rate) if rate else monthly_cents * months
+        put_in = monthly_cents * months
+        rows.append({"years": year, "put_in_cents": put_in, "growth_cents": total - put_in, "total_cents": total})
+    return rows
+
+
+def _invest_monthly(book, question: str) -> tuple[int, str] | None:
+    """The amount to invest: an amount named in the question, else the visit cut's monthly saving."""
+    found = _INVEST_AMOUNT.search(question)
+    if found:
+        number = found.group(1).replace(" ", "").replace(",", ".")
+        return js_round(float(number) * 100), "question"
+    cut = visit_cut(_spending_card(book, "restaurants").get("items") or [])
+    if cut is None:
+        return None
+    option = next((o for o in cut["options"] if o["skip"] == cut["selected"]), None)
+    if option is None or option["month_cents"] <= 0:
+        return None
+    return option["month_cents"], cut["category"]
+
+
+def invest_card(book, question: str) -> dict | None:
+    picked = _invest_monthly(book, question)
+    if picked is None:
+        return None
+    monthly, source = picked
+    rows = invest_growth(monthly)
+    last = rows[-1]
+    where = "a month" if source == "question" else f"a month, from eating out 2 times less ({source})"
+    return {
+        "kind": "invest_growth",
+        "title": "What if I invest that money?",
+        "context": f"Example: {INVEST_RATE_PCT} % a year",
+        "headline": {"label": f"In {last['years']} years", "amount_cents": last["total_cents"]},
+        "items": [],
+        "how": (
+            f"{eur(monthly)} put in at the end of every month, growing {INVEST_RATE_PCT} % a year, "
+            "added up month by month. Calculated by SpendSight's tools, not guessed by AI."
+        ),
+        "invest": {
+            "monthly_cents": monthly,
+            "monthly_from": where,
+            "rate_pct": INVEST_RATE_PCT,
+            "years": rows,
+            "kid": INVEST_KID,
+            "note": INVEST_NOTE,
+        },
+    }
+
+
+def invest_lead(card: dict) -> tuple[str, str]:
+    data = card["invest"]
+    last = data["years"][-1]
+    lead = f"Invest {eur(data['monthly_cents'])} a month and in {last['years']} years you could have {eur(last['total_cents'])}."
+    detail = (
+        f"You would put in {eur(last['put_in_cents'])}. The other {eur(last['growth_cents'])} is growth: "
+        "the snowball effect."
+    )
+    return lead, detail
