@@ -17,7 +17,6 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
-from langdetect import DetectorFactory, LangDetectException, detect
 
 from app.answer_cards import (
     CAPTIONS,
@@ -27,20 +26,21 @@ from app.answer_cards import (
     card_facts,
     enrich_card,
     follow_ups,
+    example_followup,
     guard_peer_spending,
     invest_card,
     invest_lead,
     invest_question,
+    snowball_question,
     personal_card,
     split_answer,
     tidy_answer,
 )
 from app.customer_data import CustomerBook
+from app.insight_cards import insight_answer
 from app.money import eur
 from app.peers import PeerDataError, peer_card
 from app.statfi import StatisticsApiError
-
-DetectorFactory.seed = 0
 
 DEFAULT_MODEL = "Qwen/Qwen2.5-1.5B-Instruct"
 QUESTION_LIMIT = 280
@@ -193,11 +193,7 @@ _GENERAL = re.compile(
     r"mikä on|mitä on|kuka on|missä |selitä|kerro |miten )\b",
     re.IGNORECASE,
 )
-_ENGLISH_WORDS = re.compile(
-    r"\b(the|what|how|my|is|are|was|balance|salary|spend|spending|when|where|"
-    r"please|tell|capital|joke|much|account|left|september)\b",
-    re.IGNORECASE,
-)
+
 
 
 class VerdaConfigError(Exception):
@@ -248,77 +244,6 @@ def chat_url(base: str) -> str:
     return base + "/v1/chat/completions"
 
 
-# Names the model understands. Codes are the ones langdetect returns.
-_LANGUAGE_NAMES = {
-    "af": "Afrikaans",
-    "ar": "Arabic",
-    "bg": "Bulgarian",
-    "bn": "Bengali",
-    "ca": "Catalan",
-    "cs": "Czech",
-    "cy": "Welsh",
-    "da": "Danish",
-    "de": "German",
-    "el": "Greek",
-    "en": "English",
-    "es": "Spanish",
-    "et": "Estonian",
-    "fa": "Persian",
-    "fi": "Finnish",
-    "fr": "French",
-    "gu": "Gujarati",
-    "he": "Hebrew",
-    "hi": "Hindi",
-    "hr": "Croatian",
-    "hu": "Hungarian",
-    "id": "Indonesian",
-    "it": "Italian",
-    "ja": "Japanese",
-    "kn": "Kannada",
-    "ko": "Korean",
-    "lt": "Lithuanian",
-    "lv": "Latvian",
-    "mk": "Macedonian",
-    "ml": "Malayalam",
-    "mr": "Marathi",
-    "ne": "Nepali",
-    "nl": "Dutch",
-    "no": "Norwegian",
-    "pa": "Punjabi",
-    "pl": "Polish",
-    "pt": "Portuguese",
-    "ro": "Romanian",
-    "ru": "Russian",
-    "sk": "Slovak",
-    "sl": "Slovenian",
-    "so": "Somali",
-    "sq": "Albanian",
-    "sv": "Swedish",
-    "sw": "Swahili",
-    "ta": "Tamil",
-    "te": "Telugu",
-    "th": "Thai",
-    "tl": "Tagalog",
-    "tr": "Turkish",
-    "uk": "Ukrainian",
-    "ur": "Urdu",
-    "vi": "Vietnamese",
-    "zh-cn": "Chinese",
-    "zh-tw": "Chinese",
-}
-
-_CYRILLIC = re.compile(r"[А-Яа-яЁёІіЇїЄєҐґ]")
-_UKRAINIAN_LETTERS = re.compile(r"[ІіЇїЄєҐґ]")
-_RUSSIAN_LETTERS = re.compile(r"[ЁёЫыЭэЪъ]")
-_HANGUL = re.compile(r"[가-힣]")
-_KANA = re.compile(r"[ぁ-んァ-ン]")
-_CJK = re.compile(r"[一-鿿]")
-_ARABIC = re.compile(r"[\u0600-\u06FF]")
-_THAI = re.compile(r"[\u0E00-\u0E7F]")
-_GREEK = re.compile(r"[Α-ω]")
-_HEBREW = re.compile(r"[\u0590-\u05FF]")
-_DEVANAGARI = re.compile(r"[\u0900-\u097F]")
-
 _DISCLAIMERS = {
     "English": (
         SPENDING_DISCLAIMER,
@@ -351,44 +276,9 @@ _DISCLAIMERS = {
 }
 
 
-def _detected_code(text: str) -> str:
-    try:
-        return detect(text)
-    except LangDetectException:
-        return ""
-
-
 def answer_language(question: str) -> str:
-    """Name of the language to answer in. Empty means match the question as written."""
-    text = question.strip()
-    if not text:
-        return ""
-    if _UKRAINIAN_LETTERS.search(text):
-        return "Ukrainian"
-    if _RUSSIAN_LETTERS.search(text) or (_CYRILLIC.search(text) and _detected_code(text) in {"ru", "uk", "bg", "mk"}):
-        if _UKRAINIAN_LETTERS.search(text):
-            return "Ukrainian"
-        return "Russian" if _RUSSIAN_LETTERS.search(text) or _detected_code(text) != "bg" else "Bulgarian"
-    if _HANGUL.search(text):
-        return "Korean"
-    if _KANA.search(text):
-        return "Japanese"
-    if _CJK.search(text):
-        return "Chinese"
-    if _ARABIC.search(text):
-        return "Arabic"
-    if _THAI.search(text):
-        return "Thai"
-    if _GREEK.search(text):
-        return "Greek"
-    if _HEBREW.search(text):
-        return "Hebrew"
-    if _DEVANAGARI.search(text):
-        return "Hindi"
-    # Short English is often misread as another language. Trust English words, then the detector.
-    if _ENGLISH_WORDS.search(text):
-        return "English"
-    return _LANGUAGE_NAMES.get(_detected_code(text), "")
+    """The app answers in English for now: no language detection."""
+    return "English"
 
 
 def disclaimer_for(uses_data: bool, language: str) -> str:
@@ -508,12 +398,8 @@ def spending_relevance(question: str) -> str | None:
         return "other"
     if money:
         return None
-    # English and Finnish questions with no money words are not about this account.
-    # Any other language still goes to the model, so a German or Swedish balance
-    # question is not mistaken for small talk.
-    if answer_language(text) in {"English", "Finnish"}:
-        return "other"
-    return None
+    # A question with no money words is not about this account.
+    return "other"
 
 
 def _messages(book: CustomerBook, question: str, relevance: str) -> tuple[list[dict], bool]:
@@ -697,14 +583,28 @@ def _load_peer(book: CustomerBook, statistics) -> tuple[dict, dict] | None:
         return None
 
 
+# The last topic each customer asked about, so a short follow-up ("Give a concrete example") has context.
+_LAST_TOPIC: dict[str, str] = {}
+
+
 def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
     key, base, model = settings()
     language = answer_language(question)
-    # "What if I invest that money?": fixed copy and service figures, so no model call.
-    if invest_question(question):
+    # "What if I invest that money?", "What's the snowball effect?" and a short follow-up like
+    # "Give a concrete example": fixed copy and service figures, so no model call.
+    if snowball_question(question):
+        mode = "explain"
+    elif _LAST_TOPIC.get(book.customer_id) == "invest" and example_followup(question):
+        mode = "example"
+    elif invest_question(question):
+        mode = "whatif"
+    else:
+        mode = None
+    if mode is not None:
         card = invest_card(book, question)
         if card is not None:
-            lead, detail = invest_lead(card)
+            _LAST_TOPIC[book.customer_id] = "invest"
+            lead, detail = invest_lead(card, mode)
             reply = _reply(
                 book,
                 answer=f"{lead} {detail}",
@@ -720,6 +620,26 @@ def ask_customer(book: CustomerBook, question: str, statistics=None) -> dict:
             )
             reply["caption"] = "Example · numbers come from your transactions"
             return reply
+
+    # Impulse spending, runway and subscriptions: counted from the transactions, no model call.
+    insight = insight_answer(book, question)
+    if insight is not None:
+        card, lead, detail = insight
+        reply = _reply(
+            book,
+            answer=f"{lead} {detail}".strip(),
+            lead=lead,
+            detail=detail or None,
+            model="",
+            source="spendsight",
+            uses_data=True,
+            language=language,
+            category=PERSONAL,
+            card=card,
+            follow_key="spending_breakdown",
+        )
+        reply["caption"] = "Calculated from your transactions"
+        return reply
 
     category = question_category(question)
     if category is None:

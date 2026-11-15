@@ -829,15 +829,63 @@ def invest_card(book, question: str) -> dict | None:
     }
 
 
-def invest_lead(card: dict) -> tuple[str, str]:
+_SNOWBALL_Q = re.compile(
+    r"snow\s?ball|compound(?:ing)? (?:interest|effect|growth)|explain .{0,40}(?:like|to) (?:a |an )?"
+    r"(?:5|five)[- ]?(?:year|yr)|\beli5\b",
+    re.IGNORECASE,
+)
+_EXAMPLE_FOLLOWUP = re.compile(
+    r"^\W*(?:(?:can|could) you |please )?(?:(?:give|show)(?: me)? (?:a |an |another )?(?:concrete |real |simple )?example"
+    r"|explain(?: it| that)?(?: again| simpler| more)?|what do you mean|how does that work|i don't get it|why)\W*$",
+    re.IGNORECASE,
+)
+
+
+def snowball_question(question: str) -> bool:
+    return bool(_SNOWBALL_Q.search(question))
+
+
+def example_followup(question: str) -> bool:
+    """A short follow-up like "Give a concrete example" (only meaningful right after an invest answer)."""
+    return bool(_EXAMPLE_FOLLOWUP.search(question))
+
+
+def invest_lead(card: dict, mode: str = "whatif") -> tuple[str, str]:
+    """The conversational sentences above the card. mode: whatif, explain or example."""
     data = card["invest"]
+    rows = {row["years"]: row for row in data["years"]}
     last = data["years"][-1]
+    monthly = eur(data["monthly_cents"])
+    rate = data["rate_pct"]
+    if mode == "explain":
+        lead = (
+            "Picture a small snowball rolling down a hill. It picks up snow as it goes, so the bigger it gets, "
+            "the faster it grows. Money can do the same: what you put in earns a little, and then that extra "
+            "earns too."
+        )
+        detail = (
+            f"With your {monthly} a month, that could be {eur(last['total_cents'])} in {last['years']} years "
+            f"(an example at {rate} % a year), and {eur(last['growth_cents'])} of it is growth you didn't have to save."
+        )
+        return lead, detail
+    if mode == "example":
+        ten = rows.get(10, last)
+        lead = (
+            f"Here's a real example. Say you put away {monthly} every month. After 1 year you'd have "
+            f"{eur(rows[1]['total_cents'])}, after 10 years {eur(ten['total_cents'])}, and after "
+            f"{last['years']} years {eur(last['total_cents'])}."
+        )
+        detail = (
+            f"Of that last amount, you paid in {eur(last['put_in_cents'])} and the other {eur(last['growth_cents'])} "
+            f"is growth. It's an example at {rate} % a year, not a promise."
+        )
+        return lead, detail
     lead = (
-        f"Invest {eur(data['monthly_cents'])} a month and in {last['years']} years you could have "
-        f"{eur(last['total_cents'])}, at an example {data['rate_pct']} % a year."
+        f"If you put that {monthly} aside every month, in {last['years']} years you could have "
+        f"{eur(last['total_cents'])}, at an example {rate} % a year."
     )
     detail = (
-        f"You would put in {eur(last['put_in_cents'])}. The other {eur(last['growth_cents'])} is growth: "
-        "the snowball effect."
+        f"You would put in {eur(last['put_in_cents'])}, and the other {eur(last['growth_cents'])} is growth. "
+        "That is the snowball effect."
     )
     return lead, detail

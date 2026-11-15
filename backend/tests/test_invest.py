@@ -33,7 +33,7 @@ def test_coach_answers_invest_without_the_model(client, monkeypatch):
     assert invest["monthly_cents"] > 0
     assert "snowball" in invest["kid"].lower()
     assert "not a promise" in invest["note"]
-    assert body["lead"].startswith("Invest ")
+    assert body["lead"].startswith("If you put that ")
     assert body["caption"].startswith("Example")
 
 
@@ -65,3 +65,29 @@ def test_lead_says_it_is_an_example(client, monkeypatch):
     monkeypatch.delenv("VERDA_API_KEY", raising=False)
     body = client.post("/customers/CUST00002/coach/ask", json={"text": "What if I invest that money?"}).json()
     assert "at an example 5 % a year" in body["lead"]
+
+
+def _ask(client, text):
+    return client.post("/customers/CUST00002/coach/ask", json={"text": text}).json()
+
+
+def test_snowball_question_explains_with_the_customers_numbers(client, monkeypatch):
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    body = _ask(client, "Whats a snowball effect?")
+    assert body["card"]["kind"] == "invest_growth"
+    assert "snowball" in body["lead"].lower()
+    assert "\u20ac" in body["detail"]
+
+
+def test_example_follow_up_continues_the_invest_topic(client, monkeypatch):
+    monkeypatch.delenv("VERDA_API_KEY", raising=False)
+    _ask(client, "What if I invest that money?")
+    body = _ask(client, "Give a concrete example")
+    assert body["card"]["kind"] == "invest_growth"
+    assert body["lead"].startswith("Here's a real example")
+
+
+def test_short_english_is_not_guessed_as_another_language():
+    from app.verda import answer_language
+
+    assert answer_language("Give a concrete example") == "English"

@@ -15,13 +15,9 @@ def test_chat_url_accepts_the_containers_base():
 def test_the_reply_language_follows_the_question():
     assert answer_language("What is my balance?") == "English"
     assert answer_language("Tell me a joke") == "English"
-    assert answer_language("Mikä on saldoni?") == "Finnish"
-    assert answer_language("Paljonko käytin syyskuussa?") == "Finnish"
-    assert answer_language("Wie hoch ist mein Kontostand?") == "German"
-    assert answer_language("Quel est mon solde ?") == "French"
-    assert answer_language("Hur mycket har jag på kontot?") == "Swedish"
-    assert answer_language("¿Cuál es mi saldo?") == "Spanish"
-    assert answer_language("Qual è il mio saldo?") == "Italian"
+    # English only for now: whatever the language of the question, the answer is English.
+    assert answer_language("Mikä on saldoni?") == "English"
+    assert answer_language("Wie hoch ist mein Kontostand?") == "English"
     assert spending_relevance("Mikä on saldoni?") == "spending"
     assert spending_relevance("Mikä on Suomen pääkaupunki?") == "other"
     assert spending_relevance("Wie hoch ist mein Kontostand?") == "spending"
@@ -127,7 +123,7 @@ def test_other_questions_are_sent_without_customer_facts(client, monkeypatch):
     assert "Answer in English" in captured["body"]["messages"][0]["content"]
 
 
-def test_a_finnish_question_asks_for_a_finnish_answer(client, monkeypatch):
+def test_a_finnish_question_still_gets_an_english_answer(client, monkeypatch):
     monkeypatch.setenv("VERDA_API_KEY", "test-key")
     monkeypatch.setenv("VERDA_BASE_URL", "https://containers.verda.com/demo")
     captured = {}
@@ -159,12 +155,12 @@ def test_a_finnish_question_asks_for_a_finnish_answer(client, monkeypatch):
     assert response.status_code == 200
     body = response.json()
     assert body["uses_customer_data"] is True
-    assert body["disclaimer"].startswith("Tämä vastaus")
-    assert "Answer in Finnish" in captured["body"]["messages"][0]["content"]
-    assert '"language": "Finnish"' in captured["body"]["messages"][1]["content"]
+    assert not body["disclaimer"].startswith("Tämä vastaus")
+    assert "Answer in English" in captured["body"]["messages"][0]["content"]
+    assert '"language": "English"' in captured["body"]["messages"][1]["content"]
 
 
-def test_a_german_question_asks_for_a_german_answer(client, monkeypatch):
+def test_a_german_question_still_gets_an_english_answer(client, monkeypatch):
     monkeypatch.setenv("VERDA_API_KEY", "test-key")
     monkeypatch.setenv("VERDA_BASE_URL", "https://containers.verda.com/demo")
     systems = []
@@ -204,8 +200,9 @@ def test_a_german_question_asks_for_a_german_answer(client, monkeypatch):
     body = response.json()
     assert body["answer"] == "Dein Kontostand beträgt €4.723,58."
     assert body["uses_customer_data"] is True
-    assert body["disclaimer"].startswith("Diese Antwort")
-    assert any("Answer in German" in system for system in systems)
+    assert not body["disclaimer"].startswith("Diese Antwort")
+    assert any("Answer in English" in system for system in systems)
+    assert not any("Answer in German" in system for system in systems)
 
 
 def test_customer_coach_ask_needs_the_deployment_settings(client, monkeypatch):

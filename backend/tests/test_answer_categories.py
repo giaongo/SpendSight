@@ -316,7 +316,7 @@ def test_a_general_question_has_no_card_and_no_figures(client, verda):
 def test_the_model_sorts_a_question_the_patterns_cannot(client, verda):
     client.app.state.statistics = StatisticsCache(fetch=education_assets)
     model = verda("Antwort.", classify="peer")
-    response = client.post("/customers/CUST00001/coach/ask", json={"text": "Wie viel sparen Leute in meinem Alter?"})
+    response = client.post("/customers/CUST00001/coach/ask", json={"text": "How much do people usually save?"})
     body = response.json()
     assert body["category"] == "peer_comparison"
     assert body["card"]["options"]["selected"] == "55-64"
